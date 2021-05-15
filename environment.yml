@@ -5,6 +5,11 @@ channels:
 dependencies:
   - python=3.8
   - jupyterlab
-  - geemap
+  - pygeoogc 
+  - pygeoutils
+  - py3dep
   - pynhd
+  - pygeohydro
   - pydaymet
+  - geemap
+  - xarray=0.17
