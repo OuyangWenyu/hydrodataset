@@ -3,13 +3,13 @@ import sys
 
 from pynhd import NLDI
 
-sys.path.append("../..")
+sys.path.append(os.path.join("..", ".."))
 import definitions
 from src.data.data_camels import Camels
 from src.utils.hydro_utils import progress_wrapped, hydro_logger
 
 
-@progress_wrapped(estimated_time=671)
+@progress_wrapped(estimated_time=1000)
 def main():
     camels = Camels(os.path.join(definitions.DATASET_DIR, "camels"), download=True)
     basin_id = camels.camels_sites["gauge_id"].values.tolist()

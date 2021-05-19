@@ -182,7 +182,7 @@ def download_one_zip(data_url, data_dir):
     zipfile_path, unzip_dir = zip_file_name_from_url(data_url, data_dir)
     if not is_there_file(zipfile_path, unzip_dir):
         if not os.path.isdir(unzip_dir):
-            os.mkdir(unzip_dir)
+            os.makedirs(unzip_dir)
         r = requests.get(data_url, stream=True)
         with open(zipfile_path, "wb") as py_file:
             for chunk in r.iter_content(chunk_size=1024):  # 1024 bytes
