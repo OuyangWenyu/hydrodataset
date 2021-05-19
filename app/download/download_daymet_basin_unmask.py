@@ -36,8 +36,7 @@ def main(args):
         if not os.path.isdir(save_one_basin_dir):
             os.makedirs(save_one_basin_dir)
         for j in tqdm(range(len(years)), leave=False):
-            # dates = (str(years[j]) + "-01-01", str(years[j]) + "-12-31")
-            dates = (str(years[j]) + "-01-01", str(years[j]) + "-01-03")
+            dates = (str(years[j]) + "-01-01", str(years[j]) + "-12-31")
             daily = download_daymet_by_geom_bound(basins.geometry[i], dates, variables=var)
             save_path = os.path.join(save_one_basin_dir, basins_id[i] + "_" + str(years[j]) + "_nomask.nc")
             daily.to_netcdf(save_path)
