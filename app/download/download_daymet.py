@@ -4,7 +4,7 @@ import sys
 
 from tqdm import tqdm
 
-sys.path.append("../..")
+sys.path.append(os.path.join("..", ".."))
 import definitions
 from src.data.data_camels import Camels
 from src.daymet4basins.basin_daymet_process import download_daymet_by_geom_bound
