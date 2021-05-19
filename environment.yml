@@ -13,3 +13,4 @@ dependencies:
   - pydaymet
   - geemap
   - xarray=0.17
+  - tqdm

@@ -113,7 +113,7 @@ def download_daymet_by_geom_bound(
     return clm
 
 
-def calculate_basin_grids_pet(clm_ds: xr.Dataset, pet_method="priestley_taylor") -> xr.Dataset:
+def calculate_basin_grids_pet(clm_ds: xr.Dataset, pet_method: Union[str, list] = "priestley_taylor") -> xr.Dataset:
     """
     Compute Potential EvapoTranspiration using Daymet dataset.
     Parameters
@@ -127,7 +127,9 @@ def calculate_basin_grids_pet(clm_ds: xr.Dataset, pet_method="priestley_taylor")
     xarray.DataArray
         The input dataset with an additional variable called ``pet``.
     """
-    assert pet_method in ["priestley_taylor", "pm_fao56"]
+    if type(pet_method) is str:
+        pet_method = [pet_method]
+    assert np.sort(pet_method) in np.sort(["priestley_taylor", "pm_fao56"])
 
     keys = list(clm_ds.keys())
     reqs = ["tmin", "tmax", "lat", "vp", "srad", "dayl"]
@@ -160,29 +162,23 @@ def calculate_basin_grids_pet(clm_ds: xr.Dataset, pet_method="priestley_taylor")
     doy = clm_ds["time"]
     e_a = clm_ds["vp"]
 
-    if pet_method == "pm_fao56":
-        clm_ds["pet_fao56"] = pm_fao56(t_min, t_max, r_surf, phi, elevation, doy, e_a=e_a)
-        clm_ds["pet_fao56"].attrs["units"] = "mm/day"
-    elif pet_method == "priestley_taylor":
-        clm_ds["pet_pt"] = priestley_taylor(t_min, t_max, r_surf, phi, elevation, doy, e_a=e_a)
-        clm_ds["pet_pt"].attrs["units"] = "mm/day"
+    for pet_name in pet_method:
+        if pet_name == "pm_fao56":
+            clm_ds["pet_fao56"] = pm_fao56(t_min, t_max, r_surf, phi, elevation, doy, e_a=e_a)
+            clm_ds["pet_fao56"].attrs["units"] = "mm/day"
+        elif pet_name == "priestley_taylor":
+            clm_ds["pet_pt"] = priestley_taylor(t_min, t_max, r_surf, phi, elevation, doy, e_a=e_a)
+            clm_ds["pet_pt"].attrs["units"] = "mm/day"
 
     # after calculation, recover the value of time and vp
     clm_ds["time"] = dates
     clm_ds["vp"] *= 1.0e3
-    clm_ds["tmin"].attrs["units"] = "°C"
-    clm_ds["tmax"].attrs["units"] = "°C"
-    clm_ds["lat"].attrs["units"] = "°"
-    clm_ds["vp"].attrs["units"] = "Pa"
-    clm_ds["srad"].attrs["units"] = "W/m^2"
-    clm_ds["dayl"].attrs["units"] = "seconds"
     return clm_ds
 
 
 def calculate_basin_mean(clm_ds: xr.Dataset,
                          geometry: Union[Polygon, MultiPolygon, Tuple[float, float, float, float]],
-                         geo_crs: str = DEF_CRS,
-                         variables: Optional[List[str]] = None) -> xr.Dataset:
+                         geo_crs: str = DEF_CRS) -> xr.Dataset:
     """Get gridded data from the Daymet database at 1-km resolution.
 
         Parameters
@@ -193,14 +189,14 @@ def calculate_basin_mean(clm_ds: xr.Dataset,
             The geometry of a basin.
         geo_crs : str, optional
             The CRS of the input geometry, defaults to epsg:4326.
-        variables : str or list
-            List of variables to be downloaded. The acceptable variables are:
-            ``tmin``, ``tmax``, ``prcp``, ``srad``, ``vp``, ``swe``, ``dayl`` and "pet_pt" or "pet_fao56"
 
         Returns
         -------
         xarray.Dataset
             Daily mean climate data of the basin
         """
-    print()
-    return
+    clm = geoutils.xarray_geomask(clm_ds, geometry, geo_crs)
+    ds = xr.Dataset({}, coords={'time': clm.time})
+    for k in clm.data_vars:
+        ds[k] = clm[k].mean(dim=('x', 'y'))
+    return ds
