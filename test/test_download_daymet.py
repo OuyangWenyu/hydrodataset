@@ -8,6 +8,7 @@ import pydaymet as daymet
 
 from src.daymet4basins.basin_daymet_process import download_daymet_by_geom_bound, calculate_basin_grids_pet, \
     calculate_basin_mean
+from src.utils.hydro_utils import unserialize_geopandas
 
 
 class TestDaymet4Basin(unittest.TestCase):
@@ -56,6 +57,58 @@ class TestDaymet4Basin(unittest.TestCase):
         save_path = os.path.join(self.save_dir, basin_id + "_2000__01_01-03_nomask.nc")
         daily.to_netcdf(save_path)
 
+    def test_download_daymet_without_dask_local_shpfile(self):
+        # Notice the projection, otherwise it will occur many NaN values since the locations are wrong
+        basin_id = "01013500"
+        dates = ("2000-01-01", "2000-01-03")
+        basin_shp_dir = os.path.join(definitions.DATASET_DIR, "daymet4basins", "nldi_camels_671_basins")
+        basin_shp_file = os.path.join(basin_shp_dir, "nldi_camels_671_basins.shp")
+        if not os.path.isfile(basin_shp_file):
+            raise FileNotFoundError("Cannot find the nldi_camels_671_basins.shp file.\n "
+                                    "Please download it by performing: python download_nldi.py")
+        basins = unserialize_geopandas(basin_shp_file)
+        geometry = basins.geometry[0]
+        var = self.var
+        daily = download_daymet_by_geom_bound(geometry, dates, variables=var)
+        save_path = os.path.join(self.save_dir, basin_id + "_2000__01_01-03_nomask_local_shp.nc")
+        daily.to_netcdf(save_path)
+
+    def test_download_long_term_daymet_without_dask(self):
+        basin_id = "01013500"
+        dates = ("2000-01-01", "2000-02-01")
+        geometry = NLDI().get_basins(basin_id).geometry[0]
+        var = self.var
+        daily = download_daymet_by_geom_bound(geometry, dates, variables=var)
+        save_path = os.path.join(self.save_dir, basin_id + "_2000_01-02_nomask.nc")
+        daily.to_netcdf(save_path)
+
+    def test_equal_local_shp_download_shp_nc(self):
+        basin_id = "01013500"
+        read_path = os.path.join(self.save_dir, basin_id + "_2000__01_01-03_nomask.nc")
+        read_path_local = os.path.join(self.save_dir, basin_id + "_2000__01_01-03_nomask_local_shp.nc")
+        daily = xr.open_dataset(read_path)
+        daily_local = xr.open_dataset(read_path_local)
+        print(daily.equals(daily_local))
+
+    def test_equal_long_term_download(self):
+        basin_id = "01013500"
+        read_path = os.path.join(self.save_dir, basin_id + "_2000__01_01-03_nomask.nc")
+        read_path_long = os.path.join(self.save_dir, basin_id + "_2000_01-02_nomask.nc")
+        daily = xr.open_dataset(read_path)
+        daily_long = xr.open_dataset(read_path_long)
+        dates = ("2000-01-01", "2000-01-03")
+        print(daily.equals(daily_long.sel(time=slice(dates[0], dates[1]))))
+
+    def test_real_download_data(self):
+        basin_id = "01013500"
+        real_save_dir = os.path.join(definitions.DATASET_DIR, "daymet4basins", "daymet_camels_671_unmask", basin_id)
+        real_path = os.path.join(real_save_dir, basin_id + "_2000_nomask.nc")
+        read_path_long = os.path.join(self.save_dir, basin_id + "_2000_01-02_nomask.nc")
+        daily = xr.open_dataset(real_path)
+        daily_long = xr.open_dataset(read_path_long)
+        dates = ("2000-01-01", "2000-01-03")
+        print(daily.sel(time=slice(dates[0], dates[1])).equals(daily_long.sel(time=slice(dates[0], dates[1]))))
+
     def test_basin_bound_pet_fao56(self):
         basin_id = "01013500"
         read_path = os.path.join(self.save_dir, basin_id + "_2000__01_01-03_nomask.nc")
@@ -91,7 +144,7 @@ class TestDaymet4Basin(unittest.TestCase):
         basins_id = ["01013500", "01031500"]
         dates = ("2000-01-01", "2000-01-03")
         basins = NLDI().get_basins(basins_id)
-        save_dir = os.path.join(definitions.DATASET_DIR, "daymet4basins")
+        save_dir = self.save_dir
         if not os.path.isdir(save_dir):
             os.makedirs(save_dir)
         for i in range(len(basins_id)):
