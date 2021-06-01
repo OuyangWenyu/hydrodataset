@@ -129,3 +129,4 @@ dmypy.json
 .pyre/
 .idea
 /app/download/dask-worker-space/
+/example/01013500_2000_01-02_nomask.nc
