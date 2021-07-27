@@ -5,8 +5,8 @@ from pynhd import NLDI
 
 sys.path.append(os.path.join("..", ".."))
 import definitions
-from src.data.data_camels import Camels
-from src.utils.hydro_utils import progress_wrapped, hydro_logger
+from hydrobench.data.data_camels import Camels
+from hydrobench.utils.hydro_utils import progress_wrapped, hydro_logger
 
 
 @progress_wrapped(estimated_time=1000)

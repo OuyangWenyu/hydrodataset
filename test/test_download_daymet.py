@@ -6,9 +6,9 @@ import xarray as xr
 import definitions
 import pydaymet as daymet
 
-from src.daymet4basins.basin_daymet_process import download_daymet_by_geom_bound, calculate_basin_grids_pet, \
+from hydrobench.daymet4basins.basin_daymet_process import download_daymet_by_geom_bound, calculate_basin_grids_pet, \
     calculate_basin_mean
-from src.utils.hydro_utils import unserialize_geopandas
+from hydrobench.utils.hydro_utils import unserialize_geopandas
 
 
 class TestDaymet4Basin(unittest.TestCase):

@@ -4,9 +4,9 @@ import pandas as pd
 import numpy as np
 from pandas.core.dtypes.common import is_string_dtype, is_numeric_dtype
 
-from src.data.data_base import DatasetBase
-from src.data.stat import cal_fdc
-from src.utils.hydro_utils import download_one_zip, t_range_days
+from hydrobench.data.data_base import DatasetBase
+from hydrobench.data.stat import cal_fdc
+from hydrobench.utils.hydro_utils import download_one_zip, t_range_days
 
 
 class Camels(DatasetBase):

@@ -3,8 +3,8 @@ from typing import Union
 
 import numpy as np
 import xarray as xr
-from src.pet.meteo_utils import calc_press, calc_psy, calc_vpc, calc_lambda_, calc_ea, calc_es
-from src.pet.rad_utils import calc_rad_short, calc_rad_long
+from hydrobench.pet.meteo_utils import calc_press, calc_psy, calc_vpc, calc_lambda_, calc_ea, calc_es
+from hydrobench.pet.rad_utils import calc_rad_short, calc_rad_long
 
 
 def priestley_taylor(t_min: Union[np.ndarray, xr.DataArray],
