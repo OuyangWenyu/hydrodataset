@@ -6,9 +6,9 @@ from tqdm import tqdm
 
 sys.path.append(os.path.join("..", ".."))
 import definitions
-from src.data.data_camels import Camels
-from src.daymet4basins.basin_daymet_process import download_daymet_by_geom_bound
-from src.utils.hydro_utils import unserialize_geopandas, hydro_logger
+from hydrobench.data.data_camels import Camels
+from hydrobench.daymet4basins.basin_daymet_process import download_daymet_by_geom_bound
+from hydrobench.utils.hydro_utils import unserialize_geopandas, hydro_logger
 
 
 def main(args):

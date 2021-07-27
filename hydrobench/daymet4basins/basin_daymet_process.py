@@ -8,7 +8,7 @@ import rasterio.transform as rio_transform
 import xarray as xr
 import numpy as np
 import pandas as pd
-from src.pet.pet4daymet import priestley_taylor, pm_fao56
+from hydrobench.pet.pet4daymet import priestley_taylor, pm_fao56
 
 DEF_CRS = "epsg:4326"
 

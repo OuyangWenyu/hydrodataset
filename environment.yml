@@ -5,7 +5,7 @@ channels:
 dependencies:
   - python=3.8
   - jupyterlab
-  - pygeoogc 
+  - pygeoogc
   - pygeoutils
   - py3dep
   - pynhd
@@ -14,3 +14,4 @@ dependencies:
   - geemap
   - xarray=0.17
   - tqdm
+  - sphinx

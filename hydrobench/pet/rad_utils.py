@@ -2,7 +2,7 @@ from typing import Union
 
 import numpy as np
 import xarray as xr
-from src.pet.meteo_utils import calc_ea
+from hydrobench.pet.meteo_utils import calc_ea
 
 
 def calc_rad_short(s_rad: Union[np.ndarray, xr.DataArray] = None,
