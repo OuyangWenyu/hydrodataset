@@ -1,11 +1,12 @@
 import os
 import unittest
-
+import geopandas as gpd
 from pynhd import NLDI
 import xarray as xr
-import definitions
 import pydaymet as daymet
 
+import definitions
+from hydrobench.data.data_camels import Camels
 from hydrobench.daymet4basins.basin_daymet_process import download_daymet_by_geom_bound, calculate_basin_grids_pet, \
     calculate_basin_mean
 from hydrobench.utils.hydro_utils import unserialize_geopandas
@@ -18,6 +19,8 @@ class TestDaymet4Basin(unittest.TestCase):
             os.makedirs(save_dir)
         self.save_dir = save_dir
         self.var = ['dayl', 'prcp', 'srad', 'swe', 'tmax', 'tmin', 'vp']
+        camels_dir = os.path.join(definitions.DATASET_DIR, "camels")
+        self.camels = Camels(camels_dir, True)
 
     def test_read_daymet_1basin_3days(self):
         basin_id = "01013500"
@@ -28,6 +31,21 @@ class TestDaymet4Basin(unittest.TestCase):
         daily = daymet.get_bygeom(geometry, dates, variables=var, pet=True)
         save_dir = self.save_dir
         save_path = os.path.join(save_dir, basin_id + "_2000_01_01-03.nc")
+        daily.to_netcdf(save_path)
+
+    def test_read_daymet_1basin_in_camels_2days(self):
+        basin_id = "01013500"
+        dates = ("2000-01-01", "2000-01-02")
+        camels_shp_file = self.camels.dataset_description["CAMELS_BASINS_SHP_FILE"]
+        camels_shp = gpd.read_file(camels_shp_file)
+        # transform the geographic coordinates to wgs84 i.e. epsg4326  it seems NAD83 is equal to WGS1984 in geopandas
+        camels_shp_epsg4326 = camels_shp.to_crs(epsg=4326)
+        geometry = camels_shp_epsg4326[camels_shp_epsg4326["hru_id"] == int(basin_id)].geometry[0]
+        # ``tmin``, ``tmax``, ``prcp``, ``srad``, ``vp``, ``swe``, ``dayl``
+        var = ['dayl', 'prcp', 'srad', 'swe', 'tmax', 'tmin', 'vp']
+        daily = daymet.get_bygeom(geometry, dates, variables=var, pet=True)
+        save_dir = self.save_dir
+        save_path = os.path.join(save_dir, basin_id + "_2000_01_01-02.nc")
         daily.to_netcdf(save_path)
 
     def test_read_daymet_basins_3days(self):

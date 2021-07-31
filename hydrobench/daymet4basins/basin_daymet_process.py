@@ -21,7 +21,9 @@ def download_daymet_by_geom_bound(
         region: str = "na",
         time_scale: str = "daily",
 ) -> xr.Dataset:
-    """Get gridded data from the Daymet database at 1-km resolution.
+    """Get gridded data from the Daymet database at 1-km resolution in the boundary of the "geometry"
+
+    We use the
 
     Parameters
     ----------

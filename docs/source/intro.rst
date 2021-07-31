@@ -6,9 +6,9 @@ Overview
 --------------------
 Now we are making three datasets. After finishing the preparation of datasets, we will provide deep-learning benchmark experiments for each dataset.
 
- * GHS: Geospatial attributes and Hydrometeorological forcings of gages for Streamflow modeling
- * CAMELS-grid: a grid-version CAMELS dataset
- * HFlowDB: a DataBase for Hourly streamflow modeling of gages, especially for High flow (Flood) modeling.
+* GHS: Geospatial attributes and Hydrometeorological forcings of gages for Streamflow modeling
+* CAMELS-grid: a grid-version CAMELS dataset
+* HFlowDB: a DataBase for Hourly streamflow modeling of gages, especially for High flow (Flood) modeling.
 
 The "GHS" is an extension for `the CAMELS dataset <https://ral.ucar.edu/solutions/products/camels>`_ .
 It contains geospatial attributes, hydrometeorological forcings and streamflow data of 9067 gages over the Contiguous United States (CONUS)

@@ -1,11 +1,9 @@
 #################################################
 # to test if the arg-parse commands are correct
 import argparse
-import os
 import sys
 
-sys.path.append("..")
-import definitions
+sys.path.append("../..")
 
 
 def main(args):

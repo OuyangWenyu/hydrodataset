@@ -6,11 +6,11 @@ Design strategy
 --------------------
 The whole structure:
 
- * app: scripts for downloading and preprocessing source data
- * docs: the document for HydroBench
- * example: some sample data
- * hydrobench: the directory of core code
- * test: all testing code using Unit test
+* app: scripts for downloading and preprocessing source data
+* docs: the document for HydroBench
+* example: some sample data
+* hydrobench: the directory of core code
+* test: all testing code using Unit test
 
 Let's dive into the "hydrobench" directory.
 
@@ -20,13 +20,12 @@ according to the concrete data processing at first. We'll see if it is still goo
 
 Now the directories in "hydrobench" are:
 
- * data:
- * daymet4basins:
- * pet:
- * utils:
+* data: this directory contains the data-source classes for source data;
+* daymet4basins: this is the directory for downloading daymet data for basins' boundaries;
+* pet: all methods for calculating potential evapotranspiration are here;
+* utils: all utility functions.
 
 Conventions
 ----------------------
-Please write unittest code for all functions.
-Please write comments by English, and note we use the the format.
-
+* Please write unittest code for all functions.
+* Please write comments by English, and note we use the the same format in `this example <https://sphinx-rtd-tutorial.readthedocs.io/en/latest/docstrings.html#an-example-class-with-docstrings>`_.

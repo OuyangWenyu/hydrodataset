@@ -4,14 +4,12 @@ channels:
   - defaults
 dependencies:
   - python=3.8
-  - jupyterlab
-  - pygeoogc
-  - pygeoutils
-  - py3dep
-  - pynhd
-  - pygeohydro
-  - pydaymet
-  - geemap
+  - pygeoogc=0.10.1
+  - pygeoutils=0.10.1
+  - py3dep=0.10.1
+  - pynhd=0.10.1
+  - pygeohydro=0.10.1
+  - pydaymet=0.10.2
   - xarray=0.17
   - tqdm
   - sphinx

@@ -45,6 +45,9 @@ class Camels(DatasetBase):
                                        CAMELS_BASINS_SHP_FILE=camels_shp_file, CAMELS_DOWNLOAD_URL_LST=download_url_lst)
 
     def download_dataset(self):
+        """Download the CAMELS dataset from NCAR CAMELS website:  https://ral.ucar.edu/solutions/products/camels
+        """
+
         camels_config = self.dataset_description
         if not os.path.isdir(camels_config["CAMELS_DIR"]):
             os.makedirs(camels_config["CAMELS_DIR"])
@@ -54,7 +57,14 @@ class Camels(DatasetBase):
         print("The CAMELS data have been downloaded!")
 
     def get_constant_cols(self) -> np.array:
-        """all readable attrs in CAMELS"""
+        """
+        get all readable attributes in CAMELS
+
+        Returns
+        -------
+        the names of attributes
+        """
+
         data_folder = self.dataset_description["CAMELS_ATTR_DIR"]
         var_dict = dict()
         var_lst = list()
@@ -79,8 +89,24 @@ class Camels(DatasetBase):
         return {"FDC": {"time_range": ["1980-01-01", "2000-01-01"], "quantile_num": 100}}
 
     def read_site_info(self) -> pd.DataFrame:
+        """
+        read "camels_name.txt", which include "gauge_id", "huc_02" and "gauge_name"
+
+        Returns
+        -------
+        the information in "camels_name.txt"
+
+        Raises
+        -------
+        a FileNotFoundError when the "camels_name.txt" file has not been downloaded yet
+        """
+
         camels_file = self.dataset_description["CAMELS_GAUGE_FILE"]
-        data = pd.read_csv(camels_file, sep=';', dtype={"gauge_id": str, "huc_02": str})
+        try:
+            data = pd.read_csv(camels_file, sep=';', dtype={"gauge_id": str, "huc_02": str})
+        except FileNotFoundError as e:
+            raise FileNotFoundError("Please check if you have downloaded the CAMELS dataset. "
+                                    "If not, try 'camels = Camels(data_dir, download=True)' when initializing") from e
         return data
 
     def read_object_ids(self, object_params=None) -> np.array:

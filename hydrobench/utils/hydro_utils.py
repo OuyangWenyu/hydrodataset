@@ -149,9 +149,24 @@ def unzip_file(dataset_zip, path_unzip):
 
 
 def unzip_nested_zip(dataset_zip, path_unzip):
-    """ Extract a zip file including any nested zip files"""
+    """
+    Extract a zip file including any nested zip files
+
+    If a file's name is "xxx_", it seems the "extractall" function in the "zipfile" lib will throw an OSError,
+    so please check the unzipped files manually when this occurs.
+
+    Parameters
+    ----------
+    dataset_zip: the zip file
+    path_unzip: where it is unzipped
+    """
+
     with zipfile.ZipFile(dataset_zip, 'r') as zfile:
-        zfile.extractall(path=path_unzip)
+        try:
+            zfile.extractall(path=path_unzip)
+        except OSError as e:
+            logging.warning("Please check the unzipped files manually. There may be some missed important files.")
+            logging.warning("The directory is: " + path_unzip)
     for root, dirs, files in os.walk(path_unzip):
         for filename in files:
             if re.search(r'\.zip$', filename):
@@ -178,7 +193,15 @@ def is_there_file(zipfile_path, unzip_dir):
 
 
 def download_one_zip(data_url, data_dir):
-    """download one zip file from url as data_file"""
+    """
+    download one zip file from url as data_file
+
+    Parameters
+    ----------
+    data_url: the URL of the downloading website
+    data_dir: where we will put the data
+    """
+
     zipfile_path, unzip_dir = zip_file_name_from_url(data_url, data_dir)
     if not is_there_file(zipfile_path, unzip_dir):
         if not os.path.isdir(unzip_dir):
