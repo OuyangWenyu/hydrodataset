@@ -1,3 +1,7 @@
+"""
+Download daymet grid data for the boundaries of basins in CAMELS
+"""
+
 import argparse
 import os
 import sys
@@ -13,17 +17,15 @@ from hydrobench.utils.hydro_utils import unserialize_geopandas, hydro_logger
 
 def main(args):
     hydro_logger.info("Start Downloading:\n")
-    basin_shp_dir = os.path.join(definitions.DATASET_DIR, "daymet4basins", "nldi_camels_671_basins")
-    basin_shp_file = os.path.join(basin_shp_dir, "nldi_camels_671_basins.shp")
-    if not os.path.isfile(basin_shp_file):
-        raise FileNotFoundError("Cannot find the nldi_camels_671_basins.shp file.\n "
-                                "Please download it by performing: python download_nldi.py")
-    basins = unserialize_geopandas(basin_shp_file)
-    assert (all(x < y for x, y in zip(basins["identifier"].values, basins["identifier"].values[1:])))
     camels = Camels(os.path.join(definitions.DATASET_DIR, "camels"), download=True)
-    basins_id = camels.camels_sites["gauge_id"].values.tolist()
+    camels_shp_file = camels.dataset_description["CAMELS_BASINS_SHP_FILE"]
+    camels_shp = unserialize_geopandas(camels_shp_file)
+    # transform the geographic coordinates to wgs84 i.e. epsg4326  it seems NAD83 is equal to WGS1984 in geopandas
+    basins = camels_shp.to_crs(epsg=4326)
+    assert (all(x < y for x, y in zip(basins["hru_id"].values, basins["hru_id"].values[1:])))
+    basins_id = camels.camels_sites["hru_id"].values.tolist()
     var = ['dayl', 'prcp', 'srad', 'swe', 'tmax', 'tmin', 'vp']
-    save_dir = os.path.join(definitions.DATASET_DIR, "daymet4basins", "daymet_camels_671_unmask")
+    save_dir = os.path.join(definitions.DATASET_DIR, "daymet4camels", "daymet_camels_671_unmask")
     if not os.path.isdir(save_dir):
         os.makedirs(save_dir)
     if args.year_range is not None:
@@ -46,7 +48,7 @@ def main(args):
     hydro_logger.info("\n Finished!")
 
 
-# python download_daymet_basin_unmask.py --year_range 1990 1991
+# python download_daymet_camels_basin.py --year_range 1990 1991
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='Download Daymet within the boundary of each basin in CAMELS')
     parser.add_argument('--year_range', dest='year_range', help='The start and end years (right open interval)',

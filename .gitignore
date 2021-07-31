@@ -128,5 +128,6 @@ dmypy.json
 # Pyre type checker
 .pyre/
 .idea
-/app/download/dask-worker-space/
+/hydrobench/app/download/dask-worker-space/
 /example/01013500_2000_01-02_nomask.nc
+/test/cache/

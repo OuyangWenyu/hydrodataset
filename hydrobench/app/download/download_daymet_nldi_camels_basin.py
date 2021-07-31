@@ -1,3 +1,7 @@
+"""
+Download daymet grid data for the boundaries of basins in CAMELS, but the basins' shapefiles come from NLDI
+"""
+
 import argparse
 import os
 import sys
@@ -32,15 +36,21 @@ def main(args):
     else:
         raise NotImplementedError("Please enter the time range (Start year and end year)")
     for i in tqdm(range(len(basins_id))):
+        save_one_basin_dir = os.path.join(save_dir, basins_id[i])
+        if not os.path.isdir(save_one_basin_dir):
+            os.makedirs(save_one_basin_dir)
         for j in tqdm(range(len(years)), leave=False):
             dates = (str(years[j]) + "-01-01", str(years[j]) + "-12-31")
+            save_path = os.path.join(save_one_basin_dir, basins_id[i] + "_" + str(years[j]) + "_nomask.nc")
+            if os.path.isfile(save_path):
+                hydro_logger.info("This file has been downloaded.")
+                continue
             daily = download_daymet_by_geom_bound(basins.geometry[i], dates, variables=var)
-            save_path = os.path.join(save_dir, basins_id[i] + "_" + str(years[j]) + "_nomask.nc")
             daily.to_netcdf(save_path)
     hydro_logger.info("\n Finished!")
 
 
-# python download_daymet.py --year_range 1990 1991
+# python download_daymet_nldi_camels_basin.py --year_range 1990 1991
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='Download Daymet within the boundary of each basin in CAMELS')
     parser.add_argument('--year_range', dest='year_range', help='The start and end years (right open interval)',
