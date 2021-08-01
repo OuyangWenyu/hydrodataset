@@ -17,7 +17,7 @@ from hydrobench.utils.hydro_utils import unserialize_geopandas, hydro_logger
 
 def main(args):
     hydro_logger.info("Start Downloading:\n")
-    basin_shp_dir = os.path.join(definitions.DATASET_DIR, "daymet4basins", "nldi_camels_671_basins")
+    basin_shp_dir = os.path.join(definitions.DATASET_DIR, "daymet4camels", "nldi_camels_671_basins")
     basin_shp_file = os.path.join(basin_shp_dir, "nldi_camels_671_basins.shp")
     if not os.path.isfile(basin_shp_file):
         raise FileNotFoundError("Cannot find the nldi_camels_671_basins.shp file.\n "
@@ -27,7 +27,7 @@ def main(args):
     camels = Camels(os.path.join(definitions.DATASET_DIR, "camels"), download=True)
     basins_id = camels.camels_sites["gauge_id"].values.tolist()
     var = ['dayl', 'prcp', 'srad', 'swe', 'tmax', 'tmin', 'vp']
-    save_dir = os.path.join(definitions.DATASET_DIR, "daymet4basins", "daymet_camels_671_unmask")
+    save_dir = os.path.join(definitions.DATASET_DIR, "daymet4camels", "daymet_nldi_camels_671_unmask")
     if not os.path.isdir(save_dir):
         os.makedirs(save_dir)
     if args.year_range is not None:

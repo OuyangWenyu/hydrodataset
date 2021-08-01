@@ -14,7 +14,7 @@ def main():
     camels = Camels(os.path.join(definitions.DATASET_DIR, "camels"), download=True)
     basin_id = camels.camels_sites["gauge_id"].values.tolist()
     basins = NLDI().get_basins(basin_id)
-    save_dir = os.path.join(definitions.DATASET_DIR, "daymet4basins", "nldi_camels_671_basins")
+    save_dir = os.path.join(definitions.DATASET_DIR, "daymet4camels", "nldi_camels_671_basins")
     if not os.path.isdir(save_dir):
         os.makedirs(save_dir)
     save_path = os.path.join(save_dir, "nldi_camels_671_basins.shp")

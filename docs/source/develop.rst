@@ -6,11 +6,9 @@ Design strategy
 --------------------
 The whole structure:
 
-* app: scripts for downloading and preprocessing source data
 * docs: the document for HydroBench
-* example: some sample data
 * hydrobench: the directory of core code
-* test: all testing code using Unit test
+* test: all testing code and data
 
 Let's dive into the "hydrobench" directory.
 
@@ -20,6 +18,7 @@ according to the concrete data processing at first. We'll see if it is still goo
 
 Now the directories in "hydrobench" are:
 
+* app: scripts for downloading and preprocessing source data
 * data: this directory contains the data-source classes for source data;
 * daymet4basins: this is the directory for downloading daymet data for basins' boundaries;
 * pet: all methods for calculating potential evapotranspiration are here;

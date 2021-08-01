@@ -129,5 +129,7 @@ dmypy.json
 .pyre/
 .idea
 /hydrobench/app/download/dask-worker-space/
-/example/01013500_2000_01-02_nomask.nc
+/test/test_data/01013500_2000_01-02_nomask.nc
 /test/cache/
+/test/test_data/
+/hydrobench/app/download/cache/

@@ -1,10 +1,12 @@
 from typing import Union, Tuple, List, Optional
 import pygeoutils as geoutils
-import pygeoogc as ogc
+import async_retriever as ar
 import py3dep
-from pydaymet.pydaymet import Daymet, gridded_urls, _check_requirements
+from pydaymet import InvalidInputRange
+from pydaymet.core import Daymet, _check_requirements
+from pydaymet.pydaymet import _gridded_urls, _xarray_geomask
 from shapely.geometry import MultiPolygon, Polygon
-import rasterio.transform as rio_transform
+import io
 import xarray as xr
 import numpy as np
 import pandas as pd
@@ -16,42 +18,37 @@ DEF_CRS = "epsg:4326"
 def download_daymet_by_geom_bound(
         geometry: Union[Polygon, MultiPolygon, Tuple[float, float, float, float]],
         dates: Union[Tuple[str, str], Union[int, List[int]]],
-        geo_crs: str = DEF_CRS,
+        crs: str = DEF_CRS,
         variables: Optional[List[str]] = None,
         region: str = "na",
         time_scale: str = "daily",
 ) -> xr.Dataset:
-    """Get gridded data from the Daymet database at 1-km resolution in the boundary of the "geometry"
-
-    We use the
+    """
+    Get gridded data from the Daymet database at 1-km resolution in the boundary of the "geometry"
 
     Parameters
     ----------
-    geometry : Polygon, MultiPolygon, or bbox
-        The geometry of the region of interest.
-    dates : tuple or list, optional
-        Start and end dates as a tuple (start, end) or a list of years [2001, 2010, ...].
-    geo_crs : str, optional
-        The CRS of the input geometry, defaults to epsg:4326.
-    variables : str or list
+    geometry: The geometry of the region of interest.
+    dates: Start and end dates as a tuple (start, end) or a list of years [2001, 2010, ...].
+    crs: The CRS of the input geometry, defaults to epsg:4326.
+    variables:
         List of variables to be downloaded. The acceptable variables are:
         ``tmin``, ``tmax``, ``prcp``, ``srad``, ``vp``, ``swe``, ``dayl``
         Descriptions can be found `here <https://daymet.ornl.gov/overview>`__.
-    region : str, optional
+    region:
         Region in the US, defaults to na. Acceptable values are:
         * na: Continental North America
         * hi: Hawaii
         * pr: Puerto Rico
-    time_scale : str, optional
+    time_scale:
         Data time scale which can be daily, monthly (monthly average),
         or annual (annual average). Defaults to daily.
 
     Returns
     -------
-    xarray.Dataset
-        Daily climate data within a geometry
+    Daily climate data within a geometry's boundary
     """
-    daymet = Daymet(variables, time_scale=time_scale)
+    daymet = Daymet(variables, time_scale=time_scale, region=region)
     daymet.check_dates(dates)
 
     if isinstance(dates, tuple):
@@ -59,12 +56,33 @@ def download_daymet_by_geom_bound(
     else:
         dates_itr = daymet.years_tolist(dates)
 
-    _geometry = geoutils.geo2polygon(geometry, geo_crs, DEF_CRS)
-    urls = gridded_urls(
-        daymet.code[time_scale], _geometry.bounds, region, daymet.variables, dates_itr
+    _geometry = geoutils.pygeoutils._geo2polygon(geometry, crs, DEF_CRS)
+
+    if not _geometry.intersects(daymet.region_bbox[region]):
+        raise InvalidInputRange(daymet.invalid_bbox_msg)
+
+    urls, kwds = zip(
+        *_gridded_urls(
+            daymet.time_codes[time_scale],
+            _geometry.bounds,
+            daymet.region,
+            daymet.variables,
+            dates_itr,
+        )
     )
 
-    clm = xr.open_mfdataset(ogc.async_requests(urls, "binary", max_workers=8))
+    try:
+        clm = xr.open_mfdataset(
+            (io.BytesIO(r) for r in ar.retrieve(urls, "binary", request_kwds=kwds, max_workers=8)),
+            engine="scipy",
+            coords="minimal",
+        )
+    except ValueError:
+        msg = (
+                "The server did NOT process your request successfully. "
+                + "Check your inputs and try again."
+        )
+        raise ValueError(msg)
 
     for k, v in daymet.units.items():
         if k in clm.variables:
@@ -72,7 +90,7 @@ def download_daymet_by_geom_bound(
 
     clm = clm.drop_vars(["lambert_conformal_conic"])
 
-    crs = " ".join(
+    daymet_crs = " ".join(
         [
             "+proj=lcc",
             "+lat_1=25",
@@ -86,31 +104,16 @@ def download_daymet_by_geom_bound(
             "+no_defs",
         ]
     )
-    clm.attrs["crs"] = crs
-    clm.attrs["nodatavals"] = (-9999,)
-
-    xdim, ydim = "x", "y"
-    height, width = clm.sizes[ydim], clm.sizes[xdim]
-
-    left, right = clm[xdim].min().item(), clm[xdim].max().item()
-    bottom, top = clm[ydim].min().item(), clm[ydim].max().item()
-
-    x_res = abs(left - right) / (width - 1)
-    y_res = abs(top - bottom) / (height - 1)
-
-    left -= x_res * 0.5
-    right += x_res * 0.5
-    top += y_res * 0.5
-    bottom -= y_res * 0.5
-
-    clm.attrs["transform"] = rio_transform.from_bounds(left, bottom, right, top, width, height)
-    clm.attrs["res"] = (x_res, y_res)
-    clm.attrs["bounds"] = (left, bottom, right, top)
+    clm.attrs["crs"] = daymet_crs
+    clm.attrs["nodatavals"] = (0.0,)
+    transform, _, _ = geoutils.pygeoutils._get_transform(clm, ("y", "x"))
+    clm.attrs["transform"] = transform
+    clm.attrs["res"] = (transform.a, transform.e)
 
     if isinstance(clm, xr.Dataset):
         for v in clm:
             clm[v].attrs["crs"] = crs
-            clm[v].attrs["nodatavals"] = (-9999,)
+            clm[v].attrs["nodatavals"] = (0.0,)
 
     return clm
 
@@ -197,7 +200,7 @@ def calculate_basin_mean(clm_ds: xr.Dataset,
         xarray.Dataset
             Daily mean climate data of the basin
         """
-    clm = geoutils.xarray_geomask(clm_ds, geometry, geo_crs)
+    clm = _xarray_geomask(clm_ds, geometry, geo_crs)
     ds = xr.Dataset({}, coords={'time': clm.time})
     for k in clm.data_vars:
         ds[k] = clm[k].mean(dim=('x', 'y'))
