@@ -41,7 +41,7 @@ class MyTestCase(unittest.TestCase):
         camels_shp = gpd.read_file(camels_shp_file)
         # transform the geographic coordinates to wgs84 i.e. epsg4326  it seems NAD83 is equal to WGS1984 in geopandas
         camels_shp_epsg4326 = camels_shp.to_crs(epsg=4326)
-        geometry = camels_shp_epsg4326[camels_shp_epsg4326["hru_id"] == int(basin_id)].geometry[0]
+        geometry = camels_shp_epsg4326[camels_shp_epsg4326["hru_id"] == int(basin_id)].geometry.item()
         gb = geometry.bounds
         gb_west = gb[0]
         gb_south = gb[1]
