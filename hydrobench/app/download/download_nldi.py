@@ -3,7 +3,7 @@ import sys
 
 from pynhd import NLDI
 
-sys.path.append(os.path.join("..", ".."))
+sys.path.append(os.path.join("..", "..", ".."))
 import definitions
 from hydrobench.data.data_camels import Camels
 from hydrobench.utils.hydro_utils import progress_wrapped, hydro_logger

@@ -1,7 +1,8 @@
-from typing import Union, Tuple, List, Optional
+from typing import Union, Tuple, List, Optional, MutableMapping, Any
 import pygeoutils as geoutils
 import async_retriever as ar
 import py3dep
+import asyncio
 from pydaymet import InvalidInputRange
 from pydaymet.core import Daymet, _check_requirements
 from pydaymet.pydaymet import _gridded_urls, _xarray_geomask
@@ -13,6 +14,43 @@ import pandas as pd
 from hydrobench.pet.pet4daymet import priestley_taylor, pm_fao56
 
 DEF_CRS = "epsg:4326"
+
+
+def async_requests(
+        url_payload: List[Tuple[str, Optional[MutableMapping[str, Any]]]],
+        read: str,
+        request: str = "GET",
+        max_workers: int = 8,
+) -> List[Union[str, MutableMapping[str, Any], bytes]]:
+    """Send async requests.
+
+    This function is based on
+    `this <https://github.com/HydrologicEngineeringCenter/data-retrieval-scripts/blob/master/qpe_async_download.py>`__
+    script.
+
+    Parameters
+    ----------
+    url_payload : list of tuples
+        A list of URLs and payloads as a tuple.
+    read : str
+        The method for returning the request; binary, json, and text.
+    request : str, optional
+        The request type; GET or POST, defaults to GET.
+    max_workers : int, optional
+        The maximum number of async processes, defaults to 8.
+
+    Returns
+    -------
+    list
+        A list of responses
+    """
+    chunked_urls = tlz.partition_all(max_workers, url_payload)
+
+    results = (
+        asyncio.get_event_loop().run_until_complete(_async_session(c, read, request))
+        for c in chunked_urls
+    )
+    return list(tlz.concat(results))
 
 
 def download_daymet_by_geom_bound(
@@ -80,6 +118,7 @@ def download_daymet_by_geom_bound(
     )
 
     try:
+        clm = xr.open_mfdataset(async_requests(urls, "binary", max_workers=8))
         clm = xr.open_mfdataset(
             (io.BytesIO(r) for r in ar.retrieve(urls, "binary", request_kwds=kwds, max_workers=8)),
             engine="scipy",

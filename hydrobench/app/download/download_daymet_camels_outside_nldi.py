@@ -7,11 +7,10 @@ import shutil
 import sys
 import numpy as np
 import pandas as pd
-import geopandas as gpd
 import xarray as xr
 from tqdm import tqdm
 
-sys.path.append(os.path.join("..", ".."))
+sys.path.append(os.path.join("..", "..", ".."))
 import definitions
 from hydrobench.data.data_camels import Camels
 from hydrobench.daymet4basins.basin_daymet_process import download_daymet_by_geom_bound
@@ -78,7 +77,6 @@ def main(args):
     else:
         raise NotImplementedError("Please enter the time range (Start year and end year)")
     for i in tqdm(range(len(basins_id))):
-        basin_geometry = basins[basins["hru_id"] == int(basins_id[i])].geometry.item()
         save_one_basin_dir = os.path.join(save_dir, basins_id[i])
         if not os.path.isdir(save_one_basin_dir):
             os.makedirs(save_one_basin_dir)
@@ -86,12 +84,13 @@ def main(args):
             dates = (str(years[j]) + "-01-01", str(years[j]) + "-12-31")
             save_path = os.path.join(save_one_basin_dir, basins_id[i] + "_" + str(years[j]) + "_nomask.nc")
             if os.path.isfile(save_path):
-                hydro_logger.info("This file has been downloaded.")
+                hydro_logger.info(save_path + " has been downloaded.")
                 continue
-            if not do_we_need_redownload(basin_geometry, basins_id[i], previous_save_dir, years[j]):
+            if not do_we_need_redownload(basins.geometry[i], basins_id[i], previous_save_dir, years[j]):
                 read_path = os.path.join(previous_save_dir, basins_id[i],
                                          basins_id[i] + "_" + str(years[j]) + "_nomask.nc")
                 shutil.copy(read_path, save_path)
+                hydro_logger.info(save_path + " has been downloaded.")
                 continue
             # download from url directly, no mask of geometry or geometry's boundary
             daily = download_daymet_by_geom_bound(basins.geometry[i], dates, variables=var, boundary=False)
@@ -103,6 +102,6 @@ def main(args):
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='Download Daymet within the boundary of each basin in CAMELS')
     parser.add_argument('--year_range', dest='year_range', help='The start and end years (right open interval)',
-                        default=[1990, 1991], nargs='+')
+                        default=[1991, 1992], nargs='+')
     the_args = parser.parse_args()
     main(the_args)
