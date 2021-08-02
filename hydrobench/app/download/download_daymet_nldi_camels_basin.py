@@ -8,7 +8,7 @@ import sys
 
 from tqdm import tqdm
 
-sys.path.append(os.path.join("..", ".."))
+sys.path.append(os.path.join("..", "..", ".."))
 import definitions
 from hydrobench.data.data_camels import Camels
 from hydrobench.daymet4basins.basin_daymet_process import download_daymet_by_geom_bound
