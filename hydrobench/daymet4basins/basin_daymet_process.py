@@ -5,7 +5,7 @@ import py3dep
 from pydaymet import InvalidInputRange
 from pydaymet.core import Daymet, _check_requirements
 from pydaymet.pydaymet import _gridded_urls, _xarray_geomask
-from shapely.geometry import MultiPolygon, Polygon
+from shapely.geometry import MultiPolygon, Polygon, box
 import io
 import xarray as xr
 import numpy as np
@@ -22,15 +22,19 @@ def download_daymet_by_geom_bound(
         variables: Optional[List[str]] = None,
         region: str = "na",
         time_scale: str = "daily",
+        boundary: bool = True
 ) -> xr.Dataset:
     """
     Get gridded data from the Daymet database at 1-km resolution in the boundary of the "geometry"
 
     Parameters
     ----------
-    geometry: The geometry of the region of interest.
-    dates: Start and end dates as a tuple (start, end) or a list of years [2001, 2010, ...].
-    crs: The CRS of the input geometry, defaults to epsg:4326.
+    geometry:
+        The geometry of the region of interest.
+    dates:
+        Start and end dates as a tuple (start, end) or a list of years [2001, 2010, ...].
+    crs:
+        The CRS of the input geometry, defaults to epsg:4326.
     variables:
         List of variables to be downloaded. The acceptable variables are:
         ``tmin``, ``tmax``, ``prcp``, ``srad``, ``vp``, ``swe``, ``dayl``
@@ -43,11 +47,15 @@ def download_daymet_by_geom_bound(
     time_scale:
         Data time scale which can be daily, monthly (monthly average),
         or annual (annual average). Defaults to daily.
+    boundary:
+        if boundary is true, we will use the box of bounds as the geometry mask;
+        otherwise, return downloaded data acccording to urls directly
 
     Returns
     -------
     Daily climate data within a geometry's boundary
     """
+
     daymet = Daymet(variables, time_scale=time_scale, region=region)
     daymet.check_dates(dates)
 
@@ -55,7 +63,7 @@ def download_daymet_by_geom_bound(
         dates_itr = daymet.dates_tolist(dates)
     else:
         dates_itr = daymet.years_tolist(dates)
-
+    # transform the crs
     _geometry = geoutils.pygeoutils._geo2polygon(geometry, crs, DEF_CRS)
 
     if not _geometry.intersects(daymet.region_bbox[region]):
@@ -89,7 +97,7 @@ def download_daymet_by_geom_bound(
             clm[k].attrs["units"] = v
 
     clm = clm.drop_vars(["lambert_conformal_conic"])
-
+    # daymet's crs comes from: https://daymet.ornl.gov/overview
     daymet_crs = " ".join(
         [
             "+proj=lcc",
@@ -114,23 +122,27 @@ def download_daymet_by_geom_bound(
         for v in clm:
             clm[v].attrs["crs"] = crs
             clm[v].attrs["nodatavals"] = (0.0,)
-
-    return clm
+    if boundary:
+        return _xarray_geomask(clm, geometry.bounds, crs)
+    else:
+        return clm
 
 
 def calculate_basin_grids_pet(clm_ds: xr.Dataset, pet_method: Union[str, list] = "priestley_taylor") -> xr.Dataset:
     """
     Compute Potential EvapoTranspiration using Daymet dataset.
+
     Parameters
     ----------
-    clm_ds : xarray.DataArray
+    clm_ds :
         The dataset should include the following variables:
-            `tmin``, ``tmax``, ``lat``, ``lon``, ``vp``, ``srad``, ``dayl``
-    pet_method: now support priestley_taylor and fao56
+        `tmin``, ``tmax``, ``lat``, ``lon``, ``vp``, ``srad``, ``dayl``
+    pet_method:
+        now support priestley_taylor and fao56
+
     Returns
     -------
-    xarray.DataArray
-        The input dataset with an additional variable called ``pet``.
+    The input dataset with an additional variable called ``pet``.
     """
     if type(pet_method) is str:
         pet_method = [pet_method]
@@ -197,8 +209,7 @@ def calculate_basin_mean(clm_ds: xr.Dataset,
 
         Returns
         -------
-        xarray.Dataset
-            Daily mean climate data of the basin
+        Daily mean climate data of the basin
         """
     clm = _xarray_geomask(clm_ds, geometry, geo_crs)
     ds = xr.Dataset({}, coords={'time': clm.time})
