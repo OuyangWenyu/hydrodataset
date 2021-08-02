@@ -7,6 +7,7 @@ Subpackages
 .. toctree::
    :maxdepth: 4
 
+   hydrobench.app
    hydrobench.data
    hydrobench.daymet4basins
    hydrobench.pet
