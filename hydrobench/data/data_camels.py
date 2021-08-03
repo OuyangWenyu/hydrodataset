@@ -47,7 +47,7 @@ class Camels(DatasetBase):
     def download_dataset(self):
         """Download the CAMELS dataset from NCAR CAMELS website:  https://ral.ucar.edu/solutions/products/camels
         """
-
+        print("Downloading the CAMELS dataset. It will take some minutes, please be patient!!!")
         camels_config = self.dataset_description
         if not os.path.isdir(camels_config["CAMELS_DIR"]):
             os.makedirs(camels_config["CAMELS_DIR"])

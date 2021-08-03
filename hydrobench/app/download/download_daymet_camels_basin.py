@@ -23,7 +23,7 @@ def main(args):
     # transform the geographic coordinates to wgs84 i.e. epsg4326  it seems NAD83 is equal to WGS1984 in geopandas
     basins = camels_shp.to_crs(epsg=4326)
     assert (all(x < y for x, y in zip(basins["hru_id"].values, basins["hru_id"].values[1:])))
-    basins_id = camels.camels_sites["hru_id"].values.tolist()
+    basins_id = camels.camels_sites["gauge_id"].values.tolist()
     var = ['dayl', 'prcp', 'srad', 'swe', 'tmax', 'tmin', 'vp']
     save_dir = os.path.join(definitions.DATASET_DIR, "daymet4camels", "daymet_camels_671_unmask")
     if not os.path.isdir(save_dir):
@@ -43,7 +43,7 @@ def main(args):
             if os.path.isfile(save_path):
                 hydro_logger.info("This file has been downloaded.")
                 continue
-            daily = download_daymet_by_geom_bound(basins.geometry[i], dates, variables=var)
+            daily = download_daymet_by_geom_bound(basins.geometry[i], dates, variables=var, boundary=False)
             daily.to_netcdf(save_path)
     hydro_logger.info("\n Finished!")
 
@@ -52,6 +52,6 @@ def main(args):
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='Download Daymet within the boundary of each basin in CAMELS')
     parser.add_argument('--year_range', dest='year_range', help='The start and end years (right open interval)',
-                        default=[1980, 1981], nargs='+')
+                        default=[1990, 1991], nargs='+')
     the_args = parser.parse_args()
     main(the_args)
