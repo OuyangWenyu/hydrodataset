@@ -1,4 +1,4 @@
-name: HydroBench
+name: hydro-bench
 channels:
   - conda-forge
   - defaults
