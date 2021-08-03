@@ -1,10 +1,12 @@
 """
 Download the daymet data for camels-basins outside of the boundary of downloaded xarray dataset using nldi shapfile
 """
+
 import argparse
 import os
-import shutil
 import sys
+from collections import OrderedDict
+
 import numpy as np
 import pandas as pd
 import xarray as xr
@@ -37,6 +39,8 @@ def do_we_need_redownload(geometry, basin_id, previous_download_data_dir, downlo
     gb_north = gb[3]
 
     read_path = os.path.join(previous_download_data_dir, basin_id, basin_id + "_" + str(download_year) + "_nomask.nc")
+    if not os.path.isfile(read_path):
+        return True
     daily = xr.open_dataset(read_path)
 
     arr_lat = daily['lat'].values.flatten()
@@ -76,25 +80,35 @@ def main(args):
         years = list(range(int(args.year_range[0]), int(args.year_range[1])))
     else:
         raise NotImplementedError("Please enter the time range (Start year and end year)")
-    for i in tqdm(range(len(basins_id))):
+    # it seems lead to a breakdown of the file system to use shutil.copy for too many times,
+    # so we don't copy files, just select which parts should be downloaded.
+    need_download_index = OrderedDict()
+    for i in range(len(basins_id)):
+        need_download_year_index_lst = []
         save_one_basin_dir = os.path.join(save_dir, basins_id[i])
         if not os.path.isdir(save_one_basin_dir):
             os.makedirs(save_one_basin_dir)
-        for j in tqdm(range(len(years)), leave=False):
+        for j in range(len(years)):
+            save_path = os.path.join(save_one_basin_dir, basins_id[i] + "_" + str(years[j]) + "_nomask.nc")
+            if os.path.isfile(save_path) or (
+                    not do_we_need_redownload(basins.geometry[i], basins_id[i], previous_save_dir, years[j])):
+                print(save_path + " has been downloaded.")
+            else:
+                need_download_year_index_lst.append(j)
+        need_download_index[basins_id[i]] = need_download_year_index_lst
+    #  Download data
+    for i in tqdm(range(len(basins_id))):
+        save_one_basin_dir = os.path.join(save_dir, basins_id[i])
+        for j in tqdm(range(len(need_download_index[basins_id[i]])), leave=False):
             dates = (str(years[j]) + "-01-01", str(years[j]) + "-12-31")
             save_path = os.path.join(save_one_basin_dir, basins_id[i] + "_" + str(years[j]) + "_nomask.nc")
             if os.path.isfile(save_path):
                 hydro_logger.info(save_path + " has been downloaded.")
-                continue
-            if not do_we_need_redownload(basins.geometry[i], basins_id[i], previous_save_dir, years[j]):
-                read_path = os.path.join(previous_save_dir, basins_id[i],
-                                         basins_id[i] + "_" + str(years[j]) + "_nomask.nc")
-                shutil.copy(read_path, save_path)
-                hydro_logger.info(save_path + " has been downloaded.")
-                continue
-            # download from url directly, no mask of geometry or geometry's boundary
-            daily = download_daymet_by_geom_bound(basins.geometry[i], dates, variables=var, boundary=False)
-            daily.to_netcdf(save_path)
+            else:
+                # download from url directly, no mask of geometry or geometry's boundary
+                daily = download_daymet_by_geom_bound(basins.geometry[i], dates, variables=var, boundary=False)
+                daily.to_netcdf(save_path)
+
     hydro_logger.info("\n Finished!")
 
 
@@ -102,6 +116,6 @@ def main(args):
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='Download Daymet within the boundary of each basin in CAMELS')
     parser.add_argument('--year_range', dest='year_range', help='The start and end years (right open interval)',
-                        default=[1991, 1992], nargs='+')
+                        default=[1990, 1991], nargs='+')
     the_args = parser.parse_args()
     main(the_args)

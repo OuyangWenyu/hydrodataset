@@ -45,7 +45,7 @@ def main(args):
             if os.path.isfile(save_path):
                 hydro_logger.info("This file has been downloaded.")
                 continue
-            daily = download_daymet_by_geom_bound(basins.geometry[i], dates, variables=var)
+            daily = download_daymet_by_geom_bound(basins.geometry[i], dates, variables=var, boundary=False)
             daily.to_netcdf(save_path)
     hydro_logger.info("\n Finished!")
 
@@ -54,6 +54,6 @@ def main(args):
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='Download Daymet within the boundary of each basin in CAMELS')
     parser.add_argument('--year_range', dest='year_range', help='The start and end years (right open interval)',
-                        default=[1980, 1981], nargs='+')
+                        default=[1990, 1991], nargs='+')
     the_args = parser.parse_args()
     main(the_args)
