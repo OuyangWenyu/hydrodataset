@@ -1,13 +1,15 @@
-name: hydro-bench
+name: HydroBench
 channels:
   - conda-forge
   - defaults
 dependencies:
-  - pygeoogc=0.11.0
-  - pygeoutils=0.11.0
-  - py3dep=0.11.0
-  - pynhd=0.11.0
-  - pygeohydro=0.11.0
-  - pydaymet=0.11.0
+  - python=3.8
+  - pygeoogc=0.10.1
+  - pygeoutils=0.10.1
+  - py3dep=0.10.1
+  - pynhd=0.10.1
+  - pygeohydro=0.10.2
+  - pydaymet=0.10.2
+  - xarray=0.17.0
   - tqdm
   - sphinx

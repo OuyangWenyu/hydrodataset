@@ -1,62 +1,23 @@
-from typing import Union, Tuple, List, Optional, MutableMapping, Any
+from typing import Union, Tuple, List, Optional
 import pygeoutils as geoutils
-import async_retriever as ar
+import pygeoogc as ogc
 import py3dep
-import asyncio
-from pydaymet import InvalidInputRange
-from pydaymet.core import Daymet, _check_requirements
-from pydaymet.pydaymet import _gridded_urls, _xarray_geomask
+from pydaymet.pydaymet import Daymet, gridded_urls, _check_requirements
 from shapely.geometry import MultiPolygon, Polygon, box
-import io
+import rasterio.transform as rio_transform
 import xarray as xr
 import numpy as np
 import pandas as pd
-from hydrobench.pet.pet4daymet import priestley_taylor, pm_fao56
+
+from hydrobench.pet.pet4daymet import pm_fao56, priestley_taylor
 
 DEF_CRS = "epsg:4326"
-
-
-def async_requests(
-        url_payload: List[Tuple[str, Optional[MutableMapping[str, Any]]]],
-        read: str,
-        request: str = "GET",
-        max_workers: int = 8,
-) -> List[Union[str, MutableMapping[str, Any], bytes]]:
-    """Send async requests.
-
-    This function is based on
-    `this <https://github.com/HydrologicEngineeringCenter/data-retrieval-scripts/blob/master/qpe_async_download.py>`__
-    script.
-
-    Parameters
-    ----------
-    url_payload : list of tuples
-        A list of URLs and payloads as a tuple.
-    read : str
-        The method for returning the request; binary, json, and text.
-    request : str, optional
-        The request type; GET or POST, defaults to GET.
-    max_workers : int, optional
-        The maximum number of async processes, defaults to 8.
-
-    Returns
-    -------
-    list
-        A list of responses
-    """
-    chunked_urls = tlz.partition_all(max_workers, url_payload)
-
-    results = (
-        asyncio.get_event_loop().run_until_complete(_async_session(c, read, request))
-        for c in chunked_urls
-    )
-    return list(tlz.concat(results))
 
 
 def download_daymet_by_geom_bound(
         geometry: Union[Polygon, MultiPolygon, Tuple[float, float, float, float]],
         dates: Union[Tuple[str, str], Union[int, List[int]]],
-        crs: str = DEF_CRS,
+        geo_crs: str = DEF_CRS,
         variables: Optional[List[str]] = None,
         region: str = "na",
         time_scale: str = "daily",
@@ -65,79 +26,52 @@ def download_daymet_by_geom_bound(
     """
     Get gridded data from the Daymet database at 1-km resolution in the boundary of the "geometry"
 
-    Parameters
-    ----------
-    geometry:
-        The geometry of the region of interest.
-    dates:
-        Start and end dates as a tuple (start, end) or a list of years [2001, 2010, ...].
-    crs:
-        The CRS of the input geometry, defaults to epsg:4326.
-    variables:
+    :param geometry:  The geometry of the region of interest.
+    :param dates: Start and end dates as a tuple (start, end) or a list of years [2001, 2010, ...].
+    :param geo_crs: The CRS of the input geometry, defaults to epsg:4326.
+    :param variables:
         List of variables to be downloaded. The acceptable variables are:
         ``tmin``, ``tmax``, ``prcp``, ``srad``, ``vp``, ``swe``, ``dayl``
         Descriptions can be found `here <https://daymet.ornl.gov/overview>`__.
-    region:
+    :param region:
         Region in the US, defaults to na. Acceptable values are:
         * na: Continental North America
         * hi: Hawaii
         * pr: Puerto Rico
-    time_scale:
+    :param time_scale:
         Data time scale which can be daily, monthly (monthly average),
         or annual (annual average). Defaults to daily.
-    boundary:
+    :param boundary:
         if boundary is true, we will use the box of bounds as the geometry mask;
         otherwise, return downloaded data acccording to urls directly
-
-    Returns
-    -------
-    Daily climate data within a geometry's boundary
+    :return: Daily climate data within a geometry
     """
 
-    daymet = Daymet(variables, time_scale=time_scale, region=region)
+    daymet = Daymet(variables, time_scale=time_scale)
     daymet.check_dates(dates)
 
     if isinstance(dates, tuple):
         dates_itr = daymet.dates_tolist(dates)
     else:
         dates_itr = daymet.years_tolist(dates)
-    # transform the crs
-    _geometry = geoutils.pygeoutils._geo2polygon(geometry, crs, DEF_CRS)
-
-    if not _geometry.intersects(daymet.region_bbox[region]):
-        raise InvalidInputRange(daymet.invalid_bbox_msg)
-
-    urls, kwds = zip(
-        *_gridded_urls(
-            daymet.time_codes[time_scale],
-            _geometry.bounds,
-            daymet.region,
-            daymet.variables,
-            dates_itr,
-        )
+    # notice: there is a bug in the geo2polygon function when using geometry.bounds as the parameter, so warning
+    if type(geometry) is tuple:
+        raise NotImplementedError("Please don't use tuple as the type of geometry when calling geoutils.geo2polygon,"
+                                  "because there is a bug here.")
+    _geometry = geoutils.geo2polygon(geometry, geo_crs, DEF_CRS)
+    urls = gridded_urls(
+        daymet.code[time_scale], _geometry.bounds, region, daymet.variables, dates_itr
     )
 
-    try:
-        clm = xr.open_mfdataset(async_requests(urls, "binary", max_workers=8))
-        clm = xr.open_mfdataset(
-            (io.BytesIO(r) for r in ar.retrieve(urls, "binary", request_kwds=kwds, max_workers=8)),
-            engine="scipy",
-            coords="minimal",
-        )
-    except ValueError:
-        msg = (
-                "The server did NOT process your request successfully. "
-                + "Check your inputs and try again."
-        )
-        raise ValueError(msg)
+    clm = xr.open_mfdataset(ogc.async_requests(urls, "binary", max_workers=8))
 
     for k, v in daymet.units.items():
         if k in clm.variables:
             clm[k].attrs["units"] = v
 
     clm = clm.drop_vars(["lambert_conformal_conic"])
-    # daymet's crs comes from: https://daymet.ornl.gov/overview
-    daymet_crs = " ".join(
+
+    crs = " ".join(
         [
             "+proj=lcc",
             "+lat_1=25",
@@ -151,18 +85,35 @@ def download_daymet_by_geom_bound(
             "+no_defs",
         ]
     )
-    clm.attrs["crs"] = daymet_crs
-    clm.attrs["nodatavals"] = (0.0,)
-    transform, _, _ = geoutils.pygeoutils._get_transform(clm, ("y", "x"))
-    clm.attrs["transform"] = transform
-    clm.attrs["res"] = (transform.a, transform.e)
+    clm.attrs["crs"] = crs
+    clm.attrs["nodatavals"] = (-9999,)
+    # we need a transfrom between xarray-dataset's x-y loc and its geo-coord
+    xdim, ydim = "x", "y"
+    height, width = clm.sizes[ydim], clm.sizes[xdim]
+
+    left, right = clm[xdim].min().item(), clm[xdim].max().item()
+    bottom, top = clm[ydim].min().item(), clm[ydim].max().item()
+
+    x_res = abs(left - right) / (width - 1)
+    y_res = abs(top - bottom) / (height - 1)
+
+    left -= x_res * 0.5
+    right += x_res * 0.5
+    top += y_res * 0.5
+    bottom -= y_res * 0.5
+
+    clm.attrs["transform"] = rio_transform.from_bounds(left, bottom, right, top, width, height)
+    clm.attrs["res"] = (x_res, y_res)
+    clm.attrs["bounds"] = (left, bottom, right, top)
 
     if isinstance(clm, xr.Dataset):
         for v in clm:
             clm[v].attrs["crs"] = crs
-            clm[v].attrs["nodatavals"] = (0.0,)
+            clm[v].attrs["nodatavals"] = (-9999,)
     if boundary:
-        return _xarray_geomask(clm, geometry.bounds, crs)
+        # notice: there is a bug in the geo2polygon function when using geometry.bounds as the parameter,
+        # so DO NOT use bounds and we use box(*geometry.bounds) here
+        return geoutils.xarray_geomask(clm, box(*geometry.bounds), geo_crs)
     else:
         return clm
 
@@ -170,18 +121,16 @@ def download_daymet_by_geom_bound(
 def calculate_basin_grids_pet(clm_ds: xr.Dataset, pet_method: Union[str, list] = "priestley_taylor") -> xr.Dataset:
     """
     Compute Potential EvapoTranspiration using Daymet dataset.
-
     Parameters
     ----------
-    clm_ds :
+    clm_ds : xarray.DataArray
         The dataset should include the following variables:
-        `tmin``, ``tmax``, ``lat``, ``lon``, ``vp``, ``srad``, ``dayl``
-    pet_method:
-        now support priestley_taylor and fao56
-
+            `tmin``, ``tmax``, ``lat``, ``lon``, ``vp``, ``srad``, ``dayl``
+    pet_method: now support priestley_taylor and fao56
     Returns
     -------
-    The input dataset with an additional variable called ``pet``.
+    xarray.DataArray
+        The input dataset with an additional variable called ``pet``.
     """
     if type(pet_method) is str:
         pet_method = [pet_method]
@@ -248,9 +197,10 @@ def calculate_basin_mean(clm_ds: xr.Dataset,
 
         Returns
         -------
-        Daily mean climate data of the basin
+        xarray.Dataset
+            Daily mean climate data of the basin
         """
-    clm = _xarray_geomask(clm_ds, geometry, geo_crs)
+    clm = geoutils.xarray_geomask(clm_ds, geometry, geo_crs)
     ds = xr.Dataset({}, coords={'time': clm.time})
     for k in clm.data_vars:
         ds[k] = clm[k].mean(dim=('x', 'y'))
