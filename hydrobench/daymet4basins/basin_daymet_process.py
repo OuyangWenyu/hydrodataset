@@ -5,7 +5,8 @@ import py3dep
 from pydaymet import InvalidInputRange
 from pydaymet.core import Daymet, _check_requirements
 from pydaymet.pydaymet import _gridded_urls, _xarray_geomask
-from shapely.geometry import MultiPolygon, Polygon, box
+from shapely.geometry import MultiPolygon, Polygon
+import rasterio.features as rio_features
 import io
 import xarray as xr
 import numpy as np
@@ -210,3 +211,42 @@ def calculate_basin_mean(clm_ds: xr.Dataset,
     for k in clm.data_vars:
         ds[k] = clm[k].mean(dim=('x', 'y'))
     return ds
+
+
+def generate_boundary_dataset(clm_ds: xr.Dataset,
+                              geometry: Union[Polygon, MultiPolygon, Tuple[float, float, float, float]],
+                              geo_crs: str = DEF_CRS) -> xr.Dataset:
+    """
+    Generate an xarray dataset in the boundary of geometry, but the boundary belongs to clm_ds's array, not the geometry
+
+    Parameters
+    ----------
+    clm_ds: Downloaded gridded daymet Dataset of a basin.
+    geometry: The geometry of a basin.
+    geo_crs: The CRS of the input geometry, defaults to epsg:4326.
+
+    Returns
+    -------
+    None
+    """
+
+    ds_dims = ("y", "x")
+    transform, width, height = geoutils.pygeoutils._get_transform(clm_ds, ds_dims)
+    _geometry = geoutils.pygeoutils._geo2polygon(geometry, geo_crs, clm_ds.crs)
+
+    _mask = rio_features.geometry_mask([_geometry], (height, width), transform, invert=True)
+    # x - column, y - row
+    y_idx, x_idx = np.where(_mask)
+    y_idx_min = y_idx.min()
+    y_idx_max = y_idx.max()
+    x_idx_min = x_idx.min()
+    x_idx_max = x_idx.max()
+    _mask_bound = np.full(_mask.shape, False)
+    _mask_bound[y_idx_min:y_idx_max + 1, x_idx_min:x_idx_max + 1] = True
+
+    coords = {ds_dims[0]: clm_ds.coords[ds_dims[0]], ds_dims[1]: clm_ds.coords[ds_dims[1]]}
+    mask_bound = xr.DataArray(_mask_bound, coords, dims=ds_dims)
+
+    ds_bound_masked = clm_ds.where(mask_bound, drop=True)
+    ds_bound_masked.attrs["transform"] = transform
+    return ds_bound_masked
