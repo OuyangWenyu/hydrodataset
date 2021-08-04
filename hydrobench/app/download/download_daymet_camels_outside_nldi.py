@@ -16,7 +16,7 @@ sys.path.append(os.path.join("..", "..", ".."))
 import definitions
 from hydrobench.data.data_camels import Camels
 from hydrobench.daymet4basins.basin_daymet_process import download_daymet_by_geom_bound
-from hydrobench.utils.hydro_utils import unserialize_geopandas, hydro_logger
+from hydrobench.utils.hydro_utils import unserialize_geopandas, hydro_logger, serialize_json, unserialize_json
 
 
 def do_we_need_redownload(geometry, basin_id, previous_download_data_dir, download_year):
@@ -80,30 +80,36 @@ def main(args):
         years = list(range(int(args.year_range[0]), int(args.year_range[1])))
     else:
         raise NotImplementedError("Please enter the time range (Start year and end year)")
-    # it seems lead to a breakdown of the file system to use shutil.copy for too many times,
-    # so we don't copy files, just select which parts should be downloaded.
-    need_download_index = OrderedDict()
-    for i in range(len(basins_id)):
-        need_download_year_index_lst = []
-        save_one_basin_dir = os.path.join(save_dir, basins_id[i])
-        if not os.path.isdir(save_one_basin_dir):
-            os.makedirs(save_one_basin_dir)
-        for j in range(len(years)):
-            save_path = os.path.join(save_one_basin_dir, basins_id[i] + "_" + str(years[j]) + "_nomask.nc")
-            if os.path.isfile(save_path) or (
-                    not do_we_need_redownload(basins.geometry[i], basins_id[i], previous_save_dir, years[j])):
-                print(save_path + " has been downloaded.")
-            else:
-                need_download_year_index_lst.append(j)
-        need_download_index[basins_id[i]] = need_download_year_index_lst
+
+    # it seems lead to a breakdown of the file system to use shutil.copy and other os functions for too many times,
+    # so we don't copy files, just select which parts should be downloaded and generate cache file for this procedure.
+    need_download_index_dir = os.path.join(definitions.ROOT_DIR, "hydrobench", "app", "download", "cache")
+    if not os.path.isdir(need_download_index_dir):
+        os.makedirs(need_download_index_dir)
+    need_download_index_file = os.path.join(need_download_index_dir, "need_download.json")
+    if os.path.isfile(need_download_index_file):
+        need_download_index = unserialize_json(need_download_index_file)
+    else:
+        need_download_index = OrderedDict()
+        for i in range(len(basins_id)):
+            need_download_year_index_lst = []
+            for j in range(len(years)):
+                if not do_we_need_redownload(basins.geometry[i], basins_id[i], previous_save_dir, years[j]):
+                    print("nc files of " + basins_id[i] + " have been downloaded.")
+                else:
+                    need_download_year_index_lst.append(j)
+            need_download_index[basins_id[i]] = need_download_year_index_lst
+        serialize_json(need_download_index, need_download_index_file)
     #  Download data
     for i in tqdm(range(len(basins_id))):
         save_one_basin_dir = os.path.join(save_dir, basins_id[i])
+        if not os.path.isdir(save_one_basin_dir):
+            os.makedirs(save_one_basin_dir)
         for j in tqdm(range(len(need_download_index[basins_id[i]])), leave=False):
             dates = (str(years[j]) + "-01-01", str(years[j]) + "-12-31")
             save_path = os.path.join(save_one_basin_dir, basins_id[i] + "_" + str(years[j]) + "_nomask.nc")
             if os.path.isfile(save_path):
-                hydro_logger.info(save_path + " has been downloaded.")
+                print(save_path + " has been downloaded.")
             else:
                 # download from url directly, no mask of geometry or geometry's boundary
                 daily = download_daymet_by_geom_bound(basins.geometry[i], dates, variables=var, boundary=False)
@@ -116,6 +122,6 @@ def main(args):
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='Download Daymet within the boundary of each basin in CAMELS')
     parser.add_argument('--year_range', dest='year_range', help='The start and end years (right open interval)',
-                        default=[1990, 1991], nargs='+')
+                        default=[1993, 1994], nargs='+')
     the_args = parser.parse_args()
     main(the_args)
