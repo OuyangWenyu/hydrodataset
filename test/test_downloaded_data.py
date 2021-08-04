@@ -9,6 +9,7 @@ import pygeoutils as geoutils
 
 import definitions
 from hydrobench.data.data_camels import Camels
+from hydrobench.daymet4basins.basin_daymet_process import generate_boundary_dataset
 
 
 class MyTestCase(unittest.TestCase):
@@ -130,6 +131,21 @@ class MyTestCase(unittest.TestCase):
         df_bound = pd.DataFrame(data=arr_bound, columns=['lat', 'lon', 'prcp'])
         df_bound.to_csv(os.path.join(self.save_dir, 'bound_load_to_qgis.csv'), index=False)
         # after getting the csv file, please use "Layer -> Add Layer -> Add Delimited Text Layer" in QGIS to import it.
+
+    def test4_read_nc_write_boundary(self):
+        basin_id = "01013500"
+        camels_shp_file = self.camels.dataset_description["CAMELS_BASINS_SHP_FILE"]
+        camels_shp = gpd.read_file(camels_shp_file)
+        # transform the geographic coordinates to wgs84 i.e. epsg4326  it seems NAD83 is equal to WGS1984 in geopandas
+        camels_shp_epsg4326 = camels_shp.to_crs(epsg=4326)
+        geometry = camels_shp_epsg4326[camels_shp_epsg4326["hru_id"] == int(basin_id)].geometry.item()
+
+        read_path = os.path.join(self.save_dir, basin_id + "_2000_01_01-03_from_urls.nc")
+        ds = xr.open_dataset(read_path)
+        ds_masked = generate_boundary_dataset(ds, geometry)
+
+        save_path = os.path.join(self.save_dir, basin_id + "_2000_01_01-03_bound.nc")
+        ds_masked.to_netcdf(save_path)
 
 
 if __name__ == '__main__':
