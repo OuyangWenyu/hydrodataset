@@ -2,7 +2,6 @@ from typing import Union, Tuple, List, Optional, MutableMapping, Any
 import pygeoutils as geoutils
 import async_retriever as ar
 import py3dep
-import asyncio
 from pydaymet import InvalidInputRange
 from pydaymet.core import Daymet, _check_requirements
 from pydaymet.pydaymet import _gridded_urls, _xarray_geomask
@@ -28,35 +27,29 @@ def download_daymet_by_geom_bound(
     """
     Get gridded data from the Daymet database at 1-km resolution in the boundary of the "geometry"
 
-    Parameters
-    ----------
-    geometry:
-        The geometry of the region of interest.
-    dates:
-        Start and end dates as a tuple (start, end) or a list of years [2001, 2010, ...].
-    crs:
-        The CRS of the input geometry, defaults to epsg:4326.
-    variables:
+    :param geometry: The geometry of the region of interest.
+    :param dates: Start and end dates as a tuple (start, end) or a list of years [2001, 2010, ...].
+    :param crs: The CRS of the input geometry, defaults to epsg:4326.
+    :param variables:
         List of variables to be downloaded. The acceptable variables are:
         ``tmin``, ``tmax``, ``prcp``, ``srad``, ``vp``, ``swe``, ``dayl``
         Descriptions can be found `here <https://daymet.ornl.gov/overview>`__.
-    region:
+    :param region:
         Region in the US, defaults to na. Acceptable values are:
         * na: Continental North America
         * hi: Hawaii
         * pr: Puerto Rico
-    time_scale:
+    :param time_scale:
         Data time scale which can be daily, monthly (monthly average),
         or annual (annual average). Defaults to daily.
-    boundary:
+    :param boundary:
         if boundary is true, we will use the box of bounds as the geometry mask;
         otherwise, return downloaded data acccording to urls directly
-
-    Returns
-    -------
-    Daily climate data within a geometry's boundary
+    :return: Daily climate data within a geometry's boundary
+    :raise:
+        if the error occurred: sqlite3.DatabaseError: database disk image is malformed,
+        please delete the cache in the current directory of the performing script
     """
-
     daymet = Daymet(variables, time_scale=time_scale, region=region)
     daymet.check_dates(dates)
 
