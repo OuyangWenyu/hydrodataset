@@ -9,7 +9,7 @@ import pygeoutils as geoutils
 
 import definitions
 from hydrobench.data.data_camels import Camels
-from hydrobench.daymet4basins.basin_daymet_process import generate_boundary_dataset
+from hydrobench.daymet4basins.basin_daymet_process import generate_boundary_dataset, resample_nc
 
 
 class MyTestCase(unittest.TestCase):
@@ -146,6 +146,16 @@ class MyTestCase(unittest.TestCase):
 
         save_path = os.path.join(self.save_dir, basin_id + "_2000_01_01-03_bound.nc")
         ds_masked.to_netcdf(save_path)
+
+    def test_resample_nc(self):
+        basin_id = "01013500"
+        nc_path = os.path.join(self.save_dir, basin_id + "_2000_01_01-03_bound.nc")
+        ds = xr.open_dataset(nc_path)
+        ds_high_res = resample_nc(ds, 0.5)
+        ds_low_res = resample_nc(ds, 2)
+        # the direction of exploration is to the first row (y-axis in this example), so we chose [0, 1, 0]
+        self.assertAlmostEqual(ds_high_res["swe"].values[0, 1, 0].item(), ds["swe"].values[0, 0, 0].item())
+        self.assertAlmostEqual(ds_low_res["swe"].values[0, 0, 0].item(), np.mean(ds["swe"].values[0, 0:2, 0:2]))
 
 
 if __name__ == '__main__':

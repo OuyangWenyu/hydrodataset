@@ -5,6 +5,7 @@ import py3dep
 from pydaymet import InvalidInputRange
 from pydaymet.core import Daymet, _check_requirements
 from pydaymet.pydaymet import _gridded_urls, _xarray_geomask
+from scipy.interpolate import griddata
 from shapely.geometry import MultiPolygon, Polygon
 import rasterio.features as rio_features
 import io
@@ -250,3 +251,43 @@ def generate_boundary_dataset(clm_ds: xr.Dataset,
     ds_bound_masked = clm_ds.where(mask_bound, drop=True)
     ds_bound_masked.attrs["transform"] = transform
     return ds_bound_masked
+
+
+def resample_nc(clm_ds: xr.Dataset,
+                resample_size: Union[int, float]) -> xr.Dataset:
+    """
+    Resample the dataset to the resample_size
+
+    Because Daymet's resolution is 1km which means each grid is 1km * 1km in a x-y coordinate system,
+    we think it's enough to use general regrid methods such as interpolate functions in scipy.
+
+    Parameters
+    ----------
+    clm_ds: the original xarray dataset
+    resample_size: the ratio of resampled dataset's resolution to the original dataset's
+
+    Returns
+    -------
+        the resampled dataset
+    """
+    if resample_size > 1:
+        # coarsen the original values
+        ds = clm_ds.coarsen(x=resample_size, boundary="pad").mean().coarsen(y=resample_size, boundary="pad").mean()
+    else:
+        ydim, xdim = ("y", "x")
+        height, width = clm_ds.sizes[ydim], clm_ds.sizes[xdim]
+        left, right = clm_ds[xdim].min().item(), clm_ds[xdim].max().item()
+        bottom, top = clm_ds[ydim].min().item(), clm_ds[ydim].max().item()
+
+        x_res = abs(left - right) / (width - 1)
+        y_res = abs(top - bottom) / (height - 1)
+        # interpolate the original values to the new resolution
+        x_res_new = x_res * resample_size
+        y_res_new = y_res * resample_size
+        # the array is in a left-close-right-open range, so  right + x_res
+        new_x = np.arange(left, right + x_res, x_res_new)
+        # the sequence of y is large -> small, for example, [941, 940, 939, ...]
+        new_y = np.arange(bottom, top + y_res, y_res_new)[::-1]
+        # we extrapolate some out-range values
+        ds = clm_ds.interp(x=new_x, y=new_y, kwargs={"fill_value": "extrapolate"})
+    return ds
