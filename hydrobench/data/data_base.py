@@ -25,16 +25,68 @@ class DatasetBase(ABC):
         raise NotImplementedError
 
     def read_relevant_cols(self, object_ids=None, t_range_list=None, relevant_cols=None, **kwargs) -> np.array:
-        """3d data (site_num * time_length * var_num), time-series data"""
+        """
+        3d data (site_num * time_length * var_num), time-series data
+
+        Parameters
+        ----------
+        object_ids
+            the ids of the objects, such as basins or gages
+        t_range_list
+            the range of time, e.g. [1990-01-01, 2000-01-01]
+        relevant_cols
+            the data types, e.g. ["prcp", "tmax"]
+        kwargs
+            Other Parameters
+
+        Returns
+        -------
+        np.array
+            the dynamic data, such as meteorological forcing data
+
+        """
+
         raise NotImplementedError
 
     def read_constant_cols(self, object_ids=None, constant_cols=None, **kwargs) -> np.array:
-        """2d data (site_num * var_num), non-time-series data"""
+        """
+        2d data (site_num * var_num), non-time-series data
+
+        Parameters
+        ----------
+        object_ids
+            the ids of the objects, such as basins or gages
+        constant_cols
+            the data types, e.g. ["topo", "clim"]
+        kwargs
+            Other Parameters
+
+        Returns
+        -------
+        np.array
+            the static data, e.g. geographical attributes
+
+        """
         raise NotImplementedError
 
     def read_other_cols(self, object_ids=None, other_cols: dict = None, **kwargs) -> dict:
-        """some data which cannot be easily treated as constant vars or time-series with same length as relevant vars
-        CONVENTION: other_cols is a dict, where each item is also a dict with all params in it"""
+        """
+        some data which cannot be easily treated as constant vars or time-series with same length as relevant vars
+        CONVENTION: other_cols is a dict, where each item is also a dict with all params in it
+
+        Parameters
+        ----------
+        object_ids
+            the ids of the objects, such as basins or gages
+        other_cols
+            other data types, such as ["fdc"]
+        kwargs
+            Other Parameters
+        Returns
+        -------
+        np.array
+            the other data
+        """
         raise NotImplementedError
 
     def get_constant_cols(self) -> np.array:

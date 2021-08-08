@@ -45,7 +45,12 @@ class Camels(DatasetBase):
                                        CAMELS_BASINS_SHP_FILE=camels_shp_file, CAMELS_DOWNLOAD_URL_LST=download_url_lst)
 
     def download_dataset(self):
-        """Download the CAMELS dataset from NCAR CAMELS website:  https://ral.ucar.edu/solutions/products/camels
+        """
+        Download the CAMELS dataset from NCAR CAMELS website:  https://ral.ucar.edu/solutions/products/camels
+
+        Returns
+        -------
+        None
         """
         print("Downloading the CAMELS dataset. It will take some minutes, please be patient!!!")
         camels_config = self.dataset_description
@@ -62,7 +67,8 @@ class Camels(DatasetBase):
 
         Returns
         -------
-        the names of attributes
+        np.array
+            the names of attributes
         """
 
         data_folder = self.dataset_description["CAMELS_ATTR_DIR"]
@@ -94,11 +100,13 @@ class Camels(DatasetBase):
 
         Returns
         -------
-        the information in "camels_name.txt"
+        pd.DataFrame
+            the information in "camels_name.txt"
 
         Raises
         -------
-        a FileNotFoundError when the "camels_name.txt" file has not been downloaded yet
+        FileNotFoundError
+                a FileNotFoundError when the "camels_name.txt" file has not been downloaded yet
         """
 
         camels_file = self.dataset_description["CAMELS_GAUGE_FILE"]

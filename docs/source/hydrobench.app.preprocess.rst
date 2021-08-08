@@ -20,6 +20,14 @@ hydrobench.app.preprocess.calculate\_pet module
    :undoc-members:
    :show-inheritance:
 
+hydrobench.app.preprocess.cut\_nc\_to\_bounds module
+----------------------------------------------------
+
+.. automodule:: hydrobench.app.preprocess.cut_nc_to_bounds
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
 Module contents
 ---------------
 
