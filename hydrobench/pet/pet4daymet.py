@@ -34,6 +34,7 @@ def priestley_taylor(t_min: Union[np.ndarray, xr.DataArray],
         Actual vapor pressure [kPa].
     Returns
     -------
+    Union[np.ndarray, xr.DataArray]
         the calculated evaporation [mm day-1]
 
     Examples
@@ -103,7 +104,8 @@ def pm_fao56(t_min: Union[np.ndarray, xr.DataArray],
         Actual vapor pressure [kPa].
     Returns
     -------
-        pandas.Series containing the calculated evaporation
+    Union[np.ndarray, xr.DataArray]
+        containing the calculated evaporation
 
     Examples
     --------

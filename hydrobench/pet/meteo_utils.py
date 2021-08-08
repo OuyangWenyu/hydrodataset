@@ -9,11 +9,12 @@ def calc_press(elevation: Union[np.ndarray, xr.DataArray]) -> Union[np.ndarray, 
 
     Parameters
     ----------
-    elevation:
+    elevation
         the site elevation [m]
 
     Returns
     -------
+    Union[np.ndarray, xr.DataArray]
         atmospheric pressure [kPa].
 
     Examples
@@ -40,6 +41,7 @@ def calc_psy(pressure: Union[np.ndarray, xr.DataArray],
 
     Returns
     -------
+    Union[np.ndarray, xr.DataArray]
         the Psychrometric constant [kPa °C-1].
 
     Examples
@@ -79,7 +81,8 @@ def calc_lambda(t_mean: Union[np.ndarray, xr.DataArray]) -> Union[np.ndarray, xr
 
     Returns
     -------
-    Latent Heat of Vaporization [MJ kg-1].
+    Union[np.ndarray, xr.DataArray]
+        Latent Heat of Vaporization [MJ kg-1].
 
     Examples
     --------
@@ -102,6 +105,7 @@ def calc_vpc(t_mean: Union[np.ndarray, xr.DataArray]) -> Union[np.ndarray, xr.Da
 
     Returns
     -------
+    Union[np.ndarray, xr.DataArray]
         Saturation vapour pressure
         [kPa °C-1].
 
@@ -127,7 +131,8 @@ def calc_e0(t_mean: Union[np.ndarray, xr.DataArray]) -> Union[np.ndarray, xr.Dat
 
     Returns
     -------
-    saturation vapor pressure at the air temperature tmean [kPa].
+    Union[np.ndarray, xr.DataArray]
+        saturation vapor pressure at the air temperature tmean [kPa].
 
     Examples
     --------
@@ -150,8 +155,8 @@ def calc_lambda_(t_mean: Union[np.ndarray, xr.DataArray]) -> Union[np.ndarray, x
 
     Returns
     -------
-    Latent Heat of Vaporization
-        [MJ kg-1].
+    Union[np.ndarray, xr.DataArray]
+        Latent Heat of Vaporization  [MJ kg-1].
 
     Examples
     --------
@@ -184,7 +189,8 @@ def calc_ea(t_mean=None, t_max=None, t_min=None, rh_max=None, rh_min=None, rh=No
 
     Returns
     -------
-    actual vapor pressure [kPa].
+    Union[np.ndarray, xr.DataArray]
+        actual vapor pressure [kPa].
 
     Examples
     --------
@@ -224,7 +230,8 @@ def calc_es(t_mean=None, t_max=None, t_min=None):
 
     Returns
     -------
-    saturation vapor pressure [kPa].
+    Union[np.ndarray, xr.DataArray]
+        saturation vapor pressure [kPa].
 
     Examples
     --------

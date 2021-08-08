@@ -31,7 +31,8 @@ def calc_rad_short(s_rad: Union[np.ndarray, xr.DataArray] = None,
 
     Returns
     -------
-    net shortwave radiation [MJ m-2 d-1]
+    Union[np.ndarray, xr.DataArray]
+        net shortwave radiation [MJ m-2 d-1]
 
     Notes
     -----
@@ -68,7 +69,8 @@ def calc_rad_sol_in(doy: Union[np.ndarray, xr.DataArray],
 
     Returns
     -------
-    net shortwave radiation [MJ m-2 d-1]
+    Union[np.ndarray, xr.DataArray]
+        net shortwave radiation [MJ m-2 d-1]
 
     Notes
     -----
@@ -92,7 +94,8 @@ def extraterrestrial_r(doy: Union[np.ndarray, xr.DataArray],
 
     Returns
     -------
-    extraterrestrial radiation
+    Union[np.ndarray, xr.DataArray]
+        extraterrestrial radiation
 
     Notes
     -----
@@ -116,7 +119,8 @@ def relative_distance(doy: Union[np.ndarray, xr.DataArray]) -> Union[np.ndarray,
         day of the year (1-365)
     Returns
     -------
-    relative distance between earth and sun.
+    Union[np.ndarray, xr.DataArray]
+        relative distance between earth and sun.
 
     Notes
     -------
@@ -134,7 +138,8 @@ def solar_declination(doy: Union[np.ndarray, xr.DataArray]) -> Union[np.ndarray,
         day of the year (1-365)
     Returns
     -------
-    solar declination [rad].
+    Union[np.ndarray, xr.DataArray]
+        solar declination [rad].
 
     Notes
     -------
@@ -156,7 +161,8 @@ def sunset_angle(sol_dec: Union[np.ndarray, xr.DataArray],
 
     Returns
     -------
-    sunset hour angle - daily [rad]
+    Union[np.ndarray, xr.DataArray]
+        sunset hour angle - daily [rad]
 
     Notes
     -----
@@ -177,7 +183,8 @@ def daylight_hours(doy: Union[np.ndarray, xr.DataArray],
 
     Returns
     -------
-    daylight hours [hour]
+    Union[np.ndarray, xr.DataArray]
+        daylight hours [hour]
 
     Notes
     -----
@@ -244,6 +251,7 @@ def calc_rad_long(s_rad,
 
     Returns
     -------
+    Union[np.ndarray, xr.DataArray]
         net longwave radiation
 
     Notes
@@ -307,7 +315,8 @@ def extraterrestrial_r_hour(doy, hour, lat, lz=0, lm=0):
 
     Returns
     -------
-    pandas.Series containing the calculated extraterrestrial radiation
+    Union[np.ndarray, xr.DataArray]
+        containing the calculated extraterrestrial radiation
 
     Notes
     -----
@@ -346,7 +355,8 @@ def sunset_angle_hour(doy, hour, sol_dec, lat, lz, lm):
 
     Returns
     -------
-    pandas.Series containing the calculated sunset hour angle - hourly [rad]
+    Union[np.ndarray, xr.DataArray]
+        containing the calculated sunset hour angle - hourly [rad]
 
     Notes
     -----
@@ -383,7 +393,8 @@ def calc_rso(ra, elevation):
 
     Returns
     -------
-    Clear-sky solar radiation
+    Union[np.ndarray, xr.DataArray]
+        Clear-sky solar radiation
 
     Notes
     -----

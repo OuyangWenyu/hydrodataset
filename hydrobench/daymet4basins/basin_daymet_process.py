@@ -5,7 +5,6 @@ import py3dep
 from pydaymet import InvalidInputRange
 from pydaymet.core import Daymet, _check_requirements
 from pydaymet.pydaymet import _gridded_urls, _xarray_geomask
-from scipy.interpolate import griddata
 from shapely.geometry import MultiPolygon, Polygon
 import rasterio.features as rio_features
 import io
@@ -29,29 +28,45 @@ def download_daymet_by_geom_bound(
     """
     Get gridded data from the Daymet database at 1-km resolution in the boundary of the "geometry"
 
-    :param geometry: The geometry of the region of interest.
-    :param dates: Start and end dates as a tuple (start, end) or a list of years [2001, 2010, ...].
-    :param crs: The CRS of the input geometry, defaults to epsg:4326.
-    :param variables:
+    if the error occurred: sqlite3.DatabaseError: database disk image is malformed,
+    please delete the cache in the current directory of the performing script
+
+    Parameters
+    ----------
+    geometry
+        The geometry of the region of interest.
+    dates
+        Start and end dates as a tuple (start, end) or a list of years [2001, 2010, ...].
+    crs
+        The CRS of the input geometry, defaults to epsg:4326.
+    variables
         List of variables to be downloaded. The acceptable variables are:
         ``tmin``, ``tmax``, ``prcp``, ``srad``, ``vp``, ``swe``, ``dayl``
         Descriptions can be found `here <https://daymet.ornl.gov/overview>`__.
-    :param region:
+    region
         Region in the US, defaults to na. Acceptable values are:
         * na: Continental North America
         * hi: Hawaii
         * pr: Puerto Rico
-    :param time_scale:
+    time_scale
         Data time scale which can be daily, monthly (monthly average),
         or annual (annual average). Defaults to daily.
-    :param boundary:
+    boundary
         if boundary is true, we will use the box of bounds as the geometry mask;
         otherwise, return downloaded data acccording to urls directly
-    :return: Daily climate data within a geometry's boundary
-    :raise:
-        if the error occurred: sqlite3.DatabaseError: database disk image is malformed,
-        please delete the cache in the current directory of the performing script
+
+    Returns
+    -------
+    xr.Dataset
+        Daily climate data within a geometry's boundary
+
+    Raises
+    -------
+    ValueError
+        when downloading failed, raise a ValueError
+
     """
+
     daymet = Daymet(variables, time_scale=time_scale, region=region)
     daymet.check_dates(dates)
 
@@ -130,16 +145,19 @@ def calculate_basin_grids_pet(clm_ds: xr.Dataset, pet_method: Union[str, list] =
 
     Parameters
     ----------
-    clm_ds :
+    clm_ds
         The dataset should include the following variables:
         `tmin``, ``tmax``, ``lat``, ``lon``, ``vp``, ``srad``, ``dayl``
-    pet_method:
+    pet_method
         now support priestley_taylor and fao56
 
     Returns
     -------
-    The input dataset with an additional variable called ``pet``.
+    xr.Dataset
+        The input dataset with an additional variable called ``pet``.
+
     """
+
     if type(pet_method) is str:
         pet_method = [pet_method]
     assert np.sort(pet_method) in np.sort(["priestley_taylor", "pm_fao56"])
@@ -192,21 +210,24 @@ def calculate_basin_grids_pet(clm_ds: xr.Dataset, pet_method: Union[str, list] =
 def calculate_basin_mean(clm_ds: xr.Dataset,
                          geometry: Union[Polygon, MultiPolygon, Tuple[float, float, float, float]],
                          geo_crs: str = DEF_CRS) -> xr.Dataset:
-    """Get gridded data from the Daymet database at 1-km resolution.
+    """
+    Get gridded data from the Daymet database at 1-km resolution.
 
-        Parameters
-        ----------
-        clm_ds :
+    Parameters
+    ----------
+    clm_ds
             gridded daymet Dataset of a basin.
-        geometry : Polygon, MultiPolygon, or bbox
-            The geometry of a basin.
-        geo_crs : str, optional
-            The CRS of the input geometry, defaults to epsg:4326.
-
-        Returns
-        -------
+    geometry
+        The geometry of a basin.
+    geo_crs
+        The CRS of the input geometry, defaults to epsg:4326.
+    Returns
+    -------
+    xr.Dataset
         Daily mean climate data of the basin
-        """
+
+    """
+
     clm = _xarray_geomask(clm_ds, geometry, geo_crs)
     ds = xr.Dataset({}, coords={'time': clm.time})
     for k in clm.data_vars:
@@ -222,13 +243,18 @@ def generate_boundary_dataset(clm_ds: xr.Dataset,
 
     Parameters
     ----------
-    clm_ds: Downloaded gridded daymet Dataset of a basin.
-    geometry: The geometry of a basin.
-    geo_crs: The CRS of the input geometry, defaults to epsg:4326.
+    clm_ds
+        Downloaded gridded daymet Dataset of a basin.
+    geometry
+        The geometry of a basin.
+    geo_crs
+        The CRS of the input geometry, defaults to epsg:4326.
 
     Returns
     -------
-    None
+    xr.Dataset
+        an xarray dataset in the boundary of the geometry
+
     """
 
     ds_dims = ("y", "x")
@@ -263,13 +289,18 @@ def resample_nc(clm_ds: xr.Dataset,
 
     Parameters
     ----------
-    clm_ds: the original xarray dataset
-    resample_size: the ratio of resampled dataset's resolution to the original dataset's
+    clm_ds
+        the original xarray dataset
+    resample_size
+        the ratio of resampled dataset's resolution to the original dataset's
 
     Returns
     -------
+    xr.Dataset
         the resampled dataset
+
     """
+
     if resample_size > 1:
         # coarsen the original values
         ds = clm_ds.coarsen(x=resample_size, boundary="pad").mean().coarsen(y=resample_size, boundary="pad").mean()
