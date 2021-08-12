@@ -133,3 +133,4 @@ dmypy.json
 /test/cache/
 /test/test_data/
 /hydrobench/app/download/cache/
+/hydrobench/app/daymet4basins/cache/
