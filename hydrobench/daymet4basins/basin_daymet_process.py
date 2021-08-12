@@ -168,15 +168,15 @@ def calculate_basin_grids_pet(clm_ds: xr.Dataset, pet_method: Union[str, list] =
     _check_requirements(reqs, keys)
     dtype = clm_ds.tmin.dtype
     dates = clm_ds["time"]
-    # m -> km
+    # km -> m
     res = clm_ds.res[0] * 1.0e3
     elev = py3dep.elevation_bygrid(clm_ds.x.values, clm_ds.y.values, clm_ds.crs, res)
     attrs = clm_ds.attrs
-    clm_ds = xr.merge([clm_ds, elev])
+    clm_ds = xr.merge([clm_ds, elev], combine_attrs="override")
     clm_ds.attrs = attrs
     clm_ds["elevation"] = clm_ds.elevation.where(
         ~np.isnan(clm_ds.isel(time=0)[keys[0]]), drop=True
-    )
+    ).T
     # Pa -> kPa
     clm_ds["vp"] *= 1e-3
     # data -> day of year
