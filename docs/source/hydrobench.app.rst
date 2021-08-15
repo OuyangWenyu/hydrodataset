@@ -7,8 +7,8 @@ Subpackages
 .. toctree::
    :maxdepth: 4
 
+   hydrobench.app.daymet4basins
    hydrobench.app.download
-   hydrobench.app.preprocess
 
 Submodules
 ----------
