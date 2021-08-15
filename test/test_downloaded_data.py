@@ -9,7 +9,9 @@ import pygeoutils as geoutils
 
 import definitions
 from hydrobench.data.data_camels import Camels
-from hydrobench.daymet4basins.basin_daymet_process import generate_boundary_dataset, resample_nc
+from hydrobench.daymet4basins.basin_daymet_process import generate_boundary_dataset, resample_nc, \
+    trans_daymet_to_camels_format, insert_daymet_value_in_leap_year
+from hydrobench.nldas4basins.basin_nldas_process import trans_daily_nldas_to_camels_format
 
 
 class MyTestCase(unittest.TestCase):
@@ -156,6 +158,35 @@ class MyTestCase(unittest.TestCase):
         # the direction of exploration is to the first row (y-axis in this example), so we chose [0, 1, 0]
         self.assertAlmostEqual(ds_high_res["swe"].values[0, 1, 0].item(), ds["swe"].values[0, 0, 0].item())
         self.assertAlmostEqual(ds_low_res["swe"].values[0, 0, 0].item(), np.mean(ds["swe"].values[0, 0:2, 0:2]))
+
+    def test_gee_daymet_to_camels_format(self):
+        """
+        the example data comes from the code here:
+        https://code.earthengine.google.com/1ffc9a50f7749d7be2f67368f465a993
+        """
+        daymet_dir = "example_data"
+        output_dir = os.path.join("test_data", "daymet")
+        camels = Camels(os.path.join(definitions.DATASET_DIR, "camels"), download=True)
+        gage_dict = camels.camels_sites.to_dict(orient="list")
+        region = "camels"
+        year = 2000
+        trans_daymet_to_camels_format(daymet_dir, output_dir, gage_dict, region, year)
+        insert_daymet_value_in_leap_year(output_dir, t_range=["2000-01-01", "2000-01-04"])
+        print("Trans finished")
+
+    def test_gee_daily_nldas_to_camels_format(self):
+        """
+        the example data comes from the code here:
+        https://code.earthengine.google.com/f62826e26e52996b63ccb3c0ceea3282
+        """
+        nldas_dir = "example_data"
+        output_dir = os.path.join("test_data", "nldas")
+        camels = Camels(os.path.join(definitions.DATASET_DIR, "camels"), download=True)
+        gage_dict = camels.camels_sites.to_dict(orient="list")
+        region = "camels"
+        year = 2000
+        trans_daily_nldas_to_camels_format(nldas_dir, output_dir, gage_dict, region, year)
+        print("Trans finished")
 
 
 if __name__ == '__main__':
