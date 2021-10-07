@@ -11,6 +11,8 @@ import definitions
 from hydrobench.data.data_camels import Camels
 from hydrobench.daymet4basins.basin_daymet_process import generate_boundary_dataset, resample_nc, \
     trans_daymet_to_camels_format, insert_daymet_value_in_leap_year
+from hydrobench.modis4basins.basin_mod16a2v105_process import trans_8day_modis16a2v105_to_camels_format
+from hydrobench.modis4basins.basin_pmlv2_process import trans_8day_pmlv2_to_camels_format
 from hydrobench.nldas4basins.basin_nldas_process import trans_daily_nldas_to_camels_format
 
 
@@ -187,6 +189,26 @@ class MyTestCase(unittest.TestCase):
         year = 2000
         trans_daily_nldas_to_camels_format(nldas_dir, output_dir, gage_dict, region, year)
         print("Trans finished")
+
+    def test_gee_8day_pmlv2_to_camels_format(self):
+        pmlv2_dir = "example_data"
+        output_dir = os.path.join("test_data", "pmlv2")
+        camels = Camels(os.path.join(definitions.DATASET_DIR, "camels"), download=True)
+        gage_dict = camels.camels_sites.to_dict(orient="list")
+        region = "camels"
+        year = 2002
+        trans_8day_pmlv2_to_camels_format(pmlv2_dir, output_dir, gage_dict, region, year)
+        print()
+
+    def test_gee_8day_modis16a2v105_to_camels_format(self):
+        modis16a2v105_dir = "example_data"
+        output_dir = os.path.join("test_data", "modis16a2v105")
+        camels = Camels(os.path.join(definitions.DATASET_DIR, "camels"), download=True)
+        gage_dict = camels.camels_sites.to_dict(orient="list")
+        region = "camels"
+        year = 2000
+        trans_8day_modis16a2v105_to_camels_format(modis16a2v105_dir, output_dir, gage_dict, region, year)
+        print()
 
 
 if __name__ == '__main__':

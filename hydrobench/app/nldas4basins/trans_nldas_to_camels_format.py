@@ -42,17 +42,18 @@ def main(args):
 
 
 # python trans_nldas_to_camels_format.py --input_dir /mnt/sdc/owen/datasets/NLDAS --output_dir /mnt/sdc/owen/datasets/NLDAS_DO --name do --gage_file /mnt/data/owen411/code/HydroBench/test/example_data/site_nobs_DO.csv --staid_str STAID --huc02_str HUC02 --year_range 1980 2021
+# python trans_nldas_to_camels_format.py --input_dir /mnt/sdc/owen/datasets/NLDAS --output_dir /mnt/sdc/owen/datasets/NLDAS_CAMELS --name camels --year_range 1980 2021
 if __name__ == '__main__':
-    parser = argparse.ArgumentParser(description='Download Daymet within the boundary of each basin in CAMELS')
+    parser = argparse.ArgumentParser(description='Trans NLDAS data to CAMELS format')
     parser.add_argument('--input_dir', dest='input_dir', help='The directory of downloaded NLDAS data',
                         default="/mnt/sdc/owen/datasets/NLDAS", type=str)
     parser.add_argument('--output_dir', dest='output_dir', help='The directory of transformed data',
-                        default="/mnt/sdc/owen/datasets/NLDAS_DO", type=str)
+                        default="/mnt/sdc/owen/datasets/NLDAS_CAMELS", type=str)
     parser.add_argument('--name', dest='name',
                         help='All files are named nldas_xx_avg/sum_mean_xxx, where xx is the NAME and xxx is the year',
-                        default="do", type=str)
+                        default="camels", type=str)
     parser.add_argument('--gage_file', dest='gage_file', help='The dict of gages',
-                        default="/mnt/data/owen411/code/HydroBench/test/example_data/site_nobs_DO.csv", type=str)
+                        default=None, type=str)
     parser.add_argument('--staid_str', dest='staid_str',
                         help='The name of gage id column, e.g. gauge_id, STAID',
                         default="STAID", type=str)
