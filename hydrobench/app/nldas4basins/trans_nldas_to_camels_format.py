@@ -42,7 +42,7 @@ def main(args):
 
 
 # python trans_nldas_to_camels_format.py --input_dir /mnt/sdc/owen/datasets/NLDAS --output_dir /mnt/sdc/owen/datasets/NLDAS_DO --name do --gage_file /mnt/data/owen411/code/HydroBench/test/example_data/site_nobs_DO.csv --staid_str STAID --huc02_str HUC02 --year_range 1980 2021
-# python trans_nldas_to_camels_format.py --input_dir /mnt/sdc/owen/datasets/NLDAS --output_dir /mnt/sdc/owen/datasets/NLDAS_CAMELS --name camels --year_range 1980 2021
+# python trans_nldas_to_camels_format.py --input_dir /mnt/sdc/owen/datasets/NLDAS --output_dir /mnt/sdc/owen/datasets/NLDAS_CAMELS --name camels --year_range 1990 2019
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='Trans NLDAS data to CAMELS format')
     parser.add_argument('--input_dir', dest='input_dir', help='The directory of downloaded NLDAS data',
@@ -61,6 +61,6 @@ if __name__ == '__main__':
                         help='The name of huc02 column, e.g. huc02, HUC02',
                         default="HUC02", type=str)
     parser.add_argument('--year_range', dest='year_range', help='The start and end years (right open interval)',
-                        default=[1980, 1982], nargs='+')
+                        default=[1990, 1992], nargs='+')
     the_args = parser.parse_args()
     main(the_args)

@@ -5,7 +5,6 @@ import argparse
 import os
 import sys
 
-import pandas as pd
 from tqdm import tqdm
 
 sys.path.append(os.path.join("..", "..", ".."))
