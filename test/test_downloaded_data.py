@@ -6,7 +6,7 @@ import geopandas as gpd
 import xarray as xr
 import rasterio.features as rio_features
 import pygeoutils as geoutils
-
+import cfgrib
 import definitions
 from hydrobench.data.data_camels import Camels
 from hydrobench.daymet4basins.basin_daymet_process import generate_boundary_dataset, resample_nc, \
@@ -209,6 +209,14 @@ class MyTestCase(unittest.TestCase):
         year = 2000
         trans_8day_modis16a2v105_to_camels_format(modis16a2v105_dir, output_dir, gage_dict, region, year)
         print()
+
+    def test_read_nldas_nc(self):
+        nc_file = os.path.join("example_data", "NLDAS_FORA0125_H.A19790101.1300.020.nc")
+        nc4_file = os.path.join("example_data", "NLDAS_FORA0125_H.A19790101.1300.002.grb.SUB.nc4")
+        ds1 = xr.open_dataset(nc_file)
+        ds2 = xr.open_dataset(nc4_file)
+        # data from v002 and v2.0 are same
+        self.assertEqual(np.nansum(ds1["CAPE"].values), np.nansum(ds2["CAPE"].values))
 
 
 if __name__ == '__main__':
