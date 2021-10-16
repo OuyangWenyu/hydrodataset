@@ -218,6 +218,12 @@ class MyTestCase(unittest.TestCase):
         # data from v002 and v2.0 are same
         self.assertEqual(np.nansum(ds1["CAPE"].values), np.nansum(ds2["CAPE"].values))
 
+    def test_read_era5_land_nc(self):
+        nc_file = os.path.join("example_data", "ERA5_LAND_20010101_20010102_total_precipitation.nc")
+        # nc_file = os.path.join("test_data", "a_test_range.nc")
+        ds = xr.open_dataset(nc_file)
+        print(ds)
+
 
 if __name__ == '__main__':
     unittest.main()
