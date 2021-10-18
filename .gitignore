@@ -136,3 +136,4 @@ dmypy.json
 /hydrobench/app/daymet4basins/cache/
 /hydrobench/nldas4basins/earth_data
 /hydrobench/nldas4basins/subset_NLDAS_FORA0125_*.txt
+/hydrobench/modis4basins/*download.txt
