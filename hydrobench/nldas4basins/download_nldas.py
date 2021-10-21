@@ -9,13 +9,16 @@ In addition, it requires us some manual operation:
 Then, use the following code to download the data
 
 Notice: if you are in China or somewhere the GFW exists, you need scientific internet access!!!!!!!
+Please download it year by year, if you chose too much file once a time, the downloading will fail.
 """
 import os
+import time
+from netrc import netrc
+
 import requests
+from tqdm import tqdm
 
 from hydrobench.utils.hydro_utils import hydro_logger
-
-earth_data_account_file = os.path.join(os.path.split(os.path.realpath(__file__))[0], "earth_data")
 
 
 # overriding requests.Session.rebuild_auth to mantain headers when redirected
@@ -44,18 +47,15 @@ class SessionWithHeaderRedirection(requests.Session):
 def download_nldas_with_url_lst(url_lst_file, save_dir):
     if not os.path.isdir(save_dir):
         os.makedirs(save_dir)
-    with open(earth_data_account_file, 'r') as f:
-        count = 0
-        for line in f:
-            if count == 0:
-                username = str(line[:-1])
-            else:
-                if line[-1] == "\n":
-                    password = str(line[:-1])
-                else:
-                    password = str(line)
-            count = count + 1
-        f.close()
+    netrc_dir = os.path.expanduser(os.path.join("~", ".netrc"))
+    if not os.path.isfile(netrc_dir):
+        raise FileNotFoundError("Please create a .netrc file to save username and password of your earthdata account:\n"
+                                "urs.earthdata.nasa.gov")
+    urs = 'urs.earthdata.nasa.gov'
+    # The EarthData username string
+    username = netrc(netrc_dir).authenticators(urs)[0]
+    # The EarthData password string
+    password = netrc(netrc_dir).authenticators(urs)[2]
     url_lst = []
     with open(url_lst_file, 'r') as f:
         count = 0
@@ -68,7 +68,8 @@ def download_nldas_with_url_lst(url_lst_file, save_dir):
             count = count + 1
         f.close()
     session = SessionWithHeaderRedirection(username, password)
-    for url in url_lst:
+    for url in tqdm(url_lst):
+        time.sleep(0.1)
         # extract the filename from the url to be used when saving the file
         filename = os.path.join(save_dir, url.split("/")[-1])
         if os.path.isfile(filename):
