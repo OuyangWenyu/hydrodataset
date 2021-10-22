@@ -47,6 +47,9 @@ class SessionWithHeaderRedirection(requests.Session):
 def download_nldas_with_url_lst(url_lst_file, save_dir):
     if not os.path.isdir(save_dir):
         os.makedirs(save_dir)
+    if not os.path.isfile(url_lst_file):
+        raise FileNotFoundError("Please download a Data File with Links for NLDAS data from:"
+                                "https://disc.gsfc.nasa.gov/datasets/NLDAS_FORA0125_H_2.0/summary")
     netrc_dir = os.path.expanduser(os.path.join("~", ".netrc"))
     if not os.path.isfile(netrc_dir):
         raise FileNotFoundError("Please create a .netrc file to save username and password of your earthdata account:\n"

@@ -35,7 +35,7 @@ def get_hydro_logger(log_level_param):
     return logger
 
 
-log_level = logging.INFO
+log_level = logging.DEBUG
 hydro_logger = get_hydro_logger(log_level)
 
 
