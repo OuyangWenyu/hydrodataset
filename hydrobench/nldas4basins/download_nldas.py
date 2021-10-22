@@ -75,14 +75,14 @@ def download_nldas_with_url_lst(url_lst_file, save_dir):
         # extract the filename from the url to be used when saving the file
         filename = os.path.join(save_dir, url.split("/")[-1])
         if os.path.isfile(filename):
-            hydro_logger.info("Downloaded: ", filename)
+            hydro_logger.info("Downloaded: %s", filename)
             continue
         # if we need to download a data file, be patient, sleep for a little while before downloading
         time.sleep(0.1)
         try:
             # submit the request using the session
             response = session.get(url, stream=True)
-            hydro_logger.info("Downloading: ", filename)
+            hydro_logger.info("Downloading: %s", filename)
             # raise an exception in case of http errors
             response.raise_for_status()
             # save the file
