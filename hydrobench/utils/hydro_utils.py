@@ -26,17 +26,15 @@ import logging
 
 
 # -----------------------------------------------logger setting----------------------------------------------------
-def get_hydro_logger(log_level_param):
-    logger = logging.getLogger(__name__)
-    # StreamHandler
-    stream_handler = logging.StreamHandler()  # console stream output
-    stream_handler.setLevel(level=log_level_param)
-    logger.addHandler(stream_handler)
+def get_hydro_logger():
+    logging.basicConfig(level=logging.DEBUG,
+                        format='%(name)s  %(asctime)s  %(message)s',
+                        datefmt='%a, %d %b %Y %H:%M:%S +0000')
+    logger = logging.getLogger('mylogger')
     return logger
 
 
-log_level = logging.DEBUG
-hydro_logger = get_hydro_logger(log_level)
+hydro_logger = get_hydro_logger()
 
 
 # ------------------------------------------------progress bar----------------------------------------------------
