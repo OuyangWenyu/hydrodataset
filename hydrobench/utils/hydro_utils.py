@@ -26,15 +26,15 @@ import logging
 
 
 # -----------------------------------------------logger setting----------------------------------------------------
-def get_hydro_logger():
+def get_hydro_logger(logger_name):
     logging.basicConfig(level=logging.DEBUG,
                         format='%(name)s  %(asctime)s  %(message)s',
                         datefmt='%a, %d %b %Y %H:%M:%S +0000')
-    logger = logging.getLogger('mylogger')
+    logger = logging.getLogger(logger_name)
     return logger
 
 
-hydro_logger = get_hydro_logger()
+hydro_logger = get_hydro_logger("HydroBench")
 
 
 # ------------------------------------------------progress bar----------------------------------------------------
