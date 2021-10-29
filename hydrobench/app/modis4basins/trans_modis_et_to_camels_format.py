@@ -1,5 +1,5 @@
 """
-Transform the data format of PMLV2 to the camels'
+Transform the data format of PMLV2 and MOD16A2_105 to the camels'
 """
 import argparse
 import os
