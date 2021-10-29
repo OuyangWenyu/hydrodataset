@@ -20,6 +20,14 @@ hydrobench.data.data\_camels module
    :undoc-members:
    :show-inheritance:
 
+hydrobench.data.data\_daymet4camels module
+------------------------------------------
+
+.. automodule:: hydrobench.data.data_daymet4camels
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
 hydrobench.data.stat module
 ---------------------------
 

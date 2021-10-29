@@ -9,6 +9,8 @@ Subpackages
 
    hydrobench.app.daymet4basins
    hydrobench.app.download
+   hydrobench.app.modis4basins
+   hydrobench.app.nldas4basins
 
 Submodules
 ----------

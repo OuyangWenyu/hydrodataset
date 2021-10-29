@@ -12,6 +12,14 @@ hydrobench.nldas4basins.basin\_nldas\_process module
    :undoc-members:
    :show-inheritance:
 
+hydrobench.nldas4basins.download\_nldas module
+----------------------------------------------
+
+.. automodule:: hydrobench.nldas4basins.download_nldas
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
 Module contents
 ---------------
 

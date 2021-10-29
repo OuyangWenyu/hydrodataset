@@ -28,6 +28,14 @@ hydrobench.app.download.download\_daymet\_nldi\_camels\_basin module
    :undoc-members:
    :show-inheritance:
 
+hydrobench.app.download.download\_nldas\_hourly module
+------------------------------------------------------
+
+.. automodule:: hydrobench.app.download.download_nldas_hourly
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
 hydrobench.app.download.download\_nldi module
 ---------------------------------------------
 

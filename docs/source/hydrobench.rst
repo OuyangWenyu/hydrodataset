@@ -10,6 +10,8 @@ Subpackages
    hydrobench.app
    hydrobench.data
    hydrobench.daymet4basins
+   hydrobench.ecmwf4basins
+   hydrobench.modis4basins
    hydrobench.nldas4basins
    hydrobench.pet
    hydrobench.utils
