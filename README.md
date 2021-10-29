@@ -1,55 +1,99 @@
 # HydroBench
 
-A benchmark dataset for data-driven hydrologic forecasting
+Data downloader and processor for Hydrologic Modeling
 
-This repository contains all the code for downloding and processing the data as well as code for the baseline models.
+## Data source zoo list
 
-I draw lessons from [WeatherBench](https://github.com/pangeo-data/WeatherBench).
+- Daymet
+- ECMWF
+- MODIS
+- NLDAS
 
-## Leaderborad
+More details are shown in the following sections.
 
-| Model | NSE | Notes | Reference | Code |
-|--------------------|----------------------------------|----------------------------|------------------|------------------|
-| CudnnLSTM | 0.74 | an LSTM model with a good dropout strategy | [Ouyang et al. 2021](https://arxiv.org/abs/2101.04423) |[HydroSPDB](https://github.com/OuyangWenyu/HydroSPDB)|
+## Daymet
 
-## Quick start
+We download and process Daymet data for the 671 basins in [CAMELS](https://ral.ucar.edu/solutions/products/camels).
 
-TODO: write a notebook to quickly start
+If you can read Chinese, [this blog](https://github.com/OuyangWenyu/aqualord/blob/master/CAMELS/CAMELS.md) may be a
+quick start for CAMELS.
 
-## Download the data
+### Downloading the CAMELS dataset
 
-TODO: put all the dataset to public website
+You can download CAMELS manually from https://ral.ucar.edu/solutions/products/camels ; or you can use the following
+code:
 
-## Baselines and evaluation
+```Python
+import os
+import definitions
+from hydrobench.data.data_camels import Camels
 
-IMPORTANT: The format of the predictions file is a NetCDF dataset with dimensions [init_time, lead_time, lat, lon]. Consult the notebooks for examples. You are stongly encouraged to format your predictions in the same way and then use the same evaluation functions to ensure consistent evaluation.
+camels_path = os.path.join(definitions.DATASET_DIR, "camels")
+camels = Camels(camels_path, download=True)
+```
 
-### Baselines
+### Download Daymet V4 dataset for basins in CAMELS
 
-TODO: The baselines are created using Jupyter notebooks in notebooks/. In all notebooks, the forecasts are saved as CSV files in the predictions directory of the dataset.
+Use hydrobench/app/download/download_daymet_camels_basin.py to download daymet grid data for the boundaries of basins in
+CAMELS.
 
-### LSTM baselines
+### Process the raw Daymet V4 data
 
-TODO: An example of how to load the data and train an LSTM 
+We provided some scripts to process the Daymet grid data for basins:
 
-### Evaluation
+- Regrid the raw data to the required resolutions (hydrobench/app/daymet4basins/regrid_daymet_nc.py)
+- calculate_basin_mean_forcing_include_pet.py and calculate_basin_mean_values.pyin hydrobench/app/daymet4basins can be
+  used for getting basin mean values
+- If you want to get P (precipitation), PE (potential evapotranspiration), Q (streamflow) and Basin areas, please use
+  hydrobench/app/daymet4basins/pbm_p_pe_q_basin_area.py
 
-TODO: Evaluation and comparison of the different baselines in done
+## ECMWF
 
-## Data processing
+### Download ERA5-Land data
 
-The dataset already contains the most important processed data. If you would like to download a different variable , regrid to a different resolution or extract single levels from the 3D files, here is how to do that!
+Although we provide tools to use cds toolbox from ECMWF to retrieve ERA5-land data, it seems it didn't work well (even
+when data is MB level). Hence, we recommend a manual way to download the ERA5-land data archive
+from https://cds.climate.copernicus.eu/cdsapp#!/dataset/reanalysis-era5-land?tab=form
 
-### Downloading the CAMELS baseline
+### Process the downloaded ERA5-Land data
 
-TODO: CAMELS baselines
+TODO: Regrid the raw data to the required resolutions (src/regrid.py from https://github.com/pangeo-data/WeatherBench)
 
-### Downloading and processing the raw data from the Daymet dataset
+## MODIS
 
-The workflow to get to the processed data that ended up in the data repository above is:
+### Download basin mean ET data from GEE
 
-- Download daily files from the Daymet archive (src/download.py)
-- Regrid the raw data to the required resolutions (src/regrid.py)
-- The raw data is from the ERA5 reanalysis archive. 
-  
-Information on how to download the data can be found here and here.
+We provided [Google Earth Engine](https://earthengine.google.com/) scripts to download the PML V2 and MODIS MOD16A2_105
+product for given basins:
+
+TODO: provide a link -- [Download basin mean values of ET data]()
+
+### Process ET data to CAMELS format
+
+Use hydrobench\app\modis4basins\trans_modis_et_to_camels_format.py to process the downloaded ET data from GEE to the
+format of forcing data in CAMELS
+
+## NLDAS
+
+### Download basin mean NLDAS data from GEE
+
+The GEE script is [here](https://code.earthengine.google.com/72cb2661f2206b4f986e24af3560c000)
+
+### Download NLDAS grid data from NASA Earth data
+
+Use hydrobench/app/download/download_nldas_hourly.py to download them.
+
+Notice: you should finish some necessary steps (see the comments in hydrobench/nldas4basins/download_nldas.py) before
+using the script
+
+### Process NLDAS basin mean forcing
+
+Use hydrobench/app/nldas4basins/trans_nldas_to_camels_format.py to transform the data to the format of forcing data in
+CAMELS.
+
+TODO: more processing scripts are needed for NLDAS grid data.
+
+## Acknowledgement
+
+- [HyRiver](https://github.com/cheginit/HyRiver)
+- [WeatherBench](https://github.com/pangeo-data/WeatherBench)
