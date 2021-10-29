@@ -10,12 +10,21 @@ from hydrobench.utils.hydro_utils import hydro_logger
 def KGE(xs, xo):
     """
     Kling Gupta Efficiency (Gupta et al., 2009, http://dx.doi.org/10.1016/j.jhydrol.2009.08.003)
-    input:
-        xs: simulated
-        xo: observed
-    output:
+
+    Parameters
+    ----------
+    xs
+        simulated
+    xo
+        observed
+
+    Returns
+    -------
+    np.array
         KGE: Kling Gupta Efficiency
+
     """
+
     r = np.corrcoef(xo, xs)[0, 1]
     alpha = np.std(xs) / np.std(xo)
     beta = np.mean(xs) / np.mean(xo)
@@ -113,9 +122,23 @@ def cal_stat_gamma(x):
 
 
 def cal_stat_basin_norm(x, basinarea, meanprep):
-    """for daily streamflow normalized by basin area and precipitation
-    basinarea = readAttr(gageDict['id'], ['area_gages2'])
-    meanprep = readAttr(gageDict['id'], ['p_mean'])
+    """
+
+    for daily streamflow normalized by basin area and precipitation
+
+    Parameters
+    ----------
+    x
+        the original data
+    basinarea
+        basinarea = readAttr(gageDict['id'], ['area_gages2'])
+    meanprep
+        meanprep = readAttr(gageDict['id'], ['p_mean'])
+
+    Returns
+    -------
+    np.array
+        the normalized data
     """
     # meanprep = readAttr(gageDict['id'], ['q_mean'])
     temparea = np.tile(basinarea, (1, x.shape[1]))
@@ -126,12 +149,29 @@ def cal_stat_basin_norm(x, basinarea, meanprep):
 
 
 def trans_norm(x, var_lst, stat_dict, *, to_norm):
-    """normalization，including denormalization code
-    :parameter
-        x：2d or 3d data
-            2d：1st-sites，2nd-var type
-            3d：1st-sites，2nd-time, 3rd-var type
     """
+    normalization，including denormalization code
+
+    Parameters
+    ----------
+    x
+        2d or 3d data
+        2d：1st-sites，2nd-var type
+        3d：1st-sites，2nd-time, 3rd-var type
+    var_lst
+        the list of var types
+    stat_dict
+        the statistic items
+    to_norm
+        if True, normalization, otherwise denormalization
+
+    Returns
+    -------
+    np.array
+        normalized or denormalized data
+
+    """
+
     if type(var_lst) is str:
         var_lst = [var_lst]
     out = np.zeros(x.shape)

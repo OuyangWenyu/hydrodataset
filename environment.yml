@@ -9,5 +9,7 @@ dependencies:
   - pynhd=0.11.0
   - pygeohydro=0.11.0
   - pydaymet=0.11.0
+  - cdsapi
+  - cfgrib
   - tqdm
   - sphinx

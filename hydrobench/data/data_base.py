@@ -1,21 +1,24 @@
 import os.path
 from abc import ABC
+from typing import Union
+
 import numpy as np
+import xarray as xr
 
 
-class DatasetBase(ABC):
+class DataSourceBase(ABC):
     def __init__(self, data_path):
-        self.dataset_dir = data_path
+        self.data_source_dir = data_path
         if not os.path.isdir(data_path):
             os.makedirs(data_path)
 
     def get_name(self):
         raise NotImplementedError
 
-    def set_dataset_describe(self):
+    def set_data_source_describe(self):
         raise NotImplementedError
 
-    def download_dataset(self):
+    def download_data_source(self):
         raise NotImplementedError
 
     def read_object_ids(self, object_params=None) -> np.array:
@@ -24,7 +27,11 @@ class DatasetBase(ABC):
     def read_target_cols(self, object_ids=None, t_range_list=None, target_cols=None, **kwargs) -> np.array:
         raise NotImplementedError
 
-    def read_relevant_cols(self, object_ids=None, t_range_list=None, relevant_cols=None, **kwargs) -> np.array:
+    def read_relevant_cols(self,
+                           object_ids=None,
+                           t_range_list: list = None,
+                           relevant_cols=None,
+                           **kwargs) -> Union[np.array, xr.Dataset, list]:
         """3d data (site_num * time_length * var_num), time-series data"""
         raise NotImplementedError
 
@@ -38,17 +45,17 @@ class DatasetBase(ABC):
         raise NotImplementedError
 
     def get_constant_cols(self) -> np.array:
-        """the constant cols in this dataset"""
+        """the constant cols in this data_source"""
         raise NotImplementedError
 
     def get_relevant_cols(self) -> np.array:
-        """the relevant cols in this dataset"""
+        """the relevant cols in this data_source"""
         raise NotImplementedError
 
     def get_target_cols(self) -> np.array:
-        """the target cols in this dataset"""
+        """the target cols in this data_source"""
         raise NotImplementedError
 
     def get_other_cols(self) -> dict:
-        """the other cols in this dataset"""
+        """the other cols in this data_source"""
         raise NotImplementedError
