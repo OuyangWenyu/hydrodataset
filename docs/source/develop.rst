@@ -27,4 +27,4 @@ Now the directories in "hydrobench" are:
 Conventions
 ----------------------
 * Please write unittest code for all functions.
-* Please write comments by English, and note we use the the same format in `this example <https://sphinx-rtd-tutorial.readthedocs.io/en/latest/docstrings.html#an-example-class-with-docstrings>`_.
+* Please write comments by English, and note we use the the same format in `this example <https://sphinxcontrib-napoleon.readthedocs.io/en/latest/example_numpy.html#example-numpy>`_.

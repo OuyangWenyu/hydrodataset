@@ -26,17 +26,15 @@ import logging
 
 
 # -----------------------------------------------logger setting----------------------------------------------------
-def get_hydro_logger(log_level_param):
-    logger = logging.getLogger(__name__)
-    # StreamHandler
-    stream_handler = logging.StreamHandler()  # console stream output
-    stream_handler.setLevel(level=log_level_param)
-    logger.addHandler(stream_handler)
+def get_hydro_logger(logger_name):
+    logging.basicConfig(level=logging.DEBUG,
+                        format='%(name)s  %(asctime)s  %(message)s',
+                        datefmt='%a, %d %b %Y %H:%M:%S +0000')
+    logger = logging.getLogger(logger_name)
     return logger
 
 
-log_level = logging.INFO
-hydro_logger = get_hydro_logger(log_level)
+hydro_logger = get_hydro_logger("HydroBench")
 
 
 # ------------------------------------------------progress bar----------------------------------------------------
@@ -192,17 +190,20 @@ def is_there_file(zipfile_path, unzip_dir):
         return True
 
 
-def download_one_zip(data_url, data_dir):
+def download_one_zip(data_url: str, data_dir: str) -> None:
     """
     download one zip file from url as data_file
 
     Parameters
     ----------
-    data_url: the URL of the downloading website
-    data_dir: where we will put the data
+    data_url
+        the URL of the downloading website
+    data_dir
+        where we will put the data
     """
 
     zipfile_path, unzip_dir = zip_file_name_from_url(data_url, data_dir)
+    hydro_logger.info("Downloading ", zipfile_path)
     if not is_there_file(zipfile_path, unzip_dir):
         if not os.path.isdir(unzip_dir):
             os.makedirs(unzip_dir)

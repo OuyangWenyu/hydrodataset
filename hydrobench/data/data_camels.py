@@ -4,24 +4,25 @@ import pandas as pd
 import numpy as np
 from pandas.core.dtypes.common import is_string_dtype, is_numeric_dtype
 
-from hydrobench.data.data_base import DatasetBase
+from hydrobench.data.data_base import DataSourceBase
 from hydrobench.data.stat import cal_fdc
-from hydrobench.utils.hydro_utils import download_one_zip, t_range_days
+from hydrobench.utils import hydro_utils
+from hydrobench.utils.hydro_utils import download_one_zip
 
 
-class Camels(DatasetBase):
+class Camels(DataSourceBase):
     def __init__(self, data_path, download=False):
         super().__init__(data_path)
-        self.dataset_description = self.set_dataset_describe()
+        self.data_source_description = self.set_data_source_describe()
         if download:
-            self.download_dataset()
+            self.download_data_source()
         self.camels_sites = self.read_site_info()
 
     def get_name(self):
         return "CAMELS"
 
-    def set_dataset_describe(self):
-        camels_db = self.dataset_dir
+    def set_data_source_describe(self):
+        camels_db = self.data_source_dir
         # shp file of basins
         camels_shp_file = os.path.join(camels_db, "basin_set_full_res", "HCDN_nhru_final_671.shp")
         # config of flow data
@@ -37,18 +38,16 @@ class Camels(DatasetBase):
 
         download_url_lst = [
             "https://ral.ucar.edu/sites/default/files/public/product-tool/camels-catchment-attributes-and-meteorology-for-large-sample-studies-dataset-downloads/camels_attributes_v2.0.zip",
-            "https://ral.ucar.edu/sites/default/files/public/product-tool/camels-catchment-attributes-and-meteorology-for-large-sample-studies-dataset-downloads/basin_set_full_res.zip"]
+            "https://ral.ucar.edu/sites/default/files/public/product-tool/camels-catchment-attributes-and-meteorology-for-large-sample-studies-dataset-downloads/basin_set_full_res.zip",
+            "https://ral.ucar.edu/sites/default/files/public/product-tool/camels-catchment-attributes-and-meteorology-for-large-sample-studies-dataset-downloads/basin_timeseries_v1p2_metForcing_obsFlow.zip"]
 
         return collections.OrderedDict(CAMELS_DIR=camels_db, CAMELS_FLOW_DIR=flow_dir,
                                        CAMELS_FORCING_DIR=forcing_dir, CAMELS_FORCING_TYPE=forcing_types,
                                        CAMELS_ATTR_DIR=attr_dir, CAMELS_GAUGE_FILE=gauge_id_file,
                                        CAMELS_BASINS_SHP_FILE=camels_shp_file, CAMELS_DOWNLOAD_URL_LST=download_url_lst)
 
-    def download_dataset(self):
-        """Download the CAMELS dataset from NCAR CAMELS website:  https://ral.ucar.edu/solutions/products/camels
-        """
-        print("Downloading the CAMELS dataset. It will take some minutes, please be patient!!!")
-        camels_config = self.dataset_description
+    def download_data_source(self):
+        camels_config = self.data_source_description
         if not os.path.isdir(camels_config["CAMELS_DIR"]):
             os.makedirs(camels_config["CAMELS_DIR"])
         [download_one_zip(attr_url, camels_config["CAMELS_DIR"]) for attr_url in
@@ -57,15 +56,8 @@ class Camels(DatasetBase):
         print("The CAMELS data have been downloaded!")
 
     def get_constant_cols(self) -> np.array:
-        """
-        get all readable attributes in CAMELS
-
-        Returns
-        -------
-        the names of attributes
-        """
-
-        data_folder = self.dataset_description["CAMELS_ATTR_DIR"]
+        """all readable attrs in CAMELS"""
+        data_folder = self.data_source_description["CAMELS_ATTR_DIR"]
         var_dict = dict()
         var_lst = list()
         key_lst = ['topo', 'clim', 'hydro', 'vege', 'soil', 'geol']
@@ -89,24 +81,8 @@ class Camels(DatasetBase):
         return {"FDC": {"time_range": ["1980-01-01", "2000-01-01"], "quantile_num": 100}}
 
     def read_site_info(self) -> pd.DataFrame:
-        """
-        read "camels_name.txt", which include "gauge_id", "huc_02" and "gauge_name"
-
-        Returns
-        -------
-        the information in "camels_name.txt"
-
-        Raises
-        -------
-        a FileNotFoundError when the "camels_name.txt" file has not been downloaded yet
-        """
-
-        camels_file = self.dataset_description["CAMELS_GAUGE_FILE"]
-        try:
-            data = pd.read_csv(camels_file, sep=';', dtype={"gauge_id": str, "huc_02": str})
-        except FileNotFoundError as e:
-            raise FileNotFoundError("Please check if you have downloaded the CAMELS dataset. "
-                                    "If not, try 'camels = Camels(data_dir, download=True)' when initializing") from e
+        camels_file = self.data_source_description["CAMELS_GAUGE_FILE"]
+        data = pd.read_csv(camels_file, sep=';', dtype={"gauge_id": str, "huc_02": str})
         return data
 
     def read_object_ids(self, object_params=None) -> np.array:
@@ -122,11 +98,11 @@ class Camels(DatasetBase):
         print("reading %s streamflow data", usgs_id)
         gage_id_df = self.camels_sites
         huc = gage_id_df[gage_id_df["gauge_id"] == usgs_id]["huc_02"].values[0]
-        usgs_file = os.path.join(self.dataset_description["CAMELS_FLOW_DIR"], huc, usgs_id + '_streamflow_qc.txt')
+        usgs_file = os.path.join(self.data_source_description["CAMELS_FLOW_DIR"], huc, usgs_id + '_streamflow_qc.txt')
         data_temp = pd.read_csv(usgs_file, sep=r'\s+', header=None)
         obs = data_temp[4].values
         obs[obs < 0] = np.nan
-        t_lst = t_range_days(t_range)
+        t_lst = hydro_utils.t_range_days(t_range)
         nt = t_lst.shape[0]
         if len(obs) != nt:
             out = np.full([nt], np.nan)
@@ -141,25 +117,25 @@ class Camels(DatasetBase):
 
     def read_target_cols(self, usgs_id_lst=None, t_range=None, target_cols=None, **kwargs):
         # only one output for camels: streamflow, just read it
-        nt = t_range_days(t_range).shape[0]
+        nt = hydro_utils.t_range_days(t_range).shape[0]
         y = np.empty([len(usgs_id_lst), nt])
         for k in range(len(usgs_id_lst)):
             data_obs = self.read_usgs_gage(usgs_id_lst[k], t_range)
             y[k, :] = data_obs
         return y
 
-    def read_forcing_gage(self, usgs_id, var_lst, t_range_list, dataset='daymet'):
-        # dataset = daymet or maurer or nldas
+    def read_forcing_gage(self, usgs_id, var_lst, t_range_list, forcing_type='daymet'):
+        # data_source = daymet or maurer or nldas
         print("reading %s forcing data", usgs_id)
         gage_id_df = self.camels_sites
         huc = gage_id_df[gage_id_df["gauge_id"] == usgs_id]["huc_02"].values[0]
 
-        data_folder = self.dataset_description["CAMELS_FORCING_DIR"]
-        if dataset == 'daymet':
+        data_folder = self.data_source_description["CAMELS_FORCING_DIR"]
+        if forcing_type == 'daymet':
             temp_s = 'cida'
         else:
-            temp_s = dataset
-        data_file = os.path.join(data_folder, dataset, huc, '%s_lump_%s_forcing_leap.txt' % (usgs_id, temp_s))
+            temp_s = forcing_type
+        data_file = os.path.join(data_folder, forcing_type, huc, '%s_lump_%s_forcing_leap.txt' % (usgs_id, temp_s))
         data_temp = pd.read_csv(data_file, sep=r'\s+', header=None, skiprows=4)
         forcing_lst = ["Year", "Mnth", "Day", "Hr", "dayl", "prcp", "srad", "swe", "tmax", "tmin", "vp"]
         df_date = data_temp[[0, 1, 2]]
@@ -177,16 +153,16 @@ class Camels(DatasetBase):
         return out
 
     def read_relevant_cols(self, usgs_id_lst=None, t_range=None, var_lst=None, forcing_type="daymet"):
-        t_range_list = t_range_days(t_range)
+        t_range_list = hydro_utils.t_range_days(t_range)
         nt = t_range_list.shape[0]
         x = np.empty([len(usgs_id_lst), nt, len(var_lst)])
         for k in range(len(usgs_id_lst)):
-            data = self.read_forcing_gage(usgs_id_lst[k], var_lst, t_range_list, dataset=forcing_type)
+            data = self.read_forcing_gage(usgs_id_lst[k], var_lst, t_range_list, forcing_type=forcing_type)
             x[k, :, :] = data
         return x
 
     def read_attr_all(self):
-        data_folder = self.dataset_description["CAMELS_ATTR_DIR"]
+        data_folder = self.data_source_description["CAMELS_ATTR_DIR"]
         f_dict = dict()  # factorize dict
         var_dict = dict()
         var_lst = list()
