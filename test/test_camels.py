@@ -11,7 +11,9 @@ class CamelsTestCase(unittest.TestCase):
     def setUp(self) -> None:
         self.camels_path = os.path.join(definitions.DATASET_DIR, "camels", "camels_us")
         self.camels_aus_path = os.path.join(definitions.DATASET_DIR, "camels", "camels_aus")
+        self.camels_br_path = os.path.join(definitions.DATASET_DIR, "camels", "camels_br")
         self.aus_region = "AUS"
+        self.br_region = "BR"
 
     def test_download_camels(self):
         camels = Camels(self.camels_path, download=True)
@@ -56,6 +58,38 @@ class CamelsTestCase(unittest.TestCase):
         attr_types = camels_aus.get_constant_cols()
         np.testing.assert_array_equal(attr_types[:3],
                                       np.array(['station_name', 'drainage_division', 'river_region']))
+
+    def test_download_camels_br(self):
+        camels_br = Camels(self.camels_br_path, download=True, region="BR")
+        self.assertTrue(
+            os.path.isfile(os.path.join(self.camels_br_path, "01_CAMELS_BR_attributes", "01_CAMELS_BR_attributes",
+                                        "CAMELS_BR_attributes_description.xlsx")))
+
+    def test_read_camels_br_data(self):
+        camels_br = Camels(self.camels_br_path, download=False, region=self.br_region)
+        gage_ids = camels_br.read_object_ids()
+        self.assertEqual(gage_ids.size, 897)
+        attrs = camels_br.read_constant_cols(gage_ids[:5], var_lst=["geol_class_1st", "p_mean", "runoff_ratio"])
+        np.testing.assert_array_equal(attrs, np.array(
+            [[8., 6.51179, 0.55336], [6., 5.38941, 0.72594], [6., 5.70191, 0.759], [6., 5.19877, 0.39463],
+             [8., 5.49805, 0.38579]]))
+        forcings = camels_br.read_relevant_cols(gage_ids[:5], ["1995-01-01", "2015-01-01"],
+                                                var_lst=["precipitation_chirps", "evapotransp_gleam",
+                                                         "potential_evapotransp_gleam", "temperature_min_cpc"])
+        np.testing.assert_array_equal(forcings.shape, np.array([5, 7305, 4]))
+        # start from 1995/01/01 end with 2017/04/30
+        flows = camels_br.read_target_cols(gage_ids[:5], ["1995-01-01", "2015-01-01"],
+                                           target_cols=["streamflow_m3s", "streamflow_mm_selected_catchments"])
+        np.testing.assert_array_equal(flows.shape, np.array([5, 7305, 2]))
+        streamflow_types = camels_br.get_target_cols()
+        np.testing.assert_array_equal(streamflow_types, np.array(
+            ['streamflow_m3s', 'streamflow_mm_selected_catchments', 'streamflow_simulated']))
+        focing_types = camels_br.get_relevant_cols()
+        np.testing.assert_array_equal(focing_types, np.array(
+            ['precipitation_chirps', 'precipitation_mswep', 'precipitation_cpc', 'evapotransp_gleam', 'evapotransp_mgb',
+             'potential_evapotransp_gleam', 'temperature_min_cpc', 'temperature_mean_cpc', 'temperature_max_cpc']))
+        attr_types = camels_br.get_constant_cols()
+        np.testing.assert_array_equal(attr_types[:3], np.array(['p_mean', 'pet_mean', 'et_mean']))
 
 
 if __name__ == '__main__':
