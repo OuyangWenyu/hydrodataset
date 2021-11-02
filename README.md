@@ -46,14 +46,17 @@ We recommend downloading the datasets manually, the downloading address are as f
 - [Download CAMELS-US](https://ral.ucar.edu/solutions/products/camels)
 - [Download CAMELS-YR](http://doi.org/10.5281/zenodo.4704017)
 
-You can also use the following code to download CAMELS-US:
+For CAMELS_YR, it is enough to
+download [9_Normal_Camels_YR.zip](https://zenodo.org/record/4704017/files/9_Normal_Camels_YR.zip?download=1)
+
+You can also use the following code to download CAMELS-US (notice: the unzipped file is 10+ GB):
 
 ```Python
 import os
 import definitions
 from hydrobench.data.data_camels import Camels
-
-camels_path = os.path.join(definitions.DATASET_DIR, "camels")
+# DATASET_DIR is defined in the definitions.py file
+camels_path = os.path.join(definitions.DATASET_DIR, "camels", "camels_us")
 camels = Camels(camels_path, download=True)
 ```
 
