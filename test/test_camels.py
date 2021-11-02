@@ -14,11 +14,13 @@ class CamelsTestCase(unittest.TestCase):
         self.camels_cl_path = os.path.join(definitions.DATASET_DIR, "camels", "camels_cl")
         self.camels_gb_path = os.path.join(definitions.DATASET_DIR, "camels", "camels_gb")
         self.camels_us_path = os.path.join(definitions.DATASET_DIR, "camels", "camels_us")
+        self.camels_yr_path = os.path.join(definitions.DATASET_DIR, "camels", "camels_yr")
         self.aus_region = "AUS"
         self.br_region = "BR"
         self.cl_region = "CL"
         self.gb_region = "GB"
         self.us_region = "US"
+        self.yr_region = "YR"
 
     def test_download_camels(self):
         camels_us = Camels(self.camels_us_path, download=True)
@@ -123,10 +125,10 @@ class CamelsTestCase(unittest.TestCase):
         # TODO: NaN value
         attrs = camels_cl.read_constant_cols(gage_ids[:5], var_lst=["geol_class_1st", "crop_frac"])
         np.testing.assert_array_equal(attrs, np.array([[9., 0.], [9., 53.], [9., 64.], [10., 144.], [10., 104.]]))
-        # TODO: pet_8d_modis and NaN value
+        # TODO: NaN value
         forcings = camels_cl.read_relevant_cols(gage_ids[:5], ["1995-01-01", "2015-01-01"],
-                                                var_lst=["precip_cr2met", "swe"])
-        np.testing.assert_array_equal(forcings.shape, np.array([5, 7305, 2]))
+                                                var_lst=["pet_8d_modis", "precip_cr2met", "swe"])
+        np.testing.assert_array_equal(forcings.shape, np.array([5, 7305, 3]))
         flows = camels_cl.read_target_cols(gage_ids[:5], ["1995-01-01", "2015-01-01"],
                                            target_cols=["streamflow_m3s", "streamflow_mm"])
         np.testing.assert_array_equal(flows.shape, np.array([5, 7305, 2]))
@@ -166,6 +168,36 @@ class CamelsTestCase(unittest.TestCase):
             ["precipitation", "pet", "temperature", "peti", "humidity", "shortwave_rad", "longwave_rad", "windspeed"]))
         attr_types = camels_gb.get_constant_cols()
         np.testing.assert_array_equal(attr_types[:3], np.array(["p_mean", "pet_mean", "aridity"]))
+
+    def test_download_camels_yr(self):
+        camels_yr = Camels(self.camels_yr_path, download=True, region=self.yr_region)
+        self.assertTrue(
+            os.path.isfile(os.path.join(self.camels_yr_path, "8344e4f3-d2ea-44f5-8afa-86d2987543a9",
+                                        "8344e4f3-d2ea-44f5-8afa-86d2987543a9", "data",
+                                        "CAMELS_GB_climatic_attributes.csv")))
+
+    def test_read_camels_yr_data(self):
+        camels_yr = Camels(self.camels_yr_path, download=False, region=self.yr_region)
+        gage_ids = camels_yr.read_object_ids()
+        self.assertEqual(gage_ids.size, 102)
+        attrs = camels_yr.read_constant_cols(gage_ids[:5], var_lst=["area", "barren", "bdticm"])
+        np.testing.assert_almost_equal(attrs, np.array(
+            [[3.11520000e+04, 2.98706264e-03, 3.33904449e+03], [4.27056000e+05, 2.30162622e-02, 1.80570119e+03],
+             [3.80128000e+05, 2.47549979e-02, 1.77874628e+03], [7.33561000e+05, 1.41340180e-02, 2.01143843e+03],
+             [2.04213000e+05, 7.75394506e-03, 1.53321208e+03]]), decimal=3)
+        forcings = camels_yr.read_relevant_cols(gage_ids[:5], ["1995-01-01", "2015-01-01"],
+                                                var_lst=["pre", "evp", "gst_mean", "prs_mean"])
+        np.testing.assert_array_equal(forcings.shape, np.array([5, 7305, 4]))
+        flows = camels_yr.read_target_cols(gage_ids[:5], ["1995-01-01", "2015-01-01"], target_cols=["normalized_q"])
+        np.testing.assert_array_equal(flows.shape, np.array([5, 7305, 1]))
+        streamflow_types = camels_yr.get_target_cols()
+        np.testing.assert_array_equal(streamflow_types, np.array(["normalized_q"]))
+        focing_types = camels_yr.get_relevant_cols()
+        np.testing.assert_array_equal(focing_types, np.array(
+            ["pre", "evp", "gst_mean", "prs_mean", "tem_mean", "rhu", "win_mean", "gst_min", "prs_min", "tem_min",
+             "gst_max", "prs_max", "tem_max", "ssd", "win_max"]))
+        attr_types = camels_yr.get_constant_cols()
+        np.testing.assert_array_equal(attr_types[:3], np.array(["area", "barren", "bdticm"]))
 
 
 if __name__ == '__main__':

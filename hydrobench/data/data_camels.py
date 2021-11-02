@@ -230,6 +230,18 @@ class Camels(DataSourceBase):
                                            CAMELS_FORCING_DIR=forcing_dir, CAMELS_ATTR_DIR=attr_dir,
                                            CAMELS_ATTR_KEY_LST=attr_key_lst, CAMELS_GAUGE_FILE=gauge_id_file,
                                            CAMELS_BASINS_SHP_FILE=camels_shp_file)
+        elif self.region == "YR":
+            # shp files of basins
+            camels_shp_files_dir = os.path.join(camels_db, "9_Normal_Camels_YR", "Normal_Camels_YR_basin_boundary")
+            # attr, flow and forcing data are all in the same dir. each basin has one dir.
+            flow_dir = os.path.join(camels_db, "9_Normal_Camels_YR", "1_Normal_Camels_YR_basin_data")
+            forcing_dir = flow_dir
+            attr_dir = flow_dir
+            # no gauge id file for CAMELS_YR; natural_watersheds.txt showed unregulated basins in CAMELS_YR
+            gauge_id_file = os.path.join(camels_db, "9_Normal_Camels_YR", "natural_watersheds.txt")
+            return collections.OrderedDict(CAMELS_DIR=camels_db, CAMELS_FLOW_DIR=flow_dir,
+                                           CAMELS_FORCING_DIR=forcing_dir, CAMELS_ATTR_DIR=attr_dir,
+                                           CAMELS_GAUGE_FILE=gauge_id_file, CAMELS_BASINS_SHP_DIR=camels_shp_files_dir)
         else:
             raise NotImplementedError(CAMELS_NO_DATASET_ERROR_LOG)
 
@@ -281,6 +293,9 @@ class Camels(DataSourceBase):
             data = pd.read_csv(camels_file, sep='\t', index_col=0)
         elif self.region == "GB":
             data = pd.read_csv(camels_file, sep=',', dtype={"gauge_id": str})
+        elif self.region == "YR":
+            dirs_ = os.listdir(self.data_source_description["CAMELS_ATTR_DIR"])
+            data = pd.DataFrame({"gauge_id": dirs_})
         else:
             raise NotImplementedError(CAMELS_NO_DATASET_ERROR_LOG)
         return data
@@ -338,6 +353,10 @@ class Camels(DataSourceBase):
                 var_dict[key] = var_lst_temp
                 var_lst.extend(var_lst_temp)
             return np.array(var_lst)
+        elif self.region == "YR":
+            attr_json_file = os.path.join(self.data_source_description["CAMELS_ATTR_DIR"], "0000", "attributes.json")
+            attr_json = hydro_utils.unserialize_json_ordered(attr_json_file)
+            return np.array(list(attr_json.keys()))
         else:
             raise NotImplementedError(CAMELS_NO_DATASET_ERROR_LOG)
 
@@ -369,6 +388,10 @@ class Camels(DataSourceBase):
         elif self.region == "GB":
             return np.array(["precipitation", "pet", "temperature", "peti", "humidity", "shortwave_rad", "longwave_rad",
                              "windspeed"])
+        elif self.region == "YR":
+            return np.array(
+                ["pre", "evp", "gst_mean", "prs_mean", "tem_mean", "rhu", "win_mean", "gst_min", "prs_min", "tem_min",
+                 "gst_max", "prs_max", "tem_max", "ssd", "win_max"])
         else:
             raise NotImplementedError(CAMELS_NO_DATASET_ERROR_LOG)
 
@@ -397,6 +420,8 @@ class Camels(DataSourceBase):
                 [flow_dir.split(os.sep)[-1][11:] for flow_dir in self.data_source_description["CAMELS_FLOW_DIR"]])
         elif self.region == "GB":
             return np.array(["discharge_spec", "discharge_vol"])
+        elif self.region == "YR":
+            return np.array(["normalized_q"])
         else:
             raise NotImplementedError(CAMELS_NO_DATASET_ERROR_LOG)
 
@@ -417,7 +442,7 @@ class Camels(DataSourceBase):
         np.array
             gage/station ids
         """
-        if self.region in ["BR", "GB", "US"]:
+        if self.region in ["BR", "GB", "US", "YR"]:
             return self.camels_sites["gauge_id"].values
         elif self.region == "AUS":
             return self.camels_sites["station_id"].values
@@ -572,7 +597,7 @@ class Camels(DataSourceBase):
                 date = pd.to_datetime(df_date).values.astype('datetime64[D]')
                 [c, ind1, ind2] = np.intersect1d(date, t_range_list, return_indices=True)
                 chosen_data = flow_data[gage_id_lst].values[ind1, :]
-                y[:, :, k] = chosen_data.T
+                y[:, ind2, k] = chosen_data.T
         elif self.region == "BR":
             for j in range(len(target_cols)):
                 for k in range(len(gage_id_lst)):
@@ -594,12 +619,21 @@ class Camels(DataSourceBase):
                 assert (all(x < y for x, y in zip(station_ids, station_ids[1:])))
                 [s, ind3, ind4] = np.intersect1d(station_ids, gage_id_lst, return_indices=True)
                 chosen_data = flow_data.iloc[ind1, ind3].replace("\s+", np.nan, regex=True)
-                y[:, :, k] = chosen_data.values.T
+                y[:, ind2, k] = chosen_data.values.T
         elif self.region == "GB":
             for j in range(len(target_cols)):
                 for k in range(len(gage_id_lst)):
                     data_obs = self.read_gb_gage_flow_forcing(gage_id_lst[k], t_range, target_cols[j])
                     y[k, :, j] = data_obs
+        elif self.region == "YR":
+            for k in range(len(gage_id_lst)):
+                # only one streamflow type: normalized_q
+                flow_file = os.path.join(self.data_source_description["CAMELS_FLOW_DIR"], gage_id_lst[k],
+                                         target_cols[0] + ".csv")
+                flow_data = pd.read_csv(flow_file, sep=",")
+                date = pd.to_datetime(flow_data["date"]).values.astype('datetime64[D]')
+                [c, ind1, ind2] = np.intersect1d(date, t_range_list, return_indices=True)
+                y[k, ind2, 0] = flow_data["q"].values[ind1]
         else:
             raise NotImplementedError(CAMELS_NO_DATASET_ERROR_LOG)
         return y
@@ -629,7 +663,7 @@ class Camels(DataSourceBase):
 
         for k in range(nf):
             ind = forcing_lst.index(var_lst[k])
-            out[:, k] = data_temp[ind].values[ind1]
+            out[ind2, k] = data_temp[ind].values[ind1]
         return out
 
     def read_br_basin_forcing(self, gage_id, t_range, var_type) -> np.array:
@@ -710,7 +744,7 @@ class Camels(DataSourceBase):
                 date = pd.to_datetime(df_date).values.astype('datetime64[D]')
                 [c, ind1, ind2] = np.intersect1d(date, t_range_list, return_indices=True)
                 chosen_data = forcing_data[gage_id_lst].values[ind1, :]
-                x[:, :, k] = chosen_data.T
+                x[:, ind2, k] = chosen_data.T
         elif self.region == "BR":
             for j in range(len(var_lst)):
                 for k in range(len(gage_id_lst)):
@@ -730,12 +764,21 @@ class Camels(DataSourceBase):
                 assert (all(x < y for x, y in zip(station_ids, station_ids[1:])))
                 [s, ind3, ind4] = np.intersect1d(station_ids, gage_id_lst, return_indices=True)
                 chosen_data = forcing_data.iloc[ind1, ind3].replace("\s+", np.nan, regex=True)
-                x[:, :, k] = chosen_data.values.T
+                x[:, ind2, k] = chosen_data.values.T
         elif self.region == "GB":
             for j in range(len(var_lst)):
                 for k in range(len(gage_id_lst)):
                     data_forcing = self.read_gb_gage_flow_forcing(gage_id_lst[k], t_range, var_lst[j])
                     x[k, :, j] = data_forcing
+        elif self.region == "YR":
+            for k in range(len(gage_id_lst)):
+                forcing_file = os.path.join(self.data_source_description["CAMELS_FORCING_DIR"], gage_id_lst[k],
+                                            "forcing.csv")
+                forcing_data = pd.read_csv(forcing_file, sep=",")
+                date = pd.to_datetime(forcing_data["date"]).values.astype('datetime64[D]')
+                [c, ind1, ind2] = np.intersect1d(date, t_range_list, return_indices=True)
+                for j in range(len(var_lst)):
+                    x[k, ind2, j] = forcing_data[var_lst[j]].values[ind1]
         else:
             raise NotImplementedError(CAMELS_NO_DATASET_ERROR_LOG)
         return x
@@ -823,6 +866,34 @@ class Camels(DataSourceBase):
         # keep same format with CAMELS_US
         return out, var_lst, None, f_dict
 
+    def read_attr_all_yr(self):
+        var_lst = self.get_constant_cols().tolist()
+        gage_id_lst = self.read_object_ids()
+        # for factorized data, we need factorize all gages' data to keep the factorized number same all the time
+        n_gage = len(self.read_object_ids())
+        c = np.empty([n_gage, len(var_lst)], dtype=object)
+        for k in range(n_gage):
+            attr_file = os.path.join(self.data_source_description["CAMELS_ATTR_DIR"], gage_id_lst[k],
+                                     "attributes.json")
+            attr_data = hydro_utils.unserialize_json_ordered(attr_file)
+            for j in range(len(var_lst)):
+                c[k, j] = attr_data[var_lst[j]]
+        data_temp = pd.DataFrame(c, columns=var_lst)
+        out_temp = np.full([n_gage, len(var_lst)], np.nan)
+        f_dict = {}
+        k = 0
+        for field in var_lst:
+            if field in ["high_prec_timing", "low_prec_timing"]:
+                # string type
+                value, ref = pd.factorize(data_temp[field], sort=True)
+                out_temp[:, k] = value
+                f_dict[field] = ref.tolist()
+            else:
+                out_temp[:, k] = data_temp[field].values
+            k = k + 1
+        # keep same format with CAMELS_US
+        return out_temp, var_lst, None, f_dict
+
     def read_constant_cols(self, gage_id_lst=None, var_lst=None, is_return_dict=False):
         """
         Read Attributes data
@@ -844,6 +915,8 @@ class Camels(DataSourceBase):
             attr_all, var_lst_all, var_dict, f_dict = self.read_attr_all()
         elif self.region == "AUS" or self.region == "CL":
             attr_all, var_lst_all, var_dict, f_dict = self.read_attr_all_in_one_file()
+        elif self.region == "YR":
+            attr_all, var_lst_all, var_dict, f_dict = self.read_attr_all_yr()
         else:
             raise NotImplementedError(CAMELS_NO_DATASET_ERROR_LOG)
         ind_var = list()
