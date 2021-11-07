@@ -4,16 +4,15 @@ Data downloader and processor for Hydrologic Modeling
 
 ## Data source zoo list
 
-- CAMELS
+- CAMELS/MOPEX/LAMAH
 - Daymet
 - ECMWF
 - MODIS
-- MOPEX
 - NLDAS
 
 More details are shown in the following sections.
 
-## CAMELS
+## CAMELS/MOPEX/LAMAH
 
 The CAMELS series data include:
 
@@ -30,12 +29,16 @@ The CAMELS series data include:
 - CAMELS-YR
   ([Catchment attributes and meteorology for large sample study in contiguous China](https://doi.org/10.5194/essd-2021-71))
 
+We also support [CANOPEX](https://doi.org/10.1002/hyp.10880) (Canada's MOPEX dataset)
+and [LamaH-CE](https://doi.org/10.5194/essd-13-4529-2021) (similar with CAMELS and it is for Central Europe), because we
+use these datasets just like CAMELS, we write similar code in data/data_camels.py.
+
 If you can read Chinese, [this blog](https://github.com/OuyangWenyu/aqualord/blob/master/CAMELS/CAMELS.md) may be a
 quick start for CAMELS (CAMELS-US)
 and [this](https://github.com/OuyangWenyu/aqualord/blob/master/CAMELS/CAMELS-other.md)
 for other CAMELS datasets.
 
-### Download CAMELS datasets
+### Download CAMELS/MOPEX/LAMAH datasets
 
 We recommend downloading the datasets manually, the downloading address are as follows:
 
@@ -45,9 +48,8 @@ We recommend downloading the datasets manually, the downloading address are as f
 - [Download CAMELS-GB](https://doi.org/10.5285/8344e4f3-d2ea-44f5-8afa-86d2987543a9)
 - [Download CAMELS-US](https://ral.ucar.edu/solutions/products/camels)
 - [Download CAMELS-YR](http://doi.org/10.5281/zenodo.4704017)
-
-For CAMELS_YR, it is enough to
-download [9_Normal_Camels_YR.zip](https://zenodo.org/record/4704017/files/9_Normal_Camels_YR.zip?download=1)
+- [Download CANOPEX](http://canopex.etsmtl.net/)
+- [Download LamaH-CE](https://zenodo.org/record/5153305#.YYdEgGBByUk)
 
 You can also use the following code to download CAMELS-US (notice: the unzipped file is 10+ GB):
 
@@ -55,9 +57,43 @@ You can also use the following code to download CAMELS-US (notice: the unzipped 
 import os
 import definitions
 from hydrobench.data.data_camels import Camels
+
 # DATASET_DIR is defined in the definitions.py file
 camels_path = os.path.join(definitions.DATASET_DIR, "camels", "camels_us")
 camels = Camels(camels_path, download=True)
+```
+
+For CAMELS_YR, it is enough to
+download [9_Normal_Camels_YR.zip](https://zenodo.org/record/4704017/files/9_Normal_Camels_YR.zip?download=1)
+
+To download CANOPEX, you have to deal with the GFW. In addtion, there is no attributes data in CANOPEX, we choose an
+alternative: [attributes data](https://osf.io/7fn4c/) from [HYSETS](https://doi.org/10.1038/s41597-020-00583-2)
+
+After downloading, puteach dataset in one directory, the following file-organization is recommended:
+
+```Directory
+camels
+│
+└── camels_aus
+    └── 01_id_name_metadata.zip
+    └── 02_location_boundary_area.zip
+    └── ...
+└── camels_br
+    └── ...
+└── camels_cl
+    └── ...
+└── camels_gb
+    └── ... 
+└── camels_us
+    └── ... 
+└── camels_yr
+    └── ... 
+canopex
+    └── Boundaries.zip
+    └── ...   
+lamah-ce
+    └── 2_LamaH-CE_daily.tar.gz
+    └── ...   
 ```
 
 ### Process datasets
@@ -108,10 +144,6 @@ TODO: provide a link -- [Download basin mean values of ET data]()
 
 Use hydrobench\app\modis4basins\trans_modis_et_to_camels_format.py to process the downloaded ET data from GEE to the
 format of forcing data in CAMELS
-
-## MOPEX
-
-TODO: Now we support [CANOPEX](http://canopex.etsmtl.net/), Canada's MOPEX dataset.
 
 ## NLDAS
 

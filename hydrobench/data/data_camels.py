@@ -13,7 +13,7 @@ from hydrobench.utils import hydro_utils
 from hydrobench.utils.hydro_utils import download_one_zip, unzip_nested_zip
 
 CAMELS_NO_DATASET_ERROR_LOG = "We cannot read this dataset now. Please check if you choose the correct dataset:\n" \
-                              " [\"AUS\", \"BR\", \"CL\", \"GB\", \"US\", \"YR\"]"
+                              " [\"AUS\", \"BR\", \"CA\", \"CL\", \"GB\", \"US\", \"YR\"]"
 
 
 def time_intersect_dynamic_data(obs: np.array, date: np.array, t_range: list):
@@ -61,7 +61,7 @@ class Camels(DataSourceBase):
             Others now include: AUS, BR, CL, GB, YR
         """
         super().__init__(data_path)
-        region_lst = ["AUS", "BR", "CL", "GB", "US", "YR"]
+        region_lst = ["AUS", "BR", "CA", "CL", "GB", "US", "YR"]
         assert region in region_lst
         self.region = region
         self.data_source_description = self.set_data_source_describe()
@@ -70,7 +70,7 @@ class Camels(DataSourceBase):
         self.camels_sites = self.read_site_info()
 
     def get_name(self):
-        return "CAMELS"
+        return "CAMELS_" + self.region
 
     def set_data_source_describe(self) -> collections.OrderedDict:
         """
@@ -242,6 +242,22 @@ class Camels(DataSourceBase):
             return collections.OrderedDict(CAMELS_DIR=camels_db, CAMELS_FLOW_DIR=flow_dir,
                                            CAMELS_FORCING_DIR=forcing_dir, CAMELS_ATTR_DIR=attr_dir,
                                            CAMELS_GAUGE_FILE=gauge_id_file, CAMELS_BASINS_SHP_DIR=camels_shp_files_dir)
+        elif self.region == "CA":
+            # shp file of basins
+            camels_shp_files_dir = os.path.join(camels_db, "CANOPEX_BOUNDARIES")
+            # config of flow data
+            flow_dir = os.path.join(camels_db, "CANOPEX_NRCAN_ASCII", "CANOPEX_NRCAN_ASCII")
+            forcing_dir = flow_dir
+            # There is no attr data in CANOPEX, hence we use attr from HYSET -- https://osf.io/7fn4c/
+            attr_dir = camels_db
+
+            gauge_id_file = os.path.join(camels_db, 'STATION_METADATA.xlsx')
+
+            return collections.OrderedDict(CAMELS_DIR=camels_db, CAMELS_FLOW_DIR=flow_dir,
+                                           CAMELS_FORCING_DIR=forcing_dir,
+                                           CAMELS_ATTR_DIR=attr_dir,
+                                           CAMELS_GAUGE_FILE=gauge_id_file,
+                                           CAMELS_BASINS_SHP_DIR=camels_shp_files_dir)
         else:
             raise NotImplementedError(CAMELS_NO_DATASET_ERROR_LOG)
 
@@ -296,6 +312,8 @@ class Camels(DataSourceBase):
         elif self.region == "YR":
             dirs_ = os.listdir(self.data_source_description["CAMELS_ATTR_DIR"])
             data = pd.DataFrame({"gauge_id": dirs_})
+        elif self.region == "CA":
+            data = pd.read_excel(camels_file)
         else:
             raise NotImplementedError(CAMELS_NO_DATASET_ERROR_LOG)
         return data
@@ -357,6 +375,11 @@ class Camels(DataSourceBase):
             attr_json_file = os.path.join(self.data_source_description["CAMELS_ATTR_DIR"], "0000", "attributes.json")
             attr_json = hydro_utils.unserialize_json_ordered(attr_json_file)
             return np.array(list(attr_json.keys()))
+        elif self.region == "CA":
+            attr_all_file = os.path.join(self.data_source_description["CAMELS_DIR"], "HYSETS_watershed_properties.txt")
+            canopex_attr_indices_data = pd.read_csv(attr_all_file, sep=';')
+            # exclude HYSETS watershed id
+            return canopex_attr_indices_data.columns.values[1:]
         else:
             raise NotImplementedError(CAMELS_NO_DATASET_ERROR_LOG)
 
@@ -392,6 +415,9 @@ class Camels(DataSourceBase):
             return np.array(
                 ["pre", "evp", "gst_mean", "prs_mean", "tem_mean", "rhu", "win_mean", "gst_min", "prs_min", "tem_min",
                  "gst_max", "prs_max", "tem_max", "ssd", "win_max"])
+        elif self.region == "CA":
+            # Although there is climatic potential evaporation item, CANOPEX does not have any PET data
+            return np.array(["prcp", "tmax", "tmin"])
         else:
             raise NotImplementedError(CAMELS_NO_DATASET_ERROR_LOG)
 
@@ -422,6 +448,8 @@ class Camels(DataSourceBase):
             return np.array(["discharge_spec", "discharge_vol"])
         elif self.region == "YR":
             return np.array(["normalized_q"])
+        elif self.region == "CA":
+            return np.array(["discharge"])
         else:
             raise NotImplementedError(CAMELS_NO_DATASET_ERROR_LOG)
 
@@ -451,6 +479,14 @@ class Camels(DataSourceBase):
             # for 7-digit id, replace the space with 0 to get a 8-digit id
             cl_station_ids = [station_id.split(" ")[-1].zfill(8) for station_id in station_ids]
             return np.array(cl_station_ids)
+        elif self.region == "CA":
+            ids = self.camels_sites["STATION_ID"].values
+            id_strs = [id_.split("'")[1] for id_ in ids]
+            # although there are 698 sites, there are only 611 sites with attributes data.
+            # Hence we only use 611 sites now
+            attr_all_file = os.path.join(self.data_source_description["CAMELS_DIR"], "HYSETS_watershed_properties.txt")
+            canopex_attr_data = pd.read_csv(attr_all_file, sep=';')
+            return np.intersect1d(id_strs, canopex_attr_data["Official_ID"].values)
         else:
             raise NotImplementedError(CAMELS_NO_DATASET_ERROR_LOG)
 
@@ -634,6 +670,25 @@ class Camels(DataSourceBase):
                 date = pd.to_datetime(flow_data["date"]).values.astype('datetime64[D]')
                 [c, ind1, ind2] = np.intersect1d(date, t_range_list, return_indices=True)
                 y[k, ind2, 0] = flow_data["q"].values[ind1]
+        elif self.region == "CA":
+            for k in range(len(gage_id_lst)):
+                # only one streamflow type: discharge
+                canopex_id = self.camels_sites[
+                    self.camels_sites["STATION_ID"] == "'" + gage_id_lst[k] + "'"]["CANOPEX_ID"].values[0]
+                flow_file = os.path.join(self.data_source_description["CAMELS_FLOW_DIR"], str(canopex_id) + ".dly")
+                read_flow_file = pd.read_csv(flow_file, header=None).values.tolist()
+                flow_data = []
+                flow_date = []
+                for one_site in read_flow_file:
+                    flow_date.append(hydro_utils.t2dt(int(one_site[0][:8].replace(" ", "0"))))
+                    all_data = one_site[0].split(" ")
+                    real_data = [one_data for one_data in all_data if one_data != ""]
+                    flow_data.append(float(real_data[-3]))
+                date = pd.to_datetime(flow_date).values.astype('datetime64[D]')
+                [c, ind1, ind2] = np.intersect1d(date, t_range_list, return_indices=True)
+                obs = np.array(flow_data)
+                obs[obs < 0] = np.nan
+                y[k, ind2, 0] = obs[ind1]
         else:
             raise NotImplementedError(CAMELS_NO_DATASET_ERROR_LOG)
         return y
@@ -779,6 +834,31 @@ class Camels(DataSourceBase):
                 [c, ind1, ind2] = np.intersect1d(date, t_range_list, return_indices=True)
                 for j in range(len(var_lst)):
                     x[k, ind2, j] = forcing_data[var_lst[j]].values[ind1]
+        elif self.region == "CA":
+            for k in range(len(gage_id_lst)):
+                canopex_id = self.camels_sites[
+                    self.camels_sites["STATION_ID"] == "'" + gage_id_lst[k] + "'"]["CANOPEX_ID"].values[0]
+                forcing_file = os.path.join(self.data_source_description["CAMELS_FLOW_DIR"], str(canopex_id) + ".dly")
+                read_forcing_file = pd.read_csv(forcing_file, header=None).values.tolist()
+
+                forcing_date = []
+                for j in range(len(var_lst)):
+                    forcing_data = []
+                    for one_site in read_forcing_file:
+                        forcing_date.append(hydro_utils.t2dt(int(one_site[0][:8].replace(" ", "0"))))
+                        all_data = one_site[0].split(" ")
+                        real_data = [one_data for one_data in all_data if one_data != ""]
+                        if var_lst[j] == "prcp":
+                            forcing_data.append(float(real_data[-5]))
+                        elif var_lst[j] == "tmax":
+                            forcing_data.append(float(real_data[-2]))
+                        elif var_lst[j] == "tmin":
+                            forcing_data.append(float(real_data[-1]))
+                        else:
+                            raise NotImplementedError("No such forcing type in CANOPEX now!")
+                    date = pd.to_datetime(forcing_date).values.astype('datetime64[D]')
+                    [c, ind1, ind2] = np.intersect1d(date, t_range_list, return_indices=True)
+                    x[k, ind2, j] = np.array(forcing_data)[ind1]
         else:
             raise NotImplementedError(CAMELS_NO_DATASET_ERROR_LOG)
         return x
@@ -842,6 +922,11 @@ class Camels(DataSourceBase):
             attr_all_file = os.path.join(self.data_source_description["CAMELS_ATTR_DIR"], "1_CAMELScl_attributes.txt")
             all_attr_tmp = pd.read_csv(attr_all_file, sep='\t', index_col=0)
             all_attr = pd.DataFrame(all_attr_tmp.values.T, index=all_attr_tmp.columns, columns=all_attr_tmp.index)
+        elif self.region == "CA":
+            attr_all_file = os.path.join(self.data_source_description["CAMELS_ATTR_DIR"],
+                                         "HYSETS_watershed_properties.txt")
+            all_attr_tmp = pd.read_csv(attr_all_file, sep=';', index_col=0)
+            all_attr = all_attr_tmp[all_attr_tmp["Official_ID"].isin(self.read_object_ids())]
         else:
             raise NotImplementedError(CAMELS_NO_DATASET_ERROR_LOG)
         # gage_all_attr = all_attr[all_attr['station_id'].isin(gage_id_lst)]
@@ -913,7 +998,7 @@ class Camels(DataSourceBase):
         """
         if self.region in ["BR", "GB", "US"]:
             attr_all, var_lst_all, var_dict, f_dict = self.read_attr_all()
-        elif self.region == "AUS" or self.region == "CL":
+        elif self.region in ["AUS", "CA", "CL"]:
             attr_all, var_lst_all, var_dict, f_dict = self.read_attr_all_in_one_file()
         elif self.region == "YR":
             attr_all, var_lst_all, var_dict, f_dict = self.read_attr_all_yr()
