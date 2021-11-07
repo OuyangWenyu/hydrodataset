@@ -15,12 +15,14 @@ class CamelsTestCase(unittest.TestCase):
         self.camels_gb_path = os.path.join(definitions.DATASET_DIR, "camels", "camels_gb")
         self.camels_us_path = os.path.join(definitions.DATASET_DIR, "camels", "camels_us")
         self.camels_yr_path = os.path.join(definitions.DATASET_DIR, "camels", "camels_yr")
+        self.canopex_path = os.path.join(definitions.DATASET_DIR, "canopex")
         self.aus_region = "AUS"
         self.br_region = "BR"
         self.cl_region = "CL"
         self.gb_region = "GB"
         self.us_region = "US"
         self.yr_region = "YR"
+        self.ca_region = "CA"
 
     def test_download_camels(self):
         camels_us = Camels(self.camels_us_path, download=True)
@@ -52,7 +54,7 @@ class CamelsTestCase(unittest.TestCase):
         self.assertTrue(os.path.isfile(os.path.join(self.camels_aus_path, "05_hydrometeorology", "05_hydrometeorology",
                                                     "01_precipitation_timeseries", "precipitation_AWAP.csv")))
 
-    def test_read_camels_aus_data(self):
+    def test_read_camels_aus(self):
         camels_aus = Camels(self.camels_aus_path, download=False, region=self.aus_region)
         gage_ids = camels_aus.read_object_ids()
         self.assertEqual(gage_ids.size, 222)
@@ -87,7 +89,7 @@ class CamelsTestCase(unittest.TestCase):
             os.path.isfile(os.path.join(self.camels_br_path, "01_CAMELS_BR_attributes", "01_CAMELS_BR_attributes",
                                         "CAMELS_BR_attributes_description.xlsx")))
 
-    def test_read_camels_br_data(self):
+    def test_read_camels_br(self):
         camels_br = Camels(self.camels_br_path, download=False, region=self.br_region)
         gage_ids = camels_br.read_object_ids()
         self.assertEqual(gage_ids.size, 897)
@@ -118,7 +120,7 @@ class CamelsTestCase(unittest.TestCase):
         self.assertTrue(
             os.path.isfile(os.path.join(self.camels_cl_path, "1_CAMELScl_attributes", "1_CAMELScl_attributes.txt")))
 
-    def test_read_camels_cl_data(self):
+    def test_read_camels_cl(self):
         camels_cl = Camels(self.camels_cl_path, download=False, region=self.cl_region)
         gage_ids = camels_cl.read_object_ids()
         self.assertEqual(gage_ids.size, 516)
@@ -148,7 +150,7 @@ class CamelsTestCase(unittest.TestCase):
                                         "8344e4f3-d2ea-44f5-8afa-86d2987543a9", "data",
                                         "CAMELS_GB_climatic_attributes.csv")))
 
-    def test_read_camels_gb_data(self):
+    def test_read_camels_gb(self):
         camels_gb = Camels(self.camels_gb_path, download=False, region=self.gb_region)
         gage_ids = camels_gb.read_object_ids()
         self.assertEqual(gage_ids.size, 671)
@@ -176,7 +178,7 @@ class CamelsTestCase(unittest.TestCase):
                                         "8344e4f3-d2ea-44f5-8afa-86d2987543a9", "data",
                                         "CAMELS_GB_climatic_attributes.csv")))
 
-    def test_read_camels_yr_data(self):
+    def test_read_camels_yr(self):
         camels_yr = Camels(self.camels_yr_path, download=False, region=self.yr_region)
         gage_ids = camels_yr.read_object_ids()
         self.assertEqual(gage_ids.size, 102)
@@ -198,6 +200,33 @@ class CamelsTestCase(unittest.TestCase):
              "gst_max", "prs_max", "tem_max", "ssd", "win_max"]))
         attr_types = camels_yr.get_constant_cols()
         np.testing.assert_array_equal(attr_types[:3], np.array(["area", "barren", "bdticm"]))
+
+    def test_download_canopex(self):
+        canopex = Camels(self.canopex_path, download=True, region=self.ca_region)
+        self.assertTrue(
+            os.path.isfile(os.path.join(self.canopex_path, "CANOPEX_NRCAN_ASCII", "CANOPEX_NRCAN_ASCII", "1.dly")))
+
+    def test_read_canopex_data(self):
+        canopex = Camels(self.canopex_path, download=False, region=self.ca_region)
+        gage_ids = canopex.read_object_ids()
+        self.assertEqual(gage_ids.size, 611)
+        attrs = canopex.read_constant_cols(gage_ids[:5],
+                                           var_lst=["Drainage_Area_km2", "Land_Use_Grass_frac", "Permeability_logk_m2"])
+        np.testing.assert_almost_equal(attrs, np.array(
+            [[3.28438700e+02, 6.94000000e-02, - 1.35251586e+01], [3.43515600e+02, 6.16000000e-02, - 1.42367348e+01],
+             [1.45554950e+03, 3.59000000e-02, - 1.50071080e+01], [5.64820300e+02, 3.05000000e-02, - 1.51002546e+01],
+             [1.05383090e+03, 3.27000000e-02, - 1.51999998e+01]]), decimal=3)
+        forcings = canopex.read_relevant_cols(gage_ids[:5], ["1990-01-01", "2010-01-01"],
+                                              var_lst=["prcp", "tmax", "tmin"])
+        np.testing.assert_array_equal(forcings.shape, np.array([5, 7305, 3]))
+        flows = canopex.read_target_cols(gage_ids[:5], ["1990-01-01", "2010-01-01"], target_cols=["discharge"])
+        np.testing.assert_array_equal(flows.shape, np.array([5, 7305, 1]))
+        streamflow_types = canopex.get_target_cols()
+        np.testing.assert_array_equal(streamflow_types, np.array(["discharge"]))
+        focing_types = canopex.get_relevant_cols()
+        np.testing.assert_array_equal(focing_types, np.array(["prcp", "tmax", "tmin"]))
+        attr_types = canopex.get_constant_cols()
+        np.testing.assert_array_equal(attr_types[:3], np.array(["Source", "Name", "Official_ID"]))
 
 
 if __name__ == '__main__':
