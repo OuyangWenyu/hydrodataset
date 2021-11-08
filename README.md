@@ -91,7 +91,7 @@ camels
 canopex
     └── Boundaries.zip
     └── ...   
-lamah-ce
+lamah_ce
     └── 2_LamaH-CE_daily.tar.gz
     └── ...   
 ```
