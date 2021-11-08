@@ -2,7 +2,7 @@ import collections
 import fnmatch
 import os
 from typing import Union
-
+import tarfile
 import pandas as pd
 import numpy as np
 from pandas.core.dtypes.common import is_string_dtype, is_numeric_dtype
@@ -61,7 +61,7 @@ class Camels(DataSourceBase):
             Others now include: AUS, BR, CL, GB, YR
         """
         super().__init__(data_path)
-        region_lst = ["AUS", "BR", "CA", "CL", "GB", "US", "YR"]
+        region_lst = ["AUS", "BR", "CA", "CE", "CL", "GB", "US", "YR"]
         assert region in region_lst
         self.region = region
         self.data_source_description = self.set_data_source_describe()
@@ -258,6 +258,24 @@ class Camels(DataSourceBase):
                                            CAMELS_ATTR_DIR=attr_dir,
                                            CAMELS_GAUGE_FILE=gauge_id_file,
                                            CAMELS_BASINS_SHP_DIR=camels_shp_files_dir)
+        elif self.region == "CE":
+            # We use A_basins_total_upstrm
+            # shp file of basins
+            camels_shp_file = os.path.join(camels_db, "2_LamaH-CE_daily", "A_basins_total_upstrm", "3_shapefiles",
+                                           "Basins_A.shp")
+            # config of flow data
+            flow_dir = os.path.join(camels_db, "2_LamaH-CE_daily", "D_gauges", "2_timeseries", "daily")
+            forcing_dir = os.path.join(camels_db, "2_LamaH-CE_daily", "A_basins_total_upstrm", "2_timeseries", "daily")
+            attr_dir = os.path.join(camels_db, "2_LamaH-CE_daily", "A_basins_total_upstrm", "1_attributes")
+
+            gauge_id_file = os.path.join(camels_db, "2_LamaH-CE_daily", "D_gauges", "1_attributes",
+                                         "Gauge_attributes.csv")
+
+            return collections.OrderedDict(CAMELS_DIR=camels_db, CAMELS_FLOW_DIR=flow_dir,
+                                           CAMELS_FORCING_DIR=forcing_dir,
+                                           CAMELS_ATTR_DIR=attr_dir,
+                                           CAMELS_GAUGE_FILE=gauge_id_file,
+                                           CAMELS_BASINS_SHP_FILE=camels_shp_file)
         else:
             raise NotImplementedError(CAMELS_NO_DATASET_ERROR_LOG)
 
@@ -283,6 +301,12 @@ class Camels(DataSourceBase):
             print("The CAMELS_US data have been downloaded!")
         print("Please download it manually and put all files of a CAMELS dataset in the CAMELS_DIR directory.")
         print("We unzip all files now.")
+        if self.region == "CE":
+            # We only use CE's dauly files now and it is tar.gz formatting
+            file = tarfile.open(os.path.join(camels_config["CAMELS_DIR"], "2_LamaH-CE_daily.tar.gz"))
+            # extracting file
+            file.extractall(os.path.join(camels_config["CAMELS_DIR"], "2_LamaH-CE_daily"))
+            file.close()
         for f_name in os.listdir(camels_config["CAMELS_DIR"]):
             if fnmatch.fnmatch(f_name, '*.zip'):
                 unzip_dir = os.path.join(camels_config["CAMELS_DIR"], f_name[0:-4])
@@ -314,6 +338,8 @@ class Camels(DataSourceBase):
             data = pd.DataFrame({"gauge_id": dirs_})
         elif self.region == "CA":
             data = pd.read_excel(camels_file)
+        elif self.region == "CE":
+            data = pd.read_csv(camels_file, sep=';')
         else:
             raise NotImplementedError(CAMELS_NO_DATASET_ERROR_LOG)
         return data
@@ -380,6 +406,10 @@ class Camels(DataSourceBase):
             canopex_attr_indices_data = pd.read_csv(attr_all_file, sep=';')
             # exclude HYSETS watershed id
             return canopex_attr_indices_data.columns.values[1:]
+        elif self.region == "CE":
+            attr_all_file = os.path.join(self.data_source_description["CAMELS_ATTR_DIR"], "Catchment_attributes.csv")
+            lamah_ce_attr_indices_data = pd.read_csv(attr_all_file, sep=';')
+            return lamah_ce_attr_indices_data.columns.values[1:]
         else:
             raise NotImplementedError(CAMELS_NO_DATASET_ERROR_LOG)
 
@@ -418,6 +448,12 @@ class Camels(DataSourceBase):
         elif self.region == "CA":
             # Although there is climatic potential evaporation item, CANOPEX does not have any PET data
             return np.array(["prcp", "tmax", "tmin"])
+        elif self.region == "CE":
+            # Although there is climatic potential evaporation item, CANOPEX does not have any PET data
+            return np.array(["2m_temp_max", "2m_temp_mean", "2m_temp_min", "2m_dp_temp_max", "2m_dp_temp_mean",
+                             "2m_dp_temp_min", "10m_wind_u", "10m_wind_v", "fcst_alb", "lai_high_veg", "lai_low_veg",
+                             "swe", "surf_net_solar_rad_max", "surf_net_solar_rad_mean", "surf_net_therm_rad_max",
+                             "surf_net_therm_rad_mean", "surf_press", "total_et", "prec", "volsw_123", "volsw_4"])
         else:
             raise NotImplementedError(CAMELS_NO_DATASET_ERROR_LOG)
 
@@ -450,6 +486,8 @@ class Camels(DataSourceBase):
             return np.array(["normalized_q"])
         elif self.region == "CA":
             return np.array(["discharge"])
+        elif self.region == "CE":
+            return np.array(["qobs"])
         else:
             raise NotImplementedError(CAMELS_NO_DATASET_ERROR_LOG)
 
@@ -487,6 +525,12 @@ class Camels(DataSourceBase):
             attr_all_file = os.path.join(self.data_source_description["CAMELS_DIR"], "HYSETS_watershed_properties.txt")
             canopex_attr_data = pd.read_csv(attr_all_file, sep=';')
             return np.intersect1d(id_strs, canopex_attr_data["Official_ID"].values)
+        elif self.region == "CE":
+            # Not all basins have attributes, so we just chose those with attrs
+            ids = self.camels_sites["ID"].values
+            attr_all_file = os.path.join(self.data_source_description["CAMELS_ATTR_DIR"], "Catchment_attributes.csv")
+            attr_data = pd.read_csv(attr_all_file, sep=';')
+            return np.intersect1d(ids, attr_data["ID"].values)
         else:
             raise NotImplementedError(CAMELS_NO_DATASET_ERROR_LOG)
 
@@ -633,6 +677,7 @@ class Camels(DataSourceBase):
                 date = pd.to_datetime(df_date).values.astype('datetime64[D]')
                 [c, ind1, ind2] = np.intersect1d(date, t_range_list, return_indices=True)
                 chosen_data = flow_data[gage_id_lst].values[ind1, :]
+                chosen_data[chosen_data < 0] = np.nan
                 y[:, ind2, k] = chosen_data.T
         elif self.region == "BR":
             for j in range(len(target_cols)):
@@ -655,6 +700,8 @@ class Camels(DataSourceBase):
                 assert (all(x < y for x, y in zip(station_ids, station_ids[1:])))
                 [s, ind3, ind4] = np.intersect1d(station_ids, gage_id_lst, return_indices=True)
                 chosen_data = flow_data.iloc[ind1, ind3].replace("\s+", np.nan, regex=True)
+                chosen_data = chosen_data.astype(float)
+                chosen_data[chosen_data < 0] = np.nan
                 y[:, ind2, k] = chosen_data.values.T
         elif self.region == "GB":
             for j in range(len(target_cols)):
@@ -669,6 +716,7 @@ class Camels(DataSourceBase):
                 flow_data = pd.read_csv(flow_file, sep=",")
                 date = pd.to_datetime(flow_data["date"]).values.astype('datetime64[D]')
                 [c, ind1, ind2] = np.intersect1d(date, t_range_list, return_indices=True)
+                # flow data has been normalized, so we don't set negative values NaN
                 y[k, ind2, 0] = flow_data["q"].values[ind1]
         elif self.region == "CA":
             for k in range(len(gage_id_lst)):
@@ -687,6 +735,18 @@ class Camels(DataSourceBase):
                 date = pd.to_datetime(flow_date).values.astype('datetime64[D]')
                 [c, ind1, ind2] = np.intersect1d(date, t_range_list, return_indices=True)
                 obs = np.array(flow_data)
+                obs[obs < 0] = np.nan
+                y[k, ind2, 0] = obs[ind1]
+        elif self.region == "CE":
+            for k in range(len(gage_id_lst)):
+                flow_file = os.path.join(self.data_source_description["CAMELS_FLOW_DIR"],
+                                         "ID_" + str(gage_id_lst[k]) + ".csv")
+                flow_data = pd.read_csv(flow_file, sep=";")
+                df_date = flow_data[["YYYY", "MM", "DD"]]
+                df_date.columns = ['year', 'month', 'day']
+                date = pd.to_datetime(df_date).values.astype('datetime64[D]')
+                [c, ind1, ind2] = np.intersect1d(date, t_range_list, return_indices=True)
+                obs = flow_data["qobs"].values
                 obs[obs < 0] = np.nan
                 y[k, ind2, 0] = obs[ind1]
         else:
@@ -859,6 +919,17 @@ class Camels(DataSourceBase):
                     date = pd.to_datetime(forcing_date).values.astype('datetime64[D]')
                     [c, ind1, ind2] = np.intersect1d(date, t_range_list, return_indices=True)
                     x[k, ind2, j] = np.array(forcing_data)[ind1]
+        elif self.region == "CE":
+            for k in range(len(gage_id_lst)):
+                forcing_file = os.path.join(self.data_source_description["CAMELS_FORCING_DIR"],
+                                            "ID_" + str(gage_id_lst[k]) + ".csv")
+                forcing_data = pd.read_csv(forcing_file, sep=";")
+                df_date = forcing_data[["YYYY", "MM", "DD"]]
+                df_date.columns = ['year', 'month', 'day']
+                date = pd.to_datetime(df_date).values.astype('datetime64[D]')
+                [c, ind1, ind2] = np.intersect1d(date, t_range_list, return_indices=True)
+                for j in range(len(var_lst)):
+                    x[k, ind2, j] = forcing_data[var_lst[j]].values[ind1]
         else:
             raise NotImplementedError(CAMELS_NO_DATASET_ERROR_LOG)
         return x
@@ -927,6 +998,9 @@ class Camels(DataSourceBase):
                                          "HYSETS_watershed_properties.txt")
             all_attr_tmp = pd.read_csv(attr_all_file, sep=';', index_col=0)
             all_attr = all_attr_tmp[all_attr_tmp["Official_ID"].isin(self.read_object_ids())]
+        elif self.region == "CE":
+            attr_all_file = os.path.join(self.data_source_description["CAMELS_ATTR_DIR"], "Catchment_attributes.csv")
+            all_attr = pd.read_csv(attr_all_file, sep=';')
         else:
             raise NotImplementedError(CAMELS_NO_DATASET_ERROR_LOG)
         # gage_all_attr = all_attr[all_attr['station_id'].isin(gage_id_lst)]
@@ -979,7 +1053,7 @@ class Camels(DataSourceBase):
         # keep same format with CAMELS_US
         return out_temp, var_lst, None, f_dict
 
-    def read_constant_cols(self, gage_id_lst=None, var_lst=None, is_return_dict=False):
+    def read_constant_cols(self, gage_id_lst=None, var_lst=None, is_return_dict=False) -> Union[tuple, np.array]:
         """
         Read Attributes data
 
@@ -993,12 +1067,14 @@ class Camels(DataSourceBase):
             if true, return var_dict and f_dict for CAMELS_US
         Returns
         -------
-        np.array
-            if attr var type is str, return factorized data
+        Union[tuple, np.array]
+            if attr var type is str, return factorized data.
+            When we need to know what a factorized value represents, we need return a tuple;
+            otherwise just return an array
         """
         if self.region in ["BR", "GB", "US"]:
             attr_all, var_lst_all, var_dict, f_dict = self.read_attr_all()
-        elif self.region in ["AUS", "CA", "CL"]:
+        elif self.region in ["AUS", "CA", "CE", "CL"]:
             attr_all, var_lst_all, var_dict, f_dict = self.read_attr_all_in_one_file()
         elif self.region == "YR":
             attr_all, var_lst_all, var_dict, f_dict = self.read_attr_all_yr()
@@ -1022,12 +1098,38 @@ class Camels(DataSourceBase):
             return self.read_constant_cols(object_ids, ['area_gages2'], is_return_dict=False)
         elif self.region == "AUS":
             return self.read_constant_cols(object_ids, ['catchment_area'], is_return_dict=False)
+        elif self.region in ["BR", "CL", "GB", "YR"]:
+            return self.read_constant_cols(object_ids, ['area'], is_return_dict=False)
+        elif self.region == "CA":
+            return self.read_constant_cols(object_ids, ['Drainage_Area_km2'], is_return_dict=False)
+        elif self.region == "CE":
+            return self.read_constant_cols(object_ids, ['area_calc'], is_return_dict=False)
         else:
             raise NotImplementedError(CAMELS_NO_DATASET_ERROR_LOG)
 
     def read_mean_prep(self, object_ids) -> np.array:
-        if self.region == "US" or self.region == "AUS":
+        if self.region in ["US", "AUS", "BR", "GB", "CE"]:
             return self.read_constant_cols(object_ids, ['p_mean'], is_return_dict=False)
+        elif self.region == "CL":
+            # there are different p_mean values for different forcings, here we chose p_mean_cr2met now
+            return self.read_constant_cols(object_ids, ['p_mean_cr2met'], is_return_dict=False)
+        elif self.region == "YR":
+            return self.read_constant_cols(object_ids, ['pre_mean'], is_return_dict=False)
+        elif self.region == "CA":
+            # There is no p_mean attr, hence we have to calculate from forcing data directly
+            prcp_means = []
+            for k in range(len(object_ids)):
+                canopex_id = self.camels_sites[
+                    self.camels_sites["STATION_ID"] == "'" + object_ids[k] + "'"]["CANOPEX_ID"].values[0]
+                forcing_file = os.path.join(self.data_source_description["CAMELS_FLOW_DIR"], str(canopex_id) + ".dly")
+                read_forcing_file = pd.read_csv(forcing_file, header=None).values.tolist()
+                prcp_data = []
+                for one_site in read_forcing_file:
+                    all_data = one_site[0].split(" ")
+                    real_data = [one_data for one_data in all_data if one_data != ""]
+                    prcp_data.append(float(real_data[-5]))
+                prcp_means.append(np.mean(np.array(prcp_data)))
+            return np.array(prcp_means)
         else:
             raise NotImplementedError(CAMELS_NO_DATASET_ERROR_LOG)
 

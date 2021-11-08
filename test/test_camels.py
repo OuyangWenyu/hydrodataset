@@ -16,6 +16,7 @@ class CamelsTestCase(unittest.TestCase):
         self.camels_us_path = os.path.join(definitions.DATASET_DIR, "camels", "camels_us")
         self.camels_yr_path = os.path.join(definitions.DATASET_DIR, "camels", "camels_yr")
         self.canopex_path = os.path.join(definitions.DATASET_DIR, "canopex")
+        self.lamah_ce_path = os.path.join(definitions.DATASET_DIR, "lamah_ce")
         self.aus_region = "AUS"
         self.br_region = "BR"
         self.cl_region = "CL"
@@ -23,6 +24,7 @@ class CamelsTestCase(unittest.TestCase):
         self.us_region = "US"
         self.yr_region = "YR"
         self.ca_region = "CA"
+        self.lamah_ce_region = "CE"
 
     def test_download_camels(self):
         camels_us = Camels(self.camels_us_path, download=True)
@@ -127,7 +129,7 @@ class CamelsTestCase(unittest.TestCase):
         # TODO: NaN value
         attrs = camels_cl.read_constant_cols(gage_ids[:5], var_lst=["geol_class_1st", "crop_frac"])
         np.testing.assert_array_equal(attrs, np.array([[9., 0.], [9., 53.], [9., 64.], [10., 144.], [10., 104.]]))
-        # TODO: NaN value
+        # TODO: NaN value, mainly for pet_8d_modis
         forcings = camels_cl.read_relevant_cols(gage_ids[:5], ["1995-01-01", "2015-01-01"],
                                                 var_lst=["pet_8d_modis", "precip_cr2met", "swe"])
         np.testing.assert_array_equal(forcings.shape, np.array([5, 7305, 3]))
@@ -227,6 +229,49 @@ class CamelsTestCase(unittest.TestCase):
         np.testing.assert_array_equal(focing_types, np.array(["prcp", "tmax", "tmin"]))
         attr_types = canopex.get_constant_cols()
         np.testing.assert_array_equal(attr_types[:3], np.array(["Source", "Name", "Official_ID"]))
+
+    def test_download_lamah_ce(self):
+        lamah_ce = Camels(self.lamah_ce_path, download=True, region=self.lamah_ce_region)
+        self.assertTrue(
+            os.path.isfile(os.path.join(self.lamah_ce_path, "CANOPEX_NRCAN_ASCII", "CANOPEX_NRCAN_ASCII", "1.dly")))
+
+    def test_read_lamah_ce(self):
+        lamah_ce = Camels(self.lamah_ce_path, download=False, region=self.lamah_ce_region)
+        gage_ids = lamah_ce.read_object_ids()
+        self.assertEqual(gage_ids.size, 859)
+        attrs = lamah_ce.read_constant_cols(gage_ids[:5], var_lst=['area_calc', 'elev_mean', 'elev_med'])
+        np.testing.assert_almost_equal(attrs, np.array(
+            [[4668.379, 1875., 1963.], [102.287, 1775., 1827.], [536.299, 1844., 1916.], [66.286, 1894., 1907.],
+             [72.448, 1774., 1796.]]), decimal=3)
+        forcings = lamah_ce.read_relevant_cols(gage_ids[:5], ["1990-01-01", "2010-01-01"],
+                                               var_lst=["2m_temp_max", "prec", "volsw_4"])
+        np.testing.assert_array_equal(forcings.shape, np.array([5, 7305, 3]))
+        flows = lamah_ce.read_target_cols(gage_ids[:5], ["1990-01-01", "2010-01-01"], target_cols=["qobs"])
+        np.testing.assert_array_equal(flows.shape, np.array([5, 7305, 1]))
+        streamflow_types = lamah_ce.get_target_cols()
+        np.testing.assert_array_equal(streamflow_types, np.array(["qobs"]))
+        focing_types = lamah_ce.get_relevant_cols()
+        np.testing.assert_array_equal(focing_types, np.array(
+            ["2m_temp_max", "2m_temp_mean", "2m_temp_min", "2m_dp_temp_max", "2m_dp_temp_mean",
+             "2m_dp_temp_min", "10m_wind_u", "10m_wind_v", "fcst_alb", "lai_high_veg", "lai_low_veg",
+             "swe", "surf_net_solar_rad_max", "surf_net_solar_rad_mean", "surf_net_therm_rad_max",
+             "surf_net_therm_rad_mean", "surf_press", "total_et", "prec", "volsw_123", "volsw_4"]))
+        attr_types = lamah_ce.get_constant_cols()
+        np.testing.assert_array_equal(attr_types, np.array(
+            ['area_calc', 'elev_mean', 'elev_med', 'elev_std', 'elev_ran', 'slope_mean', 'mvert_dist', 'mvert_ang',
+             'elon_ratio', 'strm_dens', 'p_mean', 'et0_mean', 'eta_mean', 'arid_1', 'arid_2', 'p_season', 'frac_snow',
+             'hi_prec_fr', 'hi_prec_du', 'hi_prec_ti', 'lo_prec_fr', 'lo_prec_du', 'lo_prec_ti', 'lc_dom', 'agr_fra',
+             'bare_fra', 'forest_fra', 'glac_fra', 'lake_fra', 'urban_fra', 'lai_max', 'lai_diff', 'ndvi_max',
+             'ndvi_min', 'gvf_max', 'gvf_diff', 'bedrk_dep', 'root_dep', 'soil_poros', 'soil_condu', 'soil_tawc',
+             'sand_fra', 'silt_fra', 'clay_fra', 'grav_fra', 'oc_fra', 'gc_dom', 'gc_ig_fra', 'gc_mt_fra', 'gc_pa_fra',
+             'gc_pb_fra', 'gc_pi_fra', 'gc_py_fra', 'gc_sc_fra', 'gc_sm_fra', 'gc_ss_fra', 'gc_su_fra', 'gc_va_fra',
+             'gc_vb_fra', 'gc_wb_fra', 'geol_perme', 'geol_poros']))
+
+    def test_ca_p_mean(self):
+        canopex = Camels(self.canopex_path, download=False, region=self.ca_region)
+        gage_ids = canopex.read_object_ids()
+        p_mean = canopex.read_mean_prep(gage_ids[:5])
+        np.testing.assert_almost_equal(p_mean, np.array([2.91712073, 3.14145935, 3.12958083, 3.09248435, 3.04431583]))
 
 
 if __name__ == '__main__':
