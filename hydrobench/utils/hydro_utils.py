@@ -3,7 +3,7 @@ import os
 import re
 import zipfile
 import datetime as dt, datetime
-from typing import List
+from typing import List, Union
 import geopandas as gpd
 import pickle
 import smtplib
@@ -12,6 +12,7 @@ from collections import OrderedDict
 import numpy as np
 import urllib
 from urllib import parse
+from dateutil import tz
 
 import requests
 import matplotlib.pyplot as plt
@@ -396,6 +397,41 @@ def t_range_to_julian(t_range):
     t_array_str = np.datetime_as_string(t_array)
     julian_dates = [date_to_julian(a_time[0:10]) for a_time in t_array_str]
     return julian_dates
+
+
+def utc_to_local(utc_time: Union[str, np.datetime64], local_tz: str = "Asia/Hong_Kong",
+                 time_format="%Y-%m-%dT%H:%M:%S"):
+    """
+    Transform UTC time to local time.
+
+    Code comes from: https://stackoverflow.com/questions/4770297/convert-utc-datetime-string-to-local-datetime
+
+    Parameters
+    ----------
+    utc_time
+        the UTC time
+    local_tz
+        the local time zone; default is "Asia/Hong_Kong"
+    time_format
+        the format of utc_time_str and return value; default is "%Y-%m-%dT%H:%M:%S"
+
+    Returns
+    -------
+    str
+        return local time string; its format is time_format
+    """
+    from_zone = tz.gettz('UTC')
+    to_zone = tz.gettz(local_tz)
+    if type(utc_time) is np.datetime64:
+        utc_time = np.datetime_as_string(utc_time)
+    utc = datetime.datetime.strptime(utc_time, time_format)
+    # Tell the datetime object that it's in UTC time zone since
+    # datetime objects are 'naive' by default
+    utc = utc.replace(tzinfo=from_zone)
+    # Convert time zone
+    central = utc.astimezone(to_zone)
+    result_str = central.strftime(time_format)
+    return result_str
 
 
 # --------------------------------------------------MATH CALCULATION---------------------------------------------------
