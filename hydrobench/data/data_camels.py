@@ -523,6 +523,10 @@ class Camels(DataSourceBase):
             # although there are 698 sites, there are only 611 sites with attributes data.
             # Hence we only use 611 sites now
             attr_all_file = os.path.join(self.data_source_description["CAMELS_DIR"], "HYSETS_watershed_properties.txt")
+            if not os.path.isfile(attr_all_file):
+                raise FileNotFoundError(
+                    "Please download HYSETS_watershed_properties.txt from https://osf.io/7fn4c/ and put it in the "
+                    "root directory of CANOPEX")
             canopex_attr_data = pd.read_csv(attr_all_file, sep=';')
             return np.intersect1d(id_strs, canopex_attr_data["Official_ID"].values)
         elif self.region == "CE":
