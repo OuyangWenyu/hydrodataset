@@ -90,6 +90,7 @@ camels
     └── ... 
 canopex
     └── Boundaries.zip
+    └── HYSETS_watershed_properties.txt
     └── ...   
 lamah_ce
     └── 2_LamaH-CE_daily.tar.gz
