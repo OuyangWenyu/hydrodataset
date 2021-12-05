@@ -18,7 +18,7 @@ sys.path.insert(0, os.path.abspath(os.path.join("..", "..")))
 
 # -- Project information -----------------------------------------------------
 
-project = 'HydroBench'
+project = 'HydroDataset'
 copyright = '2021, OuyangWenyu'
 author = 'OuyangWenyu'
 

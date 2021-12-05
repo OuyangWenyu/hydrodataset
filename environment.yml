@@ -1,4 +1,4 @@
-name: HydroBench
+name: HydroDatasets
 channels:
   - conda-forge
   - defaults
@@ -14,3 +14,4 @@ dependencies:
   - cfgrib
   - tqdm
   - sphinx
+  - pytest
