@@ -4,7 +4,7 @@ import pytest
 import numpy as np
 
 import definitions
-from hydrobench.data.data_camels import Camels
+from hydrodataset.data.data_camels import Camels
 
 
 @pytest.fixture

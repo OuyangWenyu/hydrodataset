@@ -7,13 +7,13 @@ import xarray as xr
 import rasterio.features as rio_features
 import pygeoutils as geoutils
 import definitions
-from hydrobench.data.data_camels import Camels
-from hydrobench.daymet4basins.basin_daymet_process import generate_boundary_dataset, resample_nc, \
+from hydrodataset.data.data_camels import Camels
+from hydrodataset.daymet4basins.basin_daymet_process import generate_boundary_dataset, resample_nc, \
     trans_daymet_to_camels_format, insert_daymet_value_in_leap_year
-from hydrobench.ecmwf4basins.basin_era5_process import trans_era5_land_to_camels_format
-from hydrobench.modis4basins.basin_mod16a2v105_process import trans_8day_modis16a2v105_to_camels_format
-from hydrobench.modis4basins.basin_pmlv2_process import trans_8day_pmlv2_to_camels_format
-from hydrobench.nldas4basins.basin_nldas_process import trans_daily_nldas_to_camels_format
+from hydrodataset.ecmwf4basins.basin_era5_process import trans_era5_land_to_camels_format
+from hydrodataset.modis4basins.basin_mod16a2v105_process import trans_8day_modis16a2v105_to_camels_format
+from hydrodataset.modis4basins.basin_pmlv2_process import trans_8day_pmlv2_to_camels_format
+from hydrodataset.nldas4basins.basin_nldas_process import trans_daily_nldas_to_camels_format
 
 
 @pytest.fixture
