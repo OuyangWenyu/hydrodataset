@@ -128,12 +128,12 @@ dmypy.json
 # Pyre type checker
 .pyre/
 .idea
-/hydrobench/app/download/dask-worker-space/
+/hydrodataset/app/download/dask-worker-space/
 /test/test_data/01013500_2000_01-02_nomask.nc
 /test/cache/
 /test/test_data/
-/hydrobench/app/download/cache/
-/hydrobench/app/daymet4basins/cache/
-/hydrobench/nldas4basins/earth_data
-/hydrobench/nldas4basins/subset_NLDAS_FORA0125_*.txt
-/hydrobench/modis4basins/*download.txt
+/hydrodataset/app/download/cache/
+/hydrodataset/app/daymet4basins/cache/
+/hydrodataset/nldas4basins/earth_data
+/hydrodataset/nldas4basins/subset_NLDAS_FORA0125_*.txt
+/hydrodataset/modis4basins/*download.txt

@@ -1,13 +1,13 @@
-# HydroBench
+# HydroDataset
 
-Data downloader and processor for Hydrologic Modeling
+Dataset downloader and processor for Watershed Hydrologic Modeling
 
-## Data source zoo list
+## Datasets zoo list
 
 - CAMELS/MOPEX/LAMAH
 - Daymet
-- ECMWF
-- MODIS
+- ECMWF ERA5-Land
+- MODIS ET
 - NLDAS
 
 More details are shown in the following sections.
@@ -56,7 +56,7 @@ You can also use the following code to download CAMELS-US (notice: the unzipped 
 ```Python
 import os
 import definitions
-from hydrobench.data.data_camels import Camels
+from hydrodataset.data.data_camels import Camels
 
 # DATASET_DIR is defined in the definitions.py file
 camels_path = os.path.join(definitions.DATASET_DIR, "camels", "camels_us")
@@ -120,7 +120,7 @@ We provided some scripts to process the Daymet grid data for basins:
 - If you want to get P (precipitation), PE (potential evapotranspiration), Q (streamflow) and Basin areas, please use
   hydrobench/app/daymet4basins/pbm_p_pe_q_basin_area.py
 
-## ECMWF
+## ECMWF ERA5-Land
 
 ### Download ERA5-Land data
 
@@ -132,7 +132,7 @@ from https://cds.climate.copernicus.eu/cdsapp#!/dataset/reanalysis-era5-land?tab
 
 TODO: Regrid the raw data to the required resolutions (src/regrid.py from https://github.com/pangeo-data/WeatherBench)
 
-## MODIS
+## MODIS ET
 
 ### Download basin mean ET data from GEE
 
