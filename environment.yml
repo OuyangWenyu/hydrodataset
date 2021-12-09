@@ -1,4 +1,4 @@
-name: HydroDatasets
+name: HydroDataset
 channels:
   - conda-forge
   - defaults
