@@ -19,7 +19,7 @@ from hydrodataset.daymet4basins.basin_daymet_process import calculate_basin_mean
 
 def main(args):
     hydro_logger.info("Start Calculating:\n")
-    camels = Camels(os.path.join(definitions.DATASET_DIR, "camels"), download=True)
+    camels = Camels(os.path.join(definitions.DATASET_DIR, "camels", "camels_us"), download=True)
     camels_shp_file = camels.dataset_description["CAMELS_BASINS_SHP_FILE"]
     camels_shp = unserialize_geopandas(camels_shp_file)
     # transform the geographic coordinates to wgs84 i.e. epsg4326  it seems NAD83 is equal to WGS1984 in geopandas

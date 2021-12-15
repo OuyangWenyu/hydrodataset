@@ -26,7 +26,7 @@ def main(args):
     years = list(range(int(args.year_range[0]), int(args.year_range[1])))
 
     region = "camels"
-    camels = Camels(os.path.join(definitions.DATASET_DIR, "camels"), download=True)
+    camels = Camels(os.path.join(definitions.DATASET_DIR, "camels", "camels_us"), download=True)
     gage_dict = camels.camels_sites.to_dict(orient="list")
 
     for i in tqdm(range(len(years)), leave=False):
