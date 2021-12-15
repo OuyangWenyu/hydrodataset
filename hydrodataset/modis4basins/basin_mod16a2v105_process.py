@@ -33,8 +33,8 @@ def trans_8day_modis16a2v105_to_camels_format(modis16a2v105_dir, output_dir, gag
     """
     # you can add features or delete features, or change the order, which depends on your txt content
     modis16a2v105_dataset = ["hru_id", "system:time_start", "ET", "LE", "PET", "PLE", "ET_QC"]
-    camels_format_index = ["Year", "Mnth", "Day", "Hr", "GPP(gC/m2/d)", "Ec(mm/d)", "Es(mm/d)", "Ei(mm/d)",
-                           "ET_water(mm/d)"]
+    camels_format_index = ["Year", "Mnth", "Day", "Hr", "ET(kg/m^2)", "LE(J/m^2/day)", "PET(kg/m^2)", "PLE(J/m^2/day)",
+                           "ET_QC"]
 
     if "STAID" in gage_dict.keys():
         gage_id_key = "STAID"
