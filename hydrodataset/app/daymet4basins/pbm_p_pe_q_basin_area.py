@@ -18,7 +18,7 @@ from hydrodataset.data.data_daymet4camels import Daymet4Camels
 def main(args):
     hydro_logger.info("Start Reading and Writing:\n")
     camels = Daymet4Camels(os.path.join(definitions.DATASET_DIR, "daymet4camels"),
-                           os.path.join(definitions.DATASET_DIR, "camels"))
+                           os.path.join(definitions.DATASET_DIR, "camels", "camels_us"))
     basins_id = camels.camels671_sites["gauge_id"].values.tolist()
     # notice the unit of streamflow is cubic feet per second
     pbm_index = ['date', 'prcp(mm/day)', 'petpt(mm/day)', 'petfao56(mm/day)', 'streamflow(ft3/s)', 'area(km2)']

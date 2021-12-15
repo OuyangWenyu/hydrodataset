@@ -11,7 +11,7 @@ from hydrodataset.utils.hydro_utils import progress_wrapped, hydro_logger
 
 @progress_wrapped(estimated_time=1000)
 def main():
-    camels = Camels(os.path.join(definitions.DATASET_DIR, "camels"), download=True)
+    camels = Camels(os.path.join(definitions.DATASET_DIR, "camels", "camels_us"), download=True)
     basin_id = camels.camels_sites["gauge_id"].values.tolist()
     basins = NLDI().get_basins(basin_id)
     save_dir = os.path.join(definitions.DATASET_DIR, "daymet4camels", "nldi_camels_671_basins")
