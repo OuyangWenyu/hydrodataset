@@ -63,7 +63,7 @@ def do_we_need_redownload(geometry, basin_id, previous_download_data_dir, downlo
 
 def main(args):
     hydro_logger.info("Start Downloading:\n")
-    camels = Camels(os.path.join(definitions.DATASET_DIR, "camels", "camels_us"), download=True)
+    camels = Camels(os.path.join(definitions.DATASET_DIR, "camels", "camels_us"))
     camels_shp_file = camels.dataset_description["CAMELS_BASINS_SHP_FILE"]
     camels_shp = unserialize_geopandas(camels_shp_file)
     # transform the geographic coordinates to wgs84 i.e. epsg4326  it seems NAD83 is equal to WGS1984 in geopandas

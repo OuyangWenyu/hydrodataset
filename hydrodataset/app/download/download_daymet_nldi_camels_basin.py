@@ -24,7 +24,7 @@ def main(args):
                                 "Please download it by performing: python download_nldi.py")
     basins = unserialize_geopandas(basin_shp_file)
     assert (all(x < y for x, y in zip(basins["identifier"].values, basins["identifier"].values[1:])))
-    camels = Camels(os.path.join(definitions.DATASET_DIR, "camels", "camels_us"), download=True)
+    camels = Camels(os.path.join(definitions.DATASET_DIR, "camels", "camels_us"))
     basins_id = camels.camels_sites["gauge_id"].values.tolist()
     var = ['dayl', 'prcp', 'srad', 'swe', 'tmax', 'tmin', 'vp']
     save_dir = os.path.join(definitions.DATASET_DIR, "daymet4camels", "daymet_nldi_camels_671_unmask")
