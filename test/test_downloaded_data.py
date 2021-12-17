@@ -7,7 +7,9 @@ import xarray as xr
 import rasterio.features as rio_features
 import pygeoutils as geoutils
 import definitions
+from hydrodataset.climateproj4basins.basin_nexdcp30_process import trans_month_nex_dcp30to_camels_format
 from hydrodataset.data.data_camels import Camels
+from hydrodataset.data.data_gages import Gages
 from hydrodataset.daymet4basins.basin_daymet_process import generate_boundary_dataset, resample_nc, \
     trans_daymet_to_camels_format, insert_daymet_value_in_leap_year
 from hydrodataset.ecmwf4basins.basin_era5_process import trans_era5_land_to_camels_format
@@ -16,7 +18,7 @@ from hydrodataset.modis4basins.basin_pmlv2_process import trans_8day_pmlv2_to_ca
 from hydrodataset.nldas4basins.basin_nldas_process import trans_daily_nldas_to_camels_format
 
 
-@pytest.fixture
+@pytest.fixture()
 def save_dir():
     dir_ = os.path.join(definitions.ROOT_DIR, "test", "test_data")
     if not os.path.isdir(dir_):
@@ -24,18 +26,28 @@ def save_dir():
     return dir_
 
 
-@pytest.fixture
+@pytest.fixture()
 def var():
     return ['dayl', 'prcp', 'srad', 'swe', 'tmax', 'tmin', 'vp']
 
 
-@pytest.fixture
+@pytest.fixture()
 def camels():
     camels_dir = os.path.join(definitions.DATASET_DIR, "camels", "camels_us")
     if not os.path.isfile(
             os.path.join(camels_dir, "camels_attributes_v2.0", "camels_attributes_v2.0", "camels_name.txt")):
         return Camels(camels_dir, True)
     return Camels(camels_dir, False)
+
+
+@pytest.fixture()
+def gages():
+    gages_dir = os.path.join(definitions.DATASET_DIR, "gages")
+    if not os.path.isfile(
+            os.path.join(gages_dir, "basinchar_and_report_sept_2011", "spreadsheets-in-csv-format",
+                         "conterm_basinid.txt")):
+        return Gages(gages_dir, True)
+    return Gages(gages_dir, False)
 
 
 def test1_trans_to_csv_load_to_gis(save_dir):
@@ -251,4 +263,24 @@ def test_gee_daily_era5_land_to_camels_format():
     flow_files = os.listdir(camels_mr_streamflow_dir)
     gage_dict = pd.DataFrame({"gage_id": np.sort([i[:-4] for i in flow_files])})
     trans_era5_land_to_camels_format(era5_land_dir, output_dir, gage_dict, region, year)
+    print("Trans finished")
+
+
+def test_gee_monthly_nexdcp30_history_to_camels_format(gages):
+    nex_dir = "example_data"
+    output_dir = os.path.join("test_data", "nex_dcp30")
+    region = "MxWdShld"
+    year = 2005
+    gage_dict = gages.sites_in_one_region(region)
+    trans_month_nex_dcp30to_camels_format(nex_dir, output_dir, gage_dict, region, year)
+    print("Trans finished")
+
+
+def test_gee_monthly_nexdcp30_rcps_to_camels_format(gages):
+    nex_dir = "example_data"
+    output_dir = os.path.join("test_data", "nex_dcp30")
+    region = "MxWdShld"
+    year = 2006
+    gage_dict = gages.sites_in_one_region(region)
+    trans_month_nex_dcp30to_camels_format(nex_dir, output_dir, gage_dict, region, year)
     print("Trans finished")
