@@ -30,7 +30,10 @@ def var():
 @pytest.fixture()
 def camels():
     camels_dir = os.path.join(definitions.DATASET_DIR, "camels", "camels_us")
-    return Camels(camels_dir, True)
+    if not os.path.isfile(
+            os.path.join(camels_dir, "camels_attributes_v2.0", "camels_attributes_v2.0", "camels_name.txt")):
+        return Camels(camels_dir, True)
+    return Camels(camels_dir, False)
 
 
 def test_read_daymet_1basin_3days(save_dir):

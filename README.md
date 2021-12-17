@@ -7,6 +7,7 @@ Dataset downloader and processor for Watershed Hydrologic Modeling
 - CAMELS/MOPEX/LAMAH
 - Daymet
 - ECMWF ERA5-Land
+- GHS
 - MODIS ET
 - NLDAS
 
@@ -131,6 +132,21 @@ from https://cds.climate.copernicus.eu/cdsapp#!/dataset/reanalysis-era5-land?tab
 ### Process the downloaded ERA5-Land data
 
 TODO: Regrid the raw data to the required resolutions (src/regrid.py from https://github.com/pangeo-data/WeatherBench)
+
+## GHS
+
+The dataset's full name is "Geospatial attributes and Hydrometeorological forcings of gages for Streamflow modeling".
+
+"GHS" is an extension for [the CAMELS dataset](https://ral.ucar.edu/solutions/products/camels). It contains geospatial
+attributes, hydrometeorological forcings and streamflow data of 9067 gages over the Contiguous United States (CONUS)
+in [the GAGES-II dataset](https://water.usgs.gov/GIS/metadata/usgswrd/XML/gagesII_Sept2011.xml).
+
+Now we have not provided an online way to download the data. You can refer to the following paper to learn about how to
+get it.
+
+Wenyu Ouyang, Kathryn Lawson, Dapeng Feng, Lei Ye, Chi Zhang, & Chaopeng Shen (2021). Continental-scale streamflow
+modeling of basins with reservoirs: Towards a coherent deep-learning-based
+strategy. https://doi.org/10.1016/j.jhydrol.2021.126455
 
 ## MODIS ET
 
