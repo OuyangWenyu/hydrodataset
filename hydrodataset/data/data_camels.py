@@ -12,8 +12,9 @@ from hydrodataset.data.stat import cal_fdc
 from hydrodataset.utils import hydro_utils
 from hydrodataset.utils.hydro_utils import download_one_zip, unzip_nested_zip
 
-CAMELS_NO_DATASET_ERROR_LOG = "We cannot read this dataset now. Please check if you choose the correct dataset:\n" \
-                              " [\"AUS\", \"BR\", \"CA\", \"CL\", \"GB\", \"US\", \"YR\"]"
+CAMELS_REGIONS = ["AUS", "BR", "CA", "CE", "CL", "GB", "US", "YR"]
+CAMELS_NO_DATASET_ERROR_LOG = "We cannot read this dataset now. Please check if you choose the correct dataset:\n" + \
+                              str(CAMELS_REGIONS)
 
 
 def time_intersect_dynamic_data(obs: np.array, date: np.array, t_range: list):
@@ -58,11 +59,11 @@ class Camels(DataSourceBase):
             if true, download
         region
             the default is CAMELS(-US), since it's the first CAMELS dataset.
-            Others now include: AUS, BR, CL, GB, YR
+            All are included in CAMELS_REGIONS
         """
         super().__init__(data_path)
-        region_lst = ["AUS", "BR", "CA", "CE", "CL", "GB", "US", "YR"]
-        assert region in region_lst
+        if region not in CAMELS_REGIONS:
+            raise NotImplementedError("Please chose one region we have already have:\n" + str(CAMELS_REGIONS))
         self.region = region
         self.data_source_description = self.set_data_source_describe()
         if download:
@@ -449,7 +450,7 @@ class Camels(DataSourceBase):
             # Although there is climatic potential evaporation item, CANOPEX does not have any PET data
             return np.array(["prcp", "tmax", "tmin"])
         elif self.region == "CE":
-            # Although there is climatic potential evaporation item, CANOPEX does not have any PET data
+            # TODO: CE's PET data are included in "F_hydro_model" directory
             return np.array(["2m_temp_max", "2m_temp_mean", "2m_temp_min", "2m_dp_temp_max", "2m_dp_temp_mean",
                              "2m_dp_temp_min", "10m_wind_u", "10m_wind_v", "fcst_alb", "lai_high_veg", "lai_low_veg",
                              "swe", "surf_net_solar_rad_max", "surf_net_solar_rad_mean", "surf_net_therm_rad_max",
@@ -534,7 +535,8 @@ class Camels(DataSourceBase):
             ids = self.camels_sites["ID"].values
             attr_all_file = os.path.join(self.data_source_description["CAMELS_ATTR_DIR"], "Catchment_attributes.csv")
             attr_data = pd.read_csv(attr_all_file, sep=';')
-            return np.intersect1d(ids, attr_data["ID"].values)
+            # keep consistent with others' data type
+            return np.intersect1d(ids, attr_data["ID"].values).astype(str)
         else:
             raise NotImplementedError(CAMELS_NO_DATASET_ERROR_LOG)
 
@@ -640,7 +642,9 @@ class Camels(DataSourceBase):
                          target_cols: Union[list, np.array] = None, **kwargs) -> np.array:
         """
         read target values; for CAMELS, they are streamflows
+
         default target_cols is an one-value list
+        Notice: the unit of target outputs in different regions are not totally same
 
         Parameters
         ----------
@@ -700,9 +704,10 @@ class Camels(DataSourceBase):
                     raise NotImplementedError(CAMELS_NO_DATASET_ERROR_LOG)
                 date = pd.to_datetime(flow_data.index.values).values.astype('datetime64[D]')
                 [c, ind1, ind2] = np.intersect1d(date, t_range_list, return_indices=True)
-                station_ids = self.read_object_ids()
+                station_ids = [id_.zfill(8) for id_ in flow_data.columns.values]
                 assert (all(x < y for x, y in zip(station_ids, station_ids[1:])))
-                [s, ind3, ind4] = np.intersect1d(station_ids, gage_id_lst, return_indices=True)
+                ind3 = [station_ids.index(tmp) for tmp in gage_id_lst]
+                # to guarantee the sequence is not changed we don't use np.intersect1d
                 chosen_data = flow_data.iloc[ind1, ind3].replace("\s+", np.nan, regex=True)
                 chosen_data = chosen_data.astype(float)
                 chosen_data[chosen_data < 0] = np.nan
@@ -879,9 +884,10 @@ class Camels(DataSourceBase):
                 forcing_data = pd.read_csv(forcing_file, sep="\t", index_col=0)
                 date = pd.to_datetime(forcing_data.index.values).values.astype('datetime64[D]')
                 [c, ind1, ind2] = np.intersect1d(date, t_range_list, return_indices=True)
-                station_ids = self.read_object_ids()
+                station_ids = [id_.zfill(8) for id_ in forcing_data.columns.values]
                 assert (all(x < y for x, y in zip(station_ids, station_ids[1:])))
-                [s, ind3, ind4] = np.intersect1d(station_ids, gage_id_lst, return_indices=True)
+                ind3 = [station_ids.index(tmp) for tmp in gage_id_lst]
+                # to guarantee the sequence is not changed we don't use np.intersect1d
                 chosen_data = forcing_data.iloc[ind1, ind3].replace("\s+", np.nan, regex=True)
                 x[:, ind2, k] = chosen_data.values.T
         elif self.region == "GB":
@@ -997,6 +1003,13 @@ class Camels(DataSourceBase):
             attr_all_file = os.path.join(self.data_source_description["CAMELS_ATTR_DIR"], "1_CAMELScl_attributes.txt")
             all_attr_tmp = pd.read_csv(attr_all_file, sep='\t', index_col=0)
             all_attr = pd.DataFrame(all_attr_tmp.values.T, index=all_attr_tmp.columns, columns=all_attr_tmp.index)
+            # some none str attributes are treated as str, we need to trans them to float
+            all_cols = all_attr.columns
+            for col in all_cols:
+                try:
+                    all_attr[col] = all_attr[col].astype(float)
+                except:
+                    continue
         elif self.region == "CA":
             attr_all_file = os.path.join(self.data_source_description["CAMELS_ATTR_DIR"],
                                          "HYSETS_watershed_properties.txt")
@@ -1012,20 +1025,17 @@ class Camels(DataSourceBase):
         data_temp = all_attr[var_lst]
         # for factorized data, we need factorize all gages' data to keep the factorized number same all the time
         n_gage = len(self.read_object_ids())
-        out_temp = np.full([n_gage, len(var_lst)], np.nan)
+        out = np.full([n_gage, len(var_lst)], np.nan)
         f_dict = {}
-        out_lst = []
         k = 0
         for field in var_lst:
             if is_string_dtype(data_temp[field]):
                 value, ref = pd.factorize(data_temp[field], sort=True)
-                out_temp[:, k] = value
+                out[:, k] = value
                 f_dict[field] = ref.tolist()
             elif is_numeric_dtype(data_temp[field]):
-                out_temp[:, k] = data_temp[field].values
+                out[:, k] = data_temp[field].values
             k = k + 1
-            out_lst.append(out_temp)
-        out = np.concatenate(out_lst, 1)
         # keep same format with CAMELS_US
         return out, var_lst, None, f_dict
 
@@ -1084,12 +1094,10 @@ class Camels(DataSourceBase):
             attr_all, var_lst_all, var_dict, f_dict = self.read_attr_all_yr()
         else:
             raise NotImplementedError(CAMELS_NO_DATASET_ERROR_LOG)
-        ind_var = list()
-        for var in var_lst:
-            ind_var.append(var_lst_all.index(var))
+        ind_var = [var_lst_all.index(var) for var in var_lst]
         id_lst_all = self.read_object_ids()
-        # TODO: Notice the sequence of station ids !!!!!!
-        c, ind_grid, ind2 = np.intersect1d(id_lst_all, gage_id_lst, return_indices=True)
+        # Notice the sequence of station ids ! Some id_lst_all are not sorted, so don't use np.intersect1d
+        ind_grid = [id_lst_all.tolist().index(tmp) for tmp in gage_id_lst]
         temp = attr_all[ind_grid, :]
         out = temp[:, ind_var]
         if is_return_dict:
