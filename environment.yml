@@ -1,4 +1,4 @@
-name: HydroDatasets
+name: HydroDataset
 channels:
   - conda-forge
   - defaults
@@ -9,9 +9,12 @@ dependencies:
   - pynhd=0.11.0
   - pygeohydro=0.11.0
   - pydaymet=0.11.0
+  - rioxarray
   - openpyxl
   - cdsapi
   - cfgrib
   - tqdm
   - sphinx
   - pytest
+  - black
+  - flake8

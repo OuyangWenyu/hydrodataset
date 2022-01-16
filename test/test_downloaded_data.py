@@ -14,8 +14,11 @@ from hydrodataset.daymet4basins.basin_daymet_process import generate_boundary_da
     trans_daymet_to_camels_format, insert_daymet_value_in_leap_year
 from hydrodataset.ecmwf4basins.basin_era5_process import trans_era5_land_to_camels_format
 from hydrodataset.modis4basins.basin_mod16a2v105_process import trans_8day_modis16a2v105_to_camels_format
+from hydrodataset.modis4basins.basin_mod_ssebop_daily_eta_process import calculate_tif_data_basin_mean
 from hydrodataset.modis4basins.basin_pmlv2_process import trans_8day_pmlv2_to_camels_format
 from hydrodataset.nldas4basins.basin_nldas_process import trans_daily_nldas_to_camels_format
+from hydrodataset.utils.hydro_geo import gage_intersect_time_zone, split_shp_to_shps_in_time_zones
+from hydrodataset.utils.hydro_utils import serialize_json, unserialize_json_ordered
 
 
 @pytest.fixture()
@@ -284,3 +287,28 @@ def test_gee_monthly_nexdcp30_rcps_to_camels_format(gages):
     gage_dict = gages.sites_in_one_region(region)
     trans_month_nex_dcp30to_camels_format(nex_dir, output_dir, gage_dict, region, year)
     print("Trans finished")
+
+
+def test_time_zone_gages_intersect(gages):
+    gages_points_shp_file = gages.data_source_description['GAGES_POINT_SHP_FILE']
+    time_zone_shp_file = os.path.join(definitions.DATASET_DIR, "Time_Zones", "Time_Zones.shp")
+    if not os.path.isfile(time_zone_shp_file):
+        raise FileNotFoundError(
+            "Please download time zone file from: https://data-usdot.opendata.arcgis.com/datasets/time-zones")
+    gage_tz_dict = gage_intersect_time_zone(gages_points_shp_file, time_zone_shp_file)
+    serialize_json(gage_tz_dict, os.path.join("test_data", "gage_tz.json"))
+
+
+def test_split_shp_to_shps_in_time_zones(camels, save_dir):
+    basins_shp_file = camels.data_source_description['CAMELS_BASINS_SHP_FILE']
+    gage_tz_dict = unserialize_json_ordered(os.path.join("test_data", "gage_tz.json"))
+    split_shp_to_shps_in_time_zones(basins_shp_file, gage_tz_dict, save_dir)
+
+
+def test_tif_basin_mean(camels):
+    eta_tif_files = [os.path.join("test_data", "det2000001.modisSSEBopETactual", "det2000001.modisSSEBopETactual.tif"),
+                     os.path.join("test_data", "det2000002.modisSSEBopETactual", "det2000002.modisSSEBopETactual.tif")]
+    if not os.path.isfile(eta_tif_files[0]) or not os.path.isfile(eta_tif_files[1]):
+        raise FileNotFoundError("Please download time zone file from: https://earlywarning.usgs.gov/ssebop/modis")
+    basins_shp_file = camels.data_source_description['CAMELS_BASINS_SHP_FILE']
+    print(calculate_tif_data_basin_mean(eta_tif_files, basins_shp_file))
