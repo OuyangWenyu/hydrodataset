@@ -1,3 +1,4 @@
+import collections
 import os
 import time
 
@@ -8,6 +9,68 @@ import pandas as pd
 from pyproj import transform, CRS, Proj
 from shapely.geometry import Polygon, Point
 import xarray as xr
+
+from hydrodataset.utils.hydro_utils import serialize_geopandas
+
+
+def split_shp_to_shps_in_time_zones(basins_shp_file, gages_in_time_zones_dict, save_dir):
+    """
+    Split basins' shapefile to multiple shapefiles in each zone
+
+    Parameters
+    ----------
+    basins_shp_file
+        the shape file of all basins;
+        Now we only support shapefiles of CAMELS
+    gages_in_time_zones_dict
+        A dict showing which gages in each time zone;
+        got from the "gage_intersect_time_zone" function in this module
+    save_dir
+        where we save the shapefiles
+
+    Returns
+    -------
+    None
+    """
+    basins = gpd.read_file(basins_shp_file)
+    basins_ids = [str(station_id).zfill(8) for station_id in basins["hru_id"].values]
+    for key in gages_in_time_zones_dict:
+        zone_ids = gages_in_time_zones_dict[key]
+        zone_basin_ids = np.intersect1d(zone_ids, basins_ids)
+        if zone_basin_ids.size < 1:
+            continue
+        else:
+            zone_basin_ids_int = zone_basin_ids.astype(int)
+            zone_basin_gdf = basins[basins["hru_id"].isin(zone_basin_ids_int)]
+            serialize_geopandas(zone_basin_gdf, os.path.join(save_dir, "Camels_" + key + ".shp"))
+
+
+def gage_intersect_time_zone(gage_shp_file, tz_shp_file) -> dict:
+    """
+    Find which gages in each time zone;
+    Now we only support gages in GAGES-II dataset
+
+    Parameters
+    ----------
+    gage_shp_file
+        shapefile of gages
+    tz_shp_file
+        shapefile of time zones
+
+    Returns
+    -------
+    dict
+        key is time_zone and value are ids of gages in the time zone
+    """
+    join = spatial_join(gage_shp_file, tz_shp_file)
+    zones_df = join["Zone"]
+    zones = np.unique(zones_df.values)
+    zone_dict = collections.OrderedDict({})
+    for zone in zones:
+        zone_ids = np.unique(join["STAID"][zones_df[zones_df == zone].index].values)
+        zone_dict = collections.OrderedDict({**zone_dict, **{zone: zone_ids.tolist()}})
+    return zone_dict
+
 
 def spatial_join(points_file, polygons_file):
     """join polygons layer to point layer, add polygon which the point is in to the point """

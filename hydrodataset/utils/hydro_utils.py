@@ -300,7 +300,7 @@ def unserialize_numpy(my_file):
     return y
 
 
-def serialize_geopandas(gpd_df, my_file, the_driver="GeoJSON"):
+def serialize_geopandas(gpd_df, my_file, the_driver="ESRI Shapefile"):
     gpd_df.to_file(my_file, driver=the_driver)
 
 

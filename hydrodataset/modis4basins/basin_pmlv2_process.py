@@ -84,7 +84,7 @@ def trans_8day_pmlv2_to_camels_format(pmlv2_dir, output_dir, gage_dict, region, 
         output_file = os.path.join(output_huc_dir, gage_dict[gage_id_key][i_basin] + '_lump_pmlv2_et.txt')
         print("output pmlv2 et data of", gage_dict[gage_id_key][i_basin], "year", str(year))
         if os.path.isfile(output_file):
-            data_old = pd.read_csv(output_file, sep=' ')
+            data_old = pd.read_csv(output_file)
             years = np.unique(data_old[camels_format_index[0]].values)
             if year in years:
                 continue
