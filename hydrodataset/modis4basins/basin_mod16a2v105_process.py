@@ -89,4 +89,4 @@ def trans_8day_modis16a2v105_to_camels_format(modis16a2v105_dir, output_dir, gag
             else:
                 os.remove(output_file)
                 new_data_df = pd.concat([data_old, new_data_df]).sort_values(by=camels_format_index[0:3])
-        new_data_df.to_csv(output_file, header=True, index=False, sep=' ', float_format='%.4f')
+        new_data_df.to_csv(output_file, header=True, index=False, sep=',', float_format='%.4f')
