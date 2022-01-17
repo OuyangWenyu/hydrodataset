@@ -2,6 +2,8 @@
 
 Dataset downloader and processor for Watershed Hydrologic Modeling
 
+**Note: this repository is still developing!**
+
 ## Datasets zoo list
 
 - CAMELS/MOPEX/LAMAH
@@ -181,6 +183,17 @@ Use hydrobench/app/nldas4basins/trans_nldas_to_camels_format.py to transform the
 CAMELS.
 
 TODO: more processing scripts are needed for NLDAS grid data.
+
+## How to run the code
+
+Use environment.yml to create conda environment:
+
+```Shell
+conda env create -f environment.yml
+conda activate HydroDataset
+```
+
+Then, you can try python script in "app" directory
 
 ## Acknowledgement
 

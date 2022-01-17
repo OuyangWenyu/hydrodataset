@@ -82,7 +82,7 @@ def trans_8day_modis16a2v105_to_camels_format(modis16a2v105_dir, output_dir, gag
         output_file = os.path.join(output_huc_dir, gage_dict[gage_id_key][i_basin] + '_lump_modis16a2v105_et.txt')
         print("output modis16a2v105 et data of", gage_dict[gage_id_key][i_basin], "year", str(year))
         if os.path.isfile(output_file):
-            data_old = pd.read_csv(output_file, sep=' ')
+            data_old = pd.read_csv(output_file)
             years = np.unique(data_old[camels_format_index[0]].values)
             if year in years:
                 continue
