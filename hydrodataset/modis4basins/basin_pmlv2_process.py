@@ -91,4 +91,4 @@ def trans_8day_pmlv2_to_camels_format(pmlv2_dir, output_dir, gage_dict, region, 
             else:
                 os.remove(output_file)
                 new_data_df = pd.concat([data_old, new_data_df]).sort_values(by=camels_format_index[0:3])
-        new_data_df.to_csv(output_file, header=True, index=False, sep=' ', float_format='%.4f')
+        new_data_df.to_csv(output_file, header=True, index=False, sep=',', float_format='%.4f')
