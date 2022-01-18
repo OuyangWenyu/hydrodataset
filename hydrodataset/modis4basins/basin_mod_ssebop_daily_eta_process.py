@@ -1,4 +1,14 @@
+"""
+Author: Wenyu Ouyang
+Date: 2022-01-17 10:09:18
+LastEditTime: 2022-01-18 00:17:03
+LastEditors: Wenyu Ouyang
+Description: process SSEBop daily ET data for basins
+FilePath: /HydroBench/hydrodataset/modis4basins/basin_mod_ssebop_daily_eta_process.py
+Copyright (c) 2021-2022 Wenyu Ouyang. All rights reserved.
+"""
 import datetime
+import fnmatch
 import os
 
 import numpy as np
@@ -9,7 +19,9 @@ import geopandas as gpd
 import pandas as pd
 
 
-def calculate_tif_data_basin_mean(eta_tif_files: list, camels_shp_file: str):
+def calculate_tif_data_basin_mean(
+    eta_tif_files: list, camels_shp_file: str
+) -> np.ndarray:
     """
     Calculate basin mean values for tif data
 
@@ -22,7 +34,7 @@ def calculate_tif_data_basin_mean(eta_tif_files: list, camels_shp_file: str):
 
     Returns
     -------
-
+    np.ndarray
         basin mean values
     """
 
@@ -30,15 +42,18 @@ def calculate_tif_data_basin_mean(eta_tif_files: list, camels_shp_file: str):
     def preprocess(ds_):
         """add time for each file"""
         # https://stackoverflow.com/questions/37743940/how-to-convert-julian-date-to-standard-date
-        time_now = datetime.datetime.strptime(list(ds_.encoding.values())[0].split(os.sep)[-1].split(".")[0][5:],
-                                              '%y%j').date()
+        time_now = datetime.datetime.strptime(
+            list(ds_.encoding.values())[0].split(os.sep)[-1].split(".")[0][5:], "%y%j"
+        ).date()
         times = pd.date_range(time_now, periods=1)
-        time_da = xr.DataArray(times, [('time', times)])
+        time_da = xr.DataArray(times, [("time", times)])
         dst = ds_.expand_dims(time=time_da)
         return dst
 
     basins = gpd.read_file(camels_shp_file)
-    xds = xr.open_mfdataset(eta_tif_files, engine="rasterio", preprocess=preprocess, concat_dim='time')
+    xds = xr.open_mfdataset(
+        eta_tif_files, engine="rasterio", preprocess=preprocess, concat_dim="time"
+    )
     geo_crs = basins.crs.to_string()
     arr = np.empty((basins.shape[0], len(eta_tif_files)))
     for i in range(basins.shape[0]):
@@ -47,7 +62,10 @@ def calculate_tif_data_basin_mean(eta_tif_files: list, camels_shp_file: str):
         transform, width, height = _get_transform(xds, ds_dims)
         _geometry = _geo2polygon(geometry, geo_crs, xds.rio.crs)
         _mask = geometry_mask([_geometry], (height, width), transform, invert=True)
-        coords = {ds_dims[0]: xds.coords[ds_dims[0]], ds_dims[1]: xds.coords[ds_dims[1]]}
+        coords = {
+            ds_dims[0]: xds.coords[ds_dims[0]],
+            ds_dims[1]: xds.coords[ds_dims[1]],
+        }
         mask = xr.DataArray(_mask, coords, dims=ds_dims)
 
         ds_masked = xds.where(mask, drop=True)
@@ -56,5 +74,5 @@ def calculate_tif_data_basin_mean(eta_tif_files: list, camels_shp_file: str):
 
         for k in ds_masked.data_vars:
             # only one band now
-            arr[i, :] = ds_masked[k].mean(dim=('x', 'y', 'band')).values
+            arr[i, :] = ds_masked[k].mean(dim=("x", "y", "band")).values
     return arr
