@@ -137,3 +137,4 @@ dmypy.json
 /hydrodataset/nldas4basins/earth_data
 /hydrodataset/nldas4basins/subset_NLDAS_FORA0125_*.txt
 /hydrodataset/modis4basins/*download.txt
+.vscode
