@@ -49,26 +49,39 @@ class Daymet4Camels(DataSourceBase):
         # shp file of basins
         camels671_shp = self.camels.data_source_description["CAMELS_BASINS_SHP_FILE"]
         # shp file of basins from NLDI. It is different with that in CAMELS, so now we didn't use it generally.
-        camels671_shp_from_nldi = os.path.join(daymet_db, "nldi_camels_671_basins", "nldi_camels_671_basins.shp")
+        camels671_shp_from_nldi = os.path.join(
+            daymet_db, "nldi_camels_671_basins", "nldi_camels_671_basins.shp"
+        )
         # forcing
         forcing_original_dir = os.path.join(daymet_db, "daymet_camels_671_unmask")
         forcing_dir = os.path.join(daymet_db, "daymet_camels_671_bound")
-        forcing_resample_dir = os.path.join(daymet_db, "daymet_camels_671_bound_resample")
+        forcing_resample_dir = os.path.join(
+            daymet_db, "daymet_camels_671_bound_resample"
+        )
         forcing_basin_mean_dir = os.path.join(daymet_db, "basin_mean_forcing")
 
-        return collections.OrderedDict(DAYMET4BASINS_DIR=daymet_db, CAMELS_SHP_FILE=camels671_shp,
-                                       NLDI_SHP_FILE=camels671_shp_from_nldi, DAYMET4_ORIGIN_DIR=forcing_original_dir,
-                                       DAYMET4_DIR=forcing_dir, DAYMET4_RESAMPLE_DIR=forcing_resample_dir,
-                                       DAYMET4_BASIN_MEAN_DIR=forcing_basin_mean_dir)
+        return collections.OrderedDict(
+            DAYMET4BASINS_DIR=daymet_db,
+            CAMELS_SHP_FILE=camels671_shp,
+            NLDI_SHP_FILE=camels671_shp_from_nldi,
+            DAYMET4_ORIGIN_DIR=forcing_original_dir,
+            DAYMET4_DIR=forcing_dir,
+            DAYMET4_RESAMPLE_DIR=forcing_resample_dir,
+            DAYMET4_BASIN_MEAN_DIR=forcing_basin_mean_dir,
+        )
 
     def download_data_source(self):
-        logging.warning("The data files are too large. Please use HydroBench to download them!")
+        logging.warning(
+            "The data files are too large. Please use HydroBench to download them!"
+        )
 
     def get_constant_cols(self) -> np.array:
         return self.camels.get_constant_cols()
 
     def get_relevant_cols(self) -> np.array:
-        return np.array(['dayl', 'prcp', 'srad', 'swe', 'tmax', 'tmin', 'vp', 'petpt', 'petfao56'])
+        return np.array(
+            ["dayl", "prcp", "srad", "swe", "tmax", "tmin", "vp", "petpt", "petfao56"]
+        )
 
     def get_target_cols(self) -> np.array:
         return self.camels.get_target_cols()
@@ -82,7 +95,9 @@ class Daymet4Camels(DataSourceBase):
     def read_object_ids(self, object_params=None) -> np.array:
         return self.camels.read_object_ids()
 
-    def read_target_cols(self, usgs_id_lst=None, t_range=None, target_cols=None, **kwargs):
+    def read_target_cols(
+        self, usgs_id_lst=None, t_range=None, target_cols=None, **kwargs
+    ):
         return self.camels.read_target_cols(usgs_id_lst, t_range, target_cols)
 
     def read_basin_mean_daymet4(self, usgs_id, var_lst, t_range_list):
@@ -91,13 +106,28 @@ class Daymet4Camels(DataSourceBase):
         huc = gage_id_df[gage_id_df["gauge_id"] == usgs_id]["huc_02"].values[0]
 
         data_folder = self.data_source_description["DAYMET4_BASIN_MEAN_DIR"]
-        data_file = os.path.join(data_folder, "daymet", huc, '%s_lump_cida_forcing_leap_pet.txt' % usgs_id)
-        data_temp = pd.read_csv(data_file, sep=r'\s+', header=None, skiprows=1)
-        forcing_lst = ["Year", "Mnth", "Day", "Hr", "dayl", "prcp", "srad", "swe", "tmax", "tmin", "vp", "petpt",
-                       "petfao56"]
+        data_file = os.path.join(
+            data_folder, "daymet", huc, "%s_lump_cida_forcing_leap_pet.txt" % usgs_id
+        )
+        data_temp = pd.read_csv(data_file, sep=r"\s+", header=None, skiprows=1)
+        forcing_lst = [
+            "Year",
+            "Mnth",
+            "Day",
+            "Hr",
+            "dayl",
+            "prcp",
+            "srad",
+            "swe",
+            "tmax",
+            "tmin",
+            "vp",
+            "petpt",
+            "petfao56",
+        ]
         df_date = data_temp[[0, 1, 2]]
-        df_date.columns = ['year', 'month', 'day']
-        date = pd.to_datetime(df_date).values.astype('datetime64[D]')
+        df_date.columns = ["year", "month", "day"]
+        date = pd.to_datetime(df_date).values.astype("datetime64[D]")
 
         nf = len(var_lst)
         [c, ind1, ind2] = np.intersect1d(date, t_range_list, return_indices=True)
@@ -109,12 +139,14 @@ class Daymet4Camels(DataSourceBase):
             out[:, k] = data_temp[ind].values[ind1]
         return out
 
-    def read_relevant_cols(self,
-                           usgs_id_lst: list = None,
-                           t_range: list = None,
-                           var_lst: list = None,
-                           concat: bool = False,
-                           resample: Union[int, float] = 1) -> Union[xr.Dataset, List[xr.Dataset], np.array]:
+    def read_relevant_cols(
+        self,
+        usgs_id_lst: list = None,
+        t_range: list = None,
+        var_lst: list = None,
+        concat: bool = False,
+        resample: Union[int, float] = 1,
+    ) -> Union[xr.Dataset, List[xr.Dataset], np.array]:
         """
         Read forcing data.
 
@@ -142,7 +174,7 @@ class Daymet4Camels(DataSourceBase):
         """
 
         assert len(t_range) == 2
-        assert (all(x < y for x, y in zip(usgs_id_lst, usgs_id_lst[1:])))
+        assert all(x < y for x, y in zip(usgs_id_lst, usgs_id_lst[1:]))
         if resample > 0:
             t_years = hydro_utils.t_range_years(t_range)
             # our range is a left open left close range, the default range in xarray slice is close interval, so -1 day
@@ -157,11 +189,17 @@ class Daymet4Camels(DataSourceBase):
             for num in range(len(usgs_id_lst)):
                 ens = usgs_id_lst[num]
                 name_lst = []
-                for name in glob.glob(os.path.join(data_folder, ens, "*" + resample_str + ".nc")):
+                for name in glob.glob(
+                    os.path.join(data_folder, ens, "*" + resample_str + ".nc")
+                ):
                     if int(name.split("/")[-1].split("_")[1]) in t_years:
                         name_lst.append(name)
                 name_lst_sorted = np.sort(name_lst).tolist()
-                ens_list.append(xr.open_mfdataset(name_lst_sorted).sel(time=slice(t_days[0], t_days[1])))
+                ens_list.append(
+                    xr.open_mfdataset(name_lst_sorted).sel(
+                        time=slice(t_days[0], t_days[1])
+                    )
+                )
 
             if concat:
                 new_dim = pd.Index(usgs_id_lst)
@@ -174,7 +212,9 @@ class Daymet4Camels(DataSourceBase):
             nt = t_range_list.shape[0]
             x = np.empty([len(usgs_id_lst), nt, len(var_lst)])
             for k in range(len(usgs_id_lst)):
-                data = self.read_basin_mean_daymet4(usgs_id_lst[k], var_lst, t_range_list)
+                data = self.read_basin_mean_daymet4(
+                    usgs_id_lst[k], var_lst, t_range_list
+                )
                 x[k, :, :] = data
             return x
 

@@ -23,8 +23,8 @@ from hydrodataset.utils.hydro_utils import download_one_zip, unzip_nested_zip
 
 CAMELS_REGIONS = ["AUS", "BR", "CA", "CE", "CL", "GB", "US", "YR"]
 CAMELS_NO_DATASET_ERROR_LOG = (
-        "We cannot read this dataset now. Please check if you choose the correct dataset:\n"
-        + str(CAMELS_REGIONS)
+    "We cannot read this dataset now. Please check if you choose the correct dataset:\n"
+    + str(CAMELS_REGIONS)
 )
 
 
@@ -315,7 +315,8 @@ class Camels(DataSourceBase):
                 camels_db, "11_CAMELScl_pet_8d_modis"
             )
             forcing_dir_pet_hargreaves = os.path.join(
-                camels_db, "12_CAMELScl_pet_hargreaves",
+                camels_db,
+                "12_CAMELScl_pet_hargreaves",
             )
             forcing_dir_swe = os.path.join(camels_db, "13_CAMELScl_swe")
             return collections.OrderedDict(
@@ -494,8 +495,8 @@ class Camels(DataSourceBase):
                 download_one_zip(attr_url, camels_config["CAMELS_DIR"])
                 for attr_url in camels_config["CAMELS_DOWNLOAD_URL_LST"]
                 if not os.path.isfile(
-                os.path.join(camels_config["CAMELS_DIR"], attr_url.split("/")[-1])
-            )
+                    os.path.join(camels_config["CAMELS_DIR"], attr_url.split("/")[-1])
+                )
             ]
             print("The CAMELS_US data have been downloaded!")
         print(
@@ -648,7 +649,7 @@ class Camels(DataSourceBase):
         elif self.region == "AUS":
             forcing_types = []
             for root, dirs, files in os.walk(
-                    self.data_source_description["CAMELS_FORCING_DIR"]
+                self.data_source_description["CAMELS_FORCING_DIR"]
             ):
                 if root == self.data_source_description["CAMELS_FORCING_DIR"]:
                     continue
@@ -660,8 +661,8 @@ class Camels(DataSourceBase):
                 [
                     forcing_dir.split(os.sep)[-1][13:]
                     for forcing_dir in self.data_source_description[
-                    "CAMELS_FORCING_DIR"
-                ]
+                        "CAMELS_FORCING_DIR"
+                    ]
                 ]
             )
         elif self.region == "CL":
@@ -669,8 +670,8 @@ class Camels(DataSourceBase):
                 [
                     "_".join(forcing_dir.split(os.sep)[-1].split("_")[2:])
                     for forcing_dir in self.data_source_description[
-                    "CAMELS_FORCING_DIR"
-                ]
+                        "CAMELS_FORCING_DIR"
+                    ]
                 ]
             )
         elif self.region == "GB":
@@ -955,11 +956,11 @@ class Camels(DataSourceBase):
         return out
 
     def read_target_cols(
-            self,
-            gage_id_lst: Union[list, np.array] = None,
-            t_range: list = None,
-            target_cols: Union[list, np.array] = None,
-            **kwargs
+        self,
+        gage_id_lst: Union[list, np.array] = None,
+        t_range: list = None,
+        target_cols: Union[list, np.array] = None,
+        **kwargs
     ) -> np.array:
         """
         read target values; for CAMELS, they are streamflows
@@ -1086,7 +1087,7 @@ class Camels(DataSourceBase):
                 # only one streamflow type: discharge
                 canopex_id = self.camels_sites[
                     self.camels_sites["STATION_ID"] == "'" + gage_id_lst[k] + "'"
-                    ]["CANOPEX_ID"].values[0]
+                ]["CANOPEX_ID"].values[0]
                 flow_file = os.path.join(
                     self.data_source_description["CAMELS_FLOW_DIR"],
                     str(canopex_id) + ".dly",
@@ -1211,11 +1212,11 @@ class Camels(DataSourceBase):
         return out
 
     def read_relevant_cols(
-            self,
-            gage_id_lst: list = None,
-            t_range: list = None,
-            var_lst: list = None,
-            forcing_type="daymet",
+        self,
+        gage_id_lst: list = None,
+        t_range: list = None,
+        var_lst: list = None,
+        forcing_type="daymet",
     ) -> np.array:
         """
         Read forcing data
@@ -1339,7 +1340,7 @@ class Camels(DataSourceBase):
             for k in range(len(gage_id_lst)):
                 canopex_id = self.camels_sites[
                     self.camels_sites["STATION_ID"] == "'" + gage_id_lst[k] + "'"
-                    ]["CANOPEX_ID"].values[0]
+                ]["CANOPEX_ID"].values[0]
                 forcing_file = os.path.join(
                     self.data_source_description["CAMELS_FLOW_DIR"],
                     str(canopex_id) + ".dly",
@@ -1538,7 +1539,7 @@ class Camels(DataSourceBase):
         return out_temp, var_lst, None, f_dict
 
     def read_constant_cols(
-            self, gage_id_lst=None, var_lst=None, is_return_dict=False
+        self, gage_id_lst=None, var_lst=None, is_return_dict=False
     ) -> Union[tuple, np.array]:
         """
         Read Attributes data
@@ -1617,7 +1618,7 @@ class Camels(DataSourceBase):
             for k in range(len(object_ids)):
                 canopex_id = self.camels_sites[
                     self.camels_sites["STATION_ID"] == "'" + object_ids[k] + "'"
-                    ]["CANOPEX_ID"].values[0]
+                ]["CANOPEX_ID"].values[0]
                 forcing_file = os.path.join(
                     self.data_source_description["CAMELS_FLOW_DIR"],
                     str(canopex_id) + ".dly",

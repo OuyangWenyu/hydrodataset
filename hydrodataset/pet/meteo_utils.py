@@ -4,7 +4,9 @@ import numpy as np
 import xarray as xr
 
 
-def calc_press(elevation: Union[np.ndarray, xr.DataArray]) -> Union[np.ndarray, xr.DataArray]:
+def calc_press(
+    elevation: Union[np.ndarray, xr.DataArray]
+) -> Union[np.ndarray, xr.DataArray]:
     """Atmospheric pressure [kPa].
 
     Parameters
@@ -28,8 +30,10 @@ def calc_press(elevation: Union[np.ndarray, xr.DataArray]) -> Union[np.ndarray, 
     return 101.3 * ((293 - 0.0065 * elevation) / 293) ** 5.26
 
 
-def calc_psy(pressure: Union[np.ndarray, xr.DataArray],
-             t_mean: Union[np.ndarray, xr.DataArray] = None) -> Union[np.ndarray, xr.DataArray]:
+def calc_psy(
+    pressure: Union[np.ndarray, xr.DataArray],
+    t_mean: Union[np.ndarray, xr.DataArray] = None,
+) -> Union[np.ndarray, xr.DataArray]:
     """Psychrometric constant [kPa °C-1].
 
     Parameters
@@ -71,8 +75,10 @@ def calc_psy(pressure: Union[np.ndarray, xr.DataArray],
         return CP * pressure / (0.622 * lambd)
 
 
-def calc_lambda(t_mean: Union[np.ndarray, xr.DataArray]) -> Union[np.ndarray, xr.DataArray]:
-    """ Latent Heat of Vaporization [MJ kg-1].
+def calc_lambda(
+    t_mean: Union[np.ndarray, xr.DataArray]
+) -> Union[np.ndarray, xr.DataArray]:
+    """Latent Heat of Vaporization [MJ kg-1].
 
     Parameters
     ----------
@@ -95,7 +101,9 @@ def calc_lambda(t_mean: Union[np.ndarray, xr.DataArray]) -> Union[np.ndarray, xr
     return 2.501 - 0.002361 * t_mean
 
 
-def calc_vpc(t_mean: Union[np.ndarray, xr.DataArray]) -> Union[np.ndarray, xr.DataArray]:
+def calc_vpc(
+    t_mean: Union[np.ndarray, xr.DataArray]
+) -> Union[np.ndarray, xr.DataArray]:
     """Slope of saturation vapour pressure curve at air Temperature [kPa °C-1].
 
     Parameters
@@ -122,7 +130,7 @@ def calc_vpc(t_mean: Union[np.ndarray, xr.DataArray]) -> Union[np.ndarray, xr.Da
 
 
 def calc_e0(t_mean: Union[np.ndarray, xr.DataArray]) -> Union[np.ndarray, xr.DataArray]:
-    """ Saturation vapor pressure at the air temperature T [kPa].
+    """Saturation vapor pressure at the air temperature T [kPa].
 
     Parameters
     ----------
@@ -145,8 +153,10 @@ def calc_e0(t_mean: Union[np.ndarray, xr.DataArray]) -> Union[np.ndarray, xr.Dat
     return 0.6108 * np.exp(17.27 * t_mean / (t_mean + 237.3))
 
 
-def calc_lambda_(t_mean: Union[np.ndarray, xr.DataArray]) -> Union[np.ndarray, xr.DataArray]:
-    """ Latent Heat of Vaporization [MJ kg-1].
+def calc_lambda_(
+    t_mean: Union[np.ndarray, xr.DataArray]
+) -> Union[np.ndarray, xr.DataArray]:
+    """Latent Heat of Vaporization [MJ kg-1].
 
     Parameters
     ----------
@@ -170,7 +180,7 @@ def calc_lambda_(t_mean: Union[np.ndarray, xr.DataArray]) -> Union[np.ndarray, x
 
 
 def calc_ea(t_mean=None, t_max=None, t_min=None, rh_max=None, rh_min=None, rh=None):
-    """ Actual vapor pressure [kPa].
+    """Actual vapor pressure [kPa].
 
     Parameters
     ----------
@@ -217,7 +227,7 @@ def calc_ea(t_mean=None, t_max=None, t_min=None, rh_max=None, rh_min=None, rh=No
 
 
 def calc_es(t_mean=None, t_max=None, t_min=None):
-    """ Saturation vapor pressure [kPa].
+    """Saturation vapor pressure [kPa].
 
     Parameters
     ----------

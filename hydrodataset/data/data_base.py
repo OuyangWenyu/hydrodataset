@@ -24,22 +24,26 @@ class DataSourceBase(ABC):
     def read_object_ids(self, object_params=None) -> np.array:
         raise NotImplementedError
 
-    def read_target_cols(self, object_ids=None, t_range_list=None, target_cols=None, **kwargs) -> np.array:
+    def read_target_cols(
+        self, object_ids=None, t_range_list=None, target_cols=None, **kwargs
+    ) -> np.array:
         raise NotImplementedError
 
-    def read_relevant_cols(self,
-                           object_ids=None,
-                           t_range_list: list = None,
-                           relevant_cols=None,
-                           **kwargs) -> Union[np.array, xr.Dataset, list]:
+    def read_relevant_cols(
+        self, object_ids=None, t_range_list: list = None, relevant_cols=None, **kwargs
+    ) -> Union[np.array, xr.Dataset, list]:
         """3d data (site_num * time_length * var_num), time-series data"""
         raise NotImplementedError
 
-    def read_constant_cols(self, object_ids=None, constant_cols=None, **kwargs) -> np.array:
+    def read_constant_cols(
+        self, object_ids=None, constant_cols=None, **kwargs
+    ) -> np.array:
         """2d data (site_num * var_num), non-time-series data"""
         raise NotImplementedError
 
-    def read_other_cols(self, object_ids=None, other_cols: dict = None, **kwargs) -> dict:
+    def read_other_cols(
+        self, object_ids=None, other_cols: dict = None, **kwargs
+    ) -> dict:
         """some data which cannot be easily treated as constant vars or time-series with same length as relevant vars
         CONVENTION: other_cols is a dict, where each item is also a dict with all params in it"""
         raise NotImplementedError

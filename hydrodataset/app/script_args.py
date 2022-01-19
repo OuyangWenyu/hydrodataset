@@ -14,9 +14,16 @@ def main(args):
 
 
 # python script_args.py --year_range 1990 2011
-if __name__ == '__main__':
-    parser = argparse.ArgumentParser(description='Download Daymet within the boundary of each basin in CAMELS')
-    parser.add_argument('--year_range', dest='year_range', help='The start and end years (right open interval)',
-                        default=[1980, 2021], nargs='+')
+if __name__ == "__main__":
+    parser = argparse.ArgumentParser(
+        description="Download Daymet within the boundary of each basin in CAMELS"
+    )
+    parser.add_argument(
+        "--year_range",
+        dest="year_range",
+        help="The start and end years (right open interval)",
+        default=[1980, 2021],
+        nargs="+",
+    )
     the_args = parser.parse_args()
     main(the_args)

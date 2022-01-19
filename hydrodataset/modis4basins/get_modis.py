@@ -86,12 +86,12 @@ AUTHOR
 
 LOG = logging.getLogger(__name__)
 OUT_HDLR = logging.StreamHandler(sys.stdout)
-OUT_HDLR.setFormatter(logging.Formatter('%(asctime)s %(message)s'))
+OUT_HDLR.setFormatter(logging.Formatter("%(asctime)s %(message)s"))
 OUT_HDLR.setLevel(logging.INFO)
 LOG.addHandler(OUT_HDLR)
 LOG.setLevel(logging.INFO)
 
-HEADERS = {'User-Agent': 'get_modis Python %s' % __version__}
+HEADERS = {"User-Agent": "get_modis Python %s" % __version__}
 
 CHUNKS = 65536
 
@@ -137,25 +137,22 @@ def parse_modis_dates(url, dates, product, out_dir, ruff=False):
     """
     if ruff:
         product = product.split(".")[0]
-        already_here = fnmatch.filter(os.listdir(out_dir),
-                                      "%s*hdf" % product)
-        already_here_dates = [x.split(".")[-5][1:]
-                              for x in already_here]
+        already_here = fnmatch.filter(os.listdir(out_dir), "%s*hdf" % product)
+        already_here_dates = [x.split(".")[-5][1:] for x in already_here]
 
     html = return_url(url)
 
     available_dates = []
     for line in html:
 
-        if line.decode().find("href") >= 0 and \
-                line.decode().find("[DIR]") >= 0:
+        if line.decode().find("href") >= 0 and line.decode().find("[DIR]") >= 0:
             # Points to a directory
             the_date = line.decode().split('href="')[1].split('"')[0].strip("/")
             if ruff:
                 try:
-                    modis_date = time.strftime("%Y%j",
-                                               time.strptime(the_date,
-                                                             "%Y.%m.%d"))
+                    modis_date = time.strftime(
+                        "%Y%j", time.strptime(the_date, "%Y.%m.%d")
+                    )
                 except ValueError:
                     continue
                 if modis_date in already_here_dates:
@@ -172,10 +169,20 @@ def parse_modis_dates(url, dates, product, out_dir, ruff=False):
     return suitable_dates
 
 
-def get_modisfiles(platform, product, year, tile, proxy,
-                   doy_start=1, doy_end=-1,
-                   base_url="http://e4ftl01.cr.usgs.gov", out_dir=".",
-                   ruff=False, get_xml=False, verbose=False):
+def get_modisfiles(
+    platform,
+    product,
+    year,
+    tile,
+    proxy,
+    doy_start=1,
+    doy_end=-1,
+    base_url="http://e4ftl01.cr.usgs.gov",
+    out_dir=".",
+    ruff=False,
+    get_xml=False,
+    verbose=False,
+):
     """Download MODIS products for a given tile, year & period of interest
 
     This function uses the `urllib2` module to download MODIS "granules" from
@@ -224,7 +231,7 @@ def get_modisfiles(platform, product, year, tile, proxy,
     Nothing
     """
     netrc_dir = os.path.expanduser(os.path.join("~", ".netrc"))
-    urs = 'urs.earthdata.nasa.gov'
+    urs = "urs.earthdata.nasa.gov"
     # The EarthData username string
     username = netrc(netrc_dir).authenticators(urs)[0]
     # The EarthData password string
@@ -244,9 +251,10 @@ def get_modisfiles(platform, product, year, tile, proxy,
         else:
             doy_end = 366
 
-    dates = [time.strftime("%Y.%m.%d", time.strptime("%d/%d" % (i, year),
-                                                     "%j/%Y")) for i in
-             range(doy_start, doy_end)]
+    dates = [
+        time.strftime("%Y.%m.%d", time.strptime("%d/%d" % (i, year), "%j/%Y"))
+        for i in range(doy_start, doy_end)
+    ]
     url = "%s/%s/%s/" % (base_url, platform, product)
     dates = parse_modis_dates(url, dates, product, out_dir, ruff=ruff)
     them_urls = []
@@ -270,16 +278,18 @@ def get_modisfiles(platform, product, year, tile, proxy,
         LOG.info("Authorizing %s" % username)
         s.auth = (username, password)
         for the_url in them_urls:
-            r1 = s.request('get', the_url)
+            r1 = s.request("get", the_url)
             r = s.get(r1.url, stream=True)
 
             if not r.ok:
                 raise IOError("Can't start download... [%s]" % the_url)
-            file_size = int(r.headers['content-length'])
+            file_size = int(r.headers["content-length"])
             fname = the_url.split("/")[-1]
-            LOG.info("Starting download on %s(%d bytes) ..." %
-                     (os.path.join(out_dir, fname), file_size))
-            with open(os.path.join(out_dir, fname), 'wb') as fp:
+            LOG.info(
+                "Starting download on %s(%d bytes) ..."
+                % (os.path.join(out_dir, fname), file_size)
+            )
+            with open(os.path.join(out_dir, fname), "wb") as fp:
                 for chunk in r.iter_content(chunk_size=CHUNKS):
                     if chunk:
                         fp.write(chunk)
@@ -292,47 +302,120 @@ def get_modisfiles(platform, product, year, tile, proxy,
 
 
 if __name__ == "__main__":
-    parser = optparse.OptionParser(formatter=optparse.TitledHelpFormatter(),
-                                   usage=globals()['__doc__'])
-    parser.add_option('-v', '--verbose', action='store_true',
-                      default=True, help='verbose output')
-    parser.add_option('-s', '--platform', action='store', dest="platform", default="MOLT",
-                      type=str, help='Platform type: MOLA, MOLT or MOTA')
-    parser.add_option('-p', '--product', action='store', dest="product",
-                      type=str, default="MOD13Q1.006",
-                      help="MODIS product name with collection tag at the end " +
-                           "(e.g. MOD09GA.005)")
-    parser.add_option('-t', '--tile', action="store", dest="tile", default="h27v06",
-                      type=str, help="Required tile (h17v04, for example)")
-    parser.add_option("-y", "--year", action="store", dest="year", default=2020,
-                      type=int, help="Year of interest")
-    parser.add_option('-o', '--output', action="store", dest="dir_out",
-                      default=".", type=str, help="Output directory")
-    parser.add_option('-b', '--begin', action="store", dest="doy_start",
-                      default=1, type=int, help="Starting day of year (DoY)")
-    parser.add_option('-e', '--end', action="store", dest="doy_end",
-                      type=int, default=-1, help="Ending day of year (DoY)")
-    parser.add_option('-r', '--proxy', action="store", dest="proxy",
-                      type=str, default=None, help="HTTP proxy URL")
-    parser.add_option('-q', '--quick', action="store_true", dest="quick",
-                      default=False,
-                      help="Quick check to see whether files are present")
-    parser.add_option('-x', '--xml', action="store_true", dest="get_xml",
-                      default=False,
-                      help="Get the XML metadata files too.")
+    parser = optparse.OptionParser(
+        formatter=optparse.TitledHelpFormatter(), usage=globals()["__doc__"]
+    )
+    parser.add_option(
+        "-v", "--verbose", action="store_true", default=True, help="verbose output"
+    )
+    parser.add_option(
+        "-s",
+        "--platform",
+        action="store",
+        dest="platform",
+        default="MOLT",
+        type=str,
+        help="Platform type: MOLA, MOLT or MOTA",
+    )
+    parser.add_option(
+        "-p",
+        "--product",
+        action="store",
+        dest="product",
+        type=str,
+        default="MOD13Q1.006",
+        help="MODIS product name with collection tag at the end "
+        + "(e.g. MOD09GA.005)",
+    )
+    parser.add_option(
+        "-t",
+        "--tile",
+        action="store",
+        dest="tile",
+        default="h27v06",
+        type=str,
+        help="Required tile (h17v04, for example)",
+    )
+    parser.add_option(
+        "-y",
+        "--year",
+        action="store",
+        dest="year",
+        default=2020,
+        type=int,
+        help="Year of interest",
+    )
+    parser.add_option(
+        "-o",
+        "--output",
+        action="store",
+        dest="dir_out",
+        default=".",
+        type=str,
+        help="Output directory",
+    )
+    parser.add_option(
+        "-b",
+        "--begin",
+        action="store",
+        dest="doy_start",
+        default=1,
+        type=int,
+        help="Starting day of year (DoY)",
+    )
+    parser.add_option(
+        "-e",
+        "--end",
+        action="store",
+        dest="doy_end",
+        type=int,
+        default=-1,
+        help="Ending day of year (DoY)",
+    )
+    parser.add_option(
+        "-r",
+        "--proxy",
+        action="store",
+        dest="proxy",
+        type=str,
+        default=None,
+        help="HTTP proxy URL",
+    )
+    parser.add_option(
+        "-q",
+        "--quick",
+        action="store_true",
+        dest="quick",
+        default=False,
+        help="Quick check to see whether files are present",
+    )
+    parser.add_option(
+        "-x",
+        "--xml",
+        action="store_true",
+        dest="get_xml",
+        default=False,
+        help="Get the XML metadata files too.",
+    )
     (options, args) = parser.parse_args()
     if not (options.platform in ["MOLA", "MOTA", "MOLT"]):
         LOG.fatal("`platform` has to be one of MOLA, MOTA, MOLT")
         sys.exit(-1)
     if options.proxy is not None:
-        PROXY = {'http': options.proxy}
+        PROXY = {"http": options.proxy}
     else:
         PROXY = None
 
-    get_modisfiles(options.platform,
-                   options.product, options.year,
-                   options.tile, PROXY,
-                   doy_start=options.doy_start, doy_end=options.doy_end,
-                   out_dir=options.dir_out,
-                   verbose=options.verbose, ruff=options.quick,
-                   get_xml=options.get_xml)
+    get_modisfiles(
+        options.platform,
+        options.product,
+        options.year,
+        options.tile,
+        PROXY,
+        doy_start=options.doy_start,
+        doy_end=options.doy_end,
+        out_dir=options.dir_out,
+        verbose=options.verbose,
+        ruff=options.quick,
+        get_xml=options.get_xml,
+    )

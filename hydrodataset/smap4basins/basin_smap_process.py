@@ -14,7 +14,9 @@ import numpy as np
 import pandas as pd
 
 
-def trans_nasa_usda_smap_to_camels_format(source_dir, output_dir, gage_dict, region, year):
+def trans_nasa_usda_smap_to_camels_format(
+    source_dir, output_dir, gage_dict, region, year
+):
     """
     Transform 3-day SMAP data downloaded from GEE to the format in CAMELS.
 

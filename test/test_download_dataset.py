@@ -7,6 +7,7 @@ import pydaymet as daymet
 
 import definitions
 from hydrodataset.data.data_camels import Camels
+from hydrodataset.data.data_gages import read_usgs_daily_flow
 from hydrodataset.daymet4basins.basin_daymet_process import download_daymet_by_geom_bound, calculate_basin_grids_pet, \
     calculate_basin_mean
 from hydrodataset.utils.hydro_utils import unserialize_geopandas
@@ -213,3 +214,13 @@ def test_download_nldas_hourly():
             url_lst_file = os.path.join(definitions.ROOT_DIR, "hydrobench", "nldas4basins", file)
             download_nldas_with_url_lst(url_lst_file, save_dir)
     print("Downloading NLDAS hourly data is finished!")
+
+
+def test_download_usgs_streamflow(camels):
+    sites_id = camels.read_object_ids().tolist()
+    date_range = ("2015-01-01", "2021-12-31")
+    gage_dict = camels.camels_sites
+    save_dir = os.path.join("test_data", "camels_streamflow")
+    unit = "cfs"
+    qobs = read_usgs_daily_flow(sites_id, date_range, gage_dict, save_dir, unit)
+    print(qobs)

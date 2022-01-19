@@ -13,7 +13,9 @@ import xarray as xr
 from hydrodataset.utils.hydro_utils import serialize_geopandas
 
 
-def split_shp_to_shps_in_time_zones(basins_shp_file, gages_in_time_zones_dict, save_dir):
+def split_shp_to_shps_in_time_zones(
+    basins_shp_file, gages_in_time_zones_dict, save_dir
+):
     """
     Split basins' shapefile to multiple shapefiles in each zone
 
@@ -42,7 +44,9 @@ def split_shp_to_shps_in_time_zones(basins_shp_file, gages_in_time_zones_dict, s
         else:
             zone_basin_ids_int = zone_basin_ids.astype(int)
             zone_basin_gdf = basins[basins["hru_id"].isin(zone_basin_ids_int)]
-            serialize_geopandas(zone_basin_gdf, os.path.join(save_dir, "Camels_" + key + ".shp"))
+            serialize_geopandas(
+                zone_basin_gdf, os.path.join(save_dir, "Camels_" + key + ".shp")
+            )
 
 
 def gage_intersect_time_zone(gage_shp_file, tz_shp_file) -> dict:
@@ -73,7 +77,7 @@ def gage_intersect_time_zone(gage_shp_file, tz_shp_file) -> dict:
 
 
 def spatial_join(points_file, polygons_file):
-    """join polygons layer to point layer, add polygon which the point is in to the point """
+    """join polygons layer to point layer, add polygon which the point is in to the point"""
 
     points = gpd.read_file(points_file)
     polys = gpd.read_file(polygons_file)
@@ -132,14 +136,14 @@ def trans_points(from_crs, to_crs, pxs, pys):
     :return
     pxys_out: x and y compared a pair list to initialize a polygon
     """
-    df = pd.DataFrame({'x': pxs, 'y': pys})
+    df = pd.DataFrame({"x": pxs, "y": pys})
     start = time.time()
-    df['x2'], df['y2'] = transform(from_crs, to_crs, df['x'].tolist(), df['y'].tolist())
+    df["x2"], df["y2"] = transform(from_crs, to_crs, df["x"].tolist(), df["y"].tolist())
     end = time.time()
-    print('time consuming：', '%.7f' % (end - start))
+    print("time consuming：", "%.7f" % (end - start))
     # after transforming xs and ys, pick out x2, y2，and tranform to numpy array，then do a transportation. Finally put coordination of every row to a list
-    arr_x = df['x2'].values
-    arr_y = df['y2'].values
+    arr_x = df["x2"].values
+    arr_y = df["y2"].values
     pxys_out = np.stack((arr_x, arr_y), 0).T
     return pxys_out
 
@@ -151,12 +155,12 @@ def trans_polygon(from_crs, to_crs, polygon_from):
     boundary = polygon_from.boundary
     boundary_type = boundary.geom_type
     print(boundary_type)
-    if boundary_type == 'LineString':
+    if boundary_type == "LineString":
         pxs = polygon_from.exterior.xy[0]
         pys = polygon_from.exterior.xy[1]
         pxys_out = trans_points(from_crs, to_crs, pxs, pys)
         polygon_to = Polygon(pxys_out)
-    elif boundary_type == 'MultiLineString':
+    elif boundary_type == "MultiLineString":
         # if there is interior boundary in a polygon，then we need to transform its coordinations. Notice: maybe multiple interior boundaries exist.
         exts_x = boundary[0].xy[0]
         exts_y = boundary[0].xy[1]
@@ -182,13 +186,14 @@ def write_shpfile(geodata, output_folder, id_str="hru_id"):
     gage_id = geodata.iloc[0, :][id_str]
     # id is number，here turn it to str
     output_file = str(int(gage_id)).zfill(8)
-    output_fp = os.path.join(output_folder, output_file + '.shp')
+    output_fp = os.path.join(output_folder, output_file + ".shp")
     # Write those rows into a new file (the default output file format is Shapefile)
     geodata.to_file(output_fp)
 
 
-def trans_shp_coord(input_folder, input_shp_file, output_folder,
-                    output_crs_epsg_or_proj4_str='4326'):
+def trans_shp_coord(
+    input_folder, input_shp_file, output_folder, output_crs_epsg_or_proj4_str="4326"
+):
     """tranform a shapefile to a target coord，default target coord is WGS84:  +proj=longlat +datum=WGS84 +no_defs"""
     # Join folder path and filename
     fp = os.path.join(input_folder, input_shp_file)
@@ -197,7 +202,7 @@ def trans_shp_coord(input_folder, input_shp_file, output_folder,
     crs_proj4 = CRS(data.crs)
     # crs_final = CRS.from_proj4(output_crs_proj4_str)
     # Proj must be used，if not, maybe x represent longitude, and the other represent latitude and it's wrong
-    crs_final = Proj(init='epsg:' + output_crs_epsg_or_proj4_str)
+    crs_final = Proj(init="epsg:" + output_crs_epsg_or_proj4_str)
     # crs_final = CRS.from_epsg(output_crs_epsg_or_proj4_str)
     all_columns = data.columns.values  # ndarray type
     new_datas = []
@@ -207,13 +212,13 @@ def trans_shp_coord(input_folder, input_shp_file, output_folder,
         newdata = gpd.GeoDataFrame()
         for column in all_columns:
             # when read shapefile using geodataframe, the name of geo column is "geometry"
-            if column == 'geometry':
+            if column == "geometry":
                 # first change the coord
-                polygon_from = data.iloc[i, :]['geometry']
+                polygon_from = data.iloc[i, :]["geometry"]
                 polygon_to = trans_polygon(crs_proj4, crs_final, polygon_from)
                 # assign value to location i of newdata，if not it will be geoseries，which cannot be imported to shapefile
-                newdata.at[0, 'geometry'] = polygon_to
-                print(type(newdata.at[0, 'geometry']))
+                newdata.at[0, "geometry"] = polygon_to
+                print(type(newdata.at[0, "geometry"]))
             else:
                 newdata.at[0, column] = data.iloc[i, :][column]
         print("coordination transform！")
@@ -224,7 +229,7 @@ def trans_shp_coord(input_folder, input_shp_file, output_folder,
         new_datas.append(newdata)
         write_shpfile(newdata, output_folder)
     end = time.time()
-    print('time consuming：', '%.7f' % (end - start))
+    print("time consuming：", "%.7f" % (end - start))
     return new_datas
 
 
@@ -243,8 +248,12 @@ def create_mask(poly, xs, ys, lons, lats, crs_from, crs_to):
     poly_bound_min_lon = poly_bound[0]
     poly_bound_max_lat = poly_bound[3]
     poly_bound_max_lon = poly_bound[2]
-    index_min = nearest_point_index(crs_from, crs_to, poly_bound_min_lon, poly_bound_min_lat, xs, ys)
-    index_max = nearest_point_index(crs_from, crs_to, poly_bound_max_lon, poly_bound_max_lat, xs, ys)
+    index_min = nearest_point_index(
+        crs_from, crs_to, poly_bound_min_lon, poly_bound_min_lat, xs, ys
+    )
+    index_max = nearest_point_index(
+        crs_from, crs_to, poly_bound_max_lon, poly_bound_max_lat, xs, ys
+    )
     range_x = [index_min[0], index_max[0]]
     range_y = [index_max[1], index_min[1]]
     for i in range(range_y[0], range_y[1] + 1):
@@ -261,12 +270,12 @@ def is_point_in_boundary(px, py, poly):
 
 def shps_trans_coord(input_folder, output_folder):
     """transform coords of all shapefiles in the folder--"input_folder",
-       and save the results in the folder--"output_folder"
+    and save the results in the folder--"output_folder"
     """
     # Define path to folder
     shp_file_names = []
     for f_name in os.listdir(input_folder):
-        if f_name.endswith('.shp'):
+        if f_name.endswith(".shp"):
             shp_file_names.append(f_name)
 
     for i in range(len(shp_file_names)):
@@ -279,41 +288,41 @@ def shps_trans_coord(input_folder, output_folder):
 def basin_avg_netcdf(netcdf_file, shp_file, mask_file):
     # TODO: use xarray and dask
     data_netcdf = xr.open_dataset(netcdf_file)  # reads the netCDF file
-    temp_lat = data_netcdf.variables['lat']  # temperature variable
-    temp_lon = data_netcdf.variables['lon']  # temperature variable
+    temp_lat = data_netcdf.variables["lat"]  # temperature variable
+    temp_lon = data_netcdf.variables["lon"]  # temperature variable
     for d in data_netcdf.dimensions.items():
         print(d)
-    x, y = data_netcdf.variables['x'], data_netcdf.variables['y']
-    x = data_netcdf.variables['x'][:]
-    y = data_netcdf.variables['y'][:]
+    x, y = data_netcdf.variables["x"], data_netcdf.variables["y"]
+    x = data_netcdf.variables["x"][:]
+    y = data_netcdf.variables["y"][:]
     lx = list(x)
     ly = list(y)
     print(all(ix < jx for ix, jx in zip(lx, lx[1:])))
     print(all(iy > jy for iy, jy in zip(ly, ly[1:])))
-    lons = data_netcdf.variables['lon'][:]
-    lats = data_netcdf.variables['lat'][:]
+    lons = data_netcdf.variables["lon"][:]
+    lats = data_netcdf.variables["lat"][:]
 
-    crs_pro_str = '+proj=lcc +lat_1=25 +lat_2=60 +lat_0=42.5 +lon_0=-100 +x_0=0 +y_0=0 +datum=WGS84 +units=m +no_defs'
-    crs_geo_str = '+proj=longlat +datum=WGS84 +no_defs'
+    crs_pro_str = "+proj=lcc +lat_1=25 +lat_2=60 +lat_0=42.5 +lon_0=-100 +x_0=0 +y_0=0 +datum=WGS84 +units=m +no_defs"
+    crs_geo_str = "+proj=longlat +datum=WGS84 +no_defs"
     crs_from = CRS.from_proj4(crs_geo_str)
     crs_to = CRS.from_proj4(crs_pro_str)
 
     new_shps = gpd.read_file(shp_file)
-    polygon = new_shps.at[0, 'geometry']
+    polygon = new_shps.at[0, "geometry"]
     start = time.time()
     mask = create_mask(polygon, x, y, lons, lats, crs_from, crs_to)
     end = time.time()
-    print('time：', '%.7f' % (end - start))
+    print("time：", "%.7f" % (end - start))
     serialize_numpy(np.array(mask), mask_file)
-    var_types = ['tmax']
+    var_types = ["tmax"]
     # var_types = ['tmax', 'tmin', 'prcp', 'srad', 'vp', 'swe', 'dayl']
     avgs = []
     for var_type in var_types:
         start = time.time()
         avg = calc_avg(mask, data_netcdf, var_type)
         end = time.time()
-        print('time：', '%.7f' % (end - start))
-        print('mean value：', avg)
+        print("time：", "%.7f" % (end - start))
+        print("mean value：", avg)
         avgs.append(avg)
 
     return avgs
@@ -332,7 +341,7 @@ def ind_of_dispersion(coord, points):
 
 def coefficient_of_variation(coord, points):
     """the ratio of the standard deviation to the mean (average) value of Euclidean distances between event points
-    and a selected point """
+    and a selected point"""
     if len(points) == 0:
         return np.nan
     points = np.asarray(points)

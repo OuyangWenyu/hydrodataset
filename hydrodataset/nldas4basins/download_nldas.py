@@ -23,7 +23,7 @@ from hydrodataset.utils.hydro_utils import hydro_logger
 
 # overriding requests.Session.rebuild_auth to mantain headers when redirected
 class SessionWithHeaderRedirection(requests.Session):
-    AUTH_HOST = 'urs.earthdata.nasa.gov'
+    AUTH_HOST = "urs.earthdata.nasa.gov"
 
     def __init__(self, username, password):
         super().__init__()
@@ -34,13 +34,15 @@ class SessionWithHeaderRedirection(requests.Session):
     def rebuild_auth(self, prepared_request, response):
         headers = prepared_request.headers
         url = prepared_request.url
-        if 'Authorization' in headers:
+        if "Authorization" in headers:
             original_parsed = requests.utils.urlparse(response.request.url)
             redirect_parsed = requests.utils.urlparse(url)
-            if (original_parsed.hostname != redirect_parsed.hostname) \
-                    and redirect_parsed.hostname != self.AUTH_HOST \
-                    and original_parsed.hostname != self.AUTH_HOST:
-                del headers['Authorization']
+            if (
+                (original_parsed.hostname != redirect_parsed.hostname)
+                and redirect_parsed.hostname != self.AUTH_HOST
+                and original_parsed.hostname != self.AUTH_HOST
+            ):
+                del headers["Authorization"]
         return
 
 
@@ -48,19 +50,23 @@ def download_nldas_with_url_lst(url_lst_file, save_dir):
     if not os.path.isdir(save_dir):
         os.makedirs(save_dir)
     if not os.path.isfile(url_lst_file):
-        raise FileNotFoundError("Please download a Data File with Links for NLDAS data from:"
-                                "https://disc.gsfc.nasa.gov/datasets/NLDAS_FORA0125_H_2.0/summary")
+        raise FileNotFoundError(
+            "Please download a Data File with Links for NLDAS data from:"
+            "https://disc.gsfc.nasa.gov/datasets/NLDAS_FORA0125_H_2.0/summary"
+        )
     netrc_dir = os.path.expanduser(os.path.join("~", ".netrc"))
     if not os.path.isfile(netrc_dir):
-        raise FileNotFoundError("Please create a .netrc file to save username and password of your earthdata account:\n"
-                                "urs.earthdata.nasa.gov")
-    urs = 'urs.earthdata.nasa.gov'
+        raise FileNotFoundError(
+            "Please create a .netrc file to save username and password of your earthdata account:\n"
+            "urs.earthdata.nasa.gov"
+        )
+    urs = "urs.earthdata.nasa.gov"
     # The EarthData username string
     username = netrc(netrc_dir).authenticators(urs)[0]
     # The EarthData password string
     password = netrc(netrc_dir).authenticators(urs)[2]
     url_lst = []
-    with open(url_lst_file, 'r') as f:
+    with open(url_lst_file, "r") as f:
         count = 0
         for line in f:
             if count > 0:
@@ -86,7 +92,7 @@ def download_nldas_with_url_lst(url_lst_file, save_dir):
             # raise an exception in case of http errors
             response.raise_for_status()
             # save the file
-            with open(filename, 'wb') as fd:
+            with open(filename, "wb") as fd:
                 for chunk in response.iter_content(chunk_size=1024 * 1024):
                     fd.write(chunk)
         except requests.exceptions.HTTPError as e:
