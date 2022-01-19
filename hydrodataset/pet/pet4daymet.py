@@ -3,17 +3,26 @@ from typing import Union
 
 import numpy as np
 import xarray as xr
-from hydrodataset.pet.meteo_utils import calc_press, calc_psy, calc_vpc, calc_lambda_, calc_ea, calc_es
+from hydrodataset.pet.meteo_utils import (
+    calc_press,
+    calc_psy,
+    calc_vpc,
+    calc_lambda_,
+    calc_ea,
+    calc_es,
+)
 from hydrodataset.pet.rad_utils import calc_rad_short, calc_rad_long
 
 
-def priestley_taylor(t_min: Union[np.ndarray, xr.DataArray],
-                     t_max: Union[np.ndarray, xr.DataArray],
-                     s_rad: Union[np.ndarray, xr.DataArray],
-                     lat: Union[np.ndarray, xr.DataArray],
-                     elevation: Union[np.ndarray, xr.DataArray],
-                     doy: Union[np.ndarray, xr.DataArray],
-                     e_a: Union[np.ndarray, xr.DataArray] = None) -> Union[np.ndarray, xr.DataArray]:
+def priestley_taylor(
+    t_min: Union[np.ndarray, xr.DataArray],
+    t_max: Union[np.ndarray, xr.DataArray],
+    s_rad: Union[np.ndarray, xr.DataArray],
+    lat: Union[np.ndarray, xr.DataArray],
+    elevation: Union[np.ndarray, xr.DataArray],
+    doy: Union[np.ndarray, xr.DataArray],
+    e_a: Union[np.ndarray, xr.DataArray] = None,
+) -> Union[np.ndarray, xr.DataArray]:
     """Evaporation calculated according to [priestley_and_taylor_1965]_.
 
     Parameters
@@ -66,8 +75,18 @@ def priestley_taylor(t_min: Union[np.ndarray, xr.DataArray],
     a = 1.35
     # b: empirical coefficient for Net Long-Wave radiation [-]
     b = -0.35
-    rnl = calc_rad_long(s_rad, doy, t_mean=t_mean, t_max=t_max, t_min=t_min, elevation=elevation, lat=lat, a=a, b=b,
-                        ea=e_a)
+    rnl = calc_rad_long(
+        s_rad,
+        doy,
+        t_mean=t_mean,
+        t_max=t_max,
+        t_min=t_min,
+        elevation=elevation,
+        lat=lat,
+        a=a,
+        b=b,
+        ea=e_a,
+    )
     # The total daily value for Rn is almost always positive over a period of 24 hours, except in extreme conditions
     # at high latitudes. Page43 in [allen_1998]
     rn = rns - rnl
@@ -78,13 +97,15 @@ def priestley_taylor(t_min: Union[np.ndarray, xr.DataArray],
     return (alpha * dlt * (rn - g)) / (_lambda * (dlt + gamma))
 
 
-def pm_fao56(t_min: Union[np.ndarray, xr.DataArray],
-             t_max: Union[np.ndarray, xr.DataArray],
-             s_rad: Union[np.ndarray, xr.DataArray],
-             lat: Union[np.ndarray, xr.DataArray],
-             elevation: Union[np.ndarray, xr.DataArray],
-             doy: Union[np.ndarray, xr.DataArray],
-             e_a: Union[np.ndarray, xr.DataArray] = None) -> Union[np.ndarray, xr.DataArray]:
+def pm_fao56(
+    t_min: Union[np.ndarray, xr.DataArray],
+    t_max: Union[np.ndarray, xr.DataArray],
+    s_rad: Union[np.ndarray, xr.DataArray],
+    lat: Union[np.ndarray, xr.DataArray],
+    elevation: Union[np.ndarray, xr.DataArray],
+    doy: Union[np.ndarray, xr.DataArray],
+    e_a: Union[np.ndarray, xr.DataArray] = None,
+) -> Union[np.ndarray, xr.DataArray]:
     """Evaporation calculated according to [allen_1998]_.
     Parameters
     ----------
@@ -128,7 +149,7 @@ def pm_fao56(t_min: Union[np.ndarray, xr.DataArray],
     # Where no wind data are available within the region, a value of 2 m/s can be used as a
     # temporary estimate. This value is the average over 2 000 weather stations around the globe. Page63 in [allen_1998]
     wind = 2
-    gamma1 = (gamma * (1 + 0.34 * wind))
+    gamma1 = gamma * (1 + 0.34 * wind)
     if e_a is None:
         e_a = calc_ea(t_mean=t_mean, t_max=t_max, t_min=t_min)
     e_s = calc_es(t_mean=t_mean, t_max=t_max, t_min=t_min)
@@ -138,8 +159,18 @@ def pm_fao56(t_min: Union[np.ndarray, xr.DataArray],
     a = 1.35
     # b: empirical coefficient for Net Long-Wave radiation [-]
     b = -0.35
-    rnl = calc_rad_long(s_rad=s_rad, doy=doy, t_mean=t_mean, t_max=t_max, t_min=t_min, elevation=elevation, lat=lat,
-                        a=a, b=b, ea=e_a)  # [MJ/m2/d]
+    rnl = calc_rad_long(
+        s_rad=s_rad,
+        doy=doy,
+        t_mean=t_mean,
+        t_max=t_max,
+        t_min=t_min,
+        elevation=elevation,
+        lat=lat,
+        a=a,
+        b=b,
+        ea=e_a,
+    )  # [MJ/m2/d]
     rn = rns - rnl
 
     den = dlt + gamma1

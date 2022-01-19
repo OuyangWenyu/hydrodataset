@@ -86,11 +86,23 @@ def statError(target, pred):
                 num_lowtarget_zero = num_lowtarget_zero + 1
             PBiaslow[k] = np.sum(lowpred - lowtarget) / np.sum(lowtarget) * 100
             PBiashigh[k] = np.sum(highpred - hightarget) / np.sum(hightarget) * 100
-            outDict = dict(Bias=Bias, RMSE=RMSE, ubRMSE=ubRMSE, Corr=Corr, R2=R2, NSE=NSE, KGE=KGe,
-                           FHV=PBiashigh, FLV=PBiaslow)
-    hydro_logger.debug("The CDF of BFLV will not reach 1.0 because some basins have all zero flow observations for the "
-                       "30% low flow interval, the percent bias can be infinite\n" + "The number of these cases is "
-                       + str(num_lowtarget_zero))
+            outDict = dict(
+                Bias=Bias,
+                RMSE=RMSE,
+                ubRMSE=ubRMSE,
+                Corr=Corr,
+                R2=R2,
+                NSE=NSE,
+                KGE=KGe,
+                FHV=PBiashigh,
+                FLV=PBiaslow,
+            )
+    hydro_logger.debug(
+        "The CDF of BFLV will not reach 1.0 because some basins have all zero flow observations for the "
+        "30% low flow interval, the percent bias can be infinite\n"
+        + "The number of these cases is "
+        + str(num_lowtarget_zero)
+    )
     return outDict
 
 
@@ -117,7 +129,9 @@ def cal_stat_gamma(x):
     """for daily streamflow and precipitation"""
     a = x.flatten()
     b = a[~np.isnan(a)]  # kick out Nan
-    b = np.log10(np.sqrt(b) + 0.1)  # do some tranformation to change gamma characteristics
+    b = np.log10(
+        np.sqrt(b) + 0.1
+    )  # do some tranformation to change gamma characteristics
     return cal_4_stat_inds(b)
 
 
@@ -144,7 +158,8 @@ def cal_stat_basin_norm(x, basinarea, meanprep):
     temparea = np.tile(basinarea, (1, x.shape[1]))
     tempprep = np.tile(meanprep, (1, x.shape[1]))
     flowua = (x * 0.0283168 * 3600 * 24) / (
-            (temparea * (10 ** 6)) * (tempprep * 10 ** (-3)))  # unit (m^3/day)/(m^3/day)
+        (temparea * (10 ** 6)) * (tempprep * 10 ** (-3))
+    )  # unit (m^3/day)/(m^3/day)
     return cal_stat_gamma(flowua)
 
 
@@ -192,7 +207,7 @@ def trans_norm(x, var_lst, stat_dict, *, to_norm):
 
 
 def ecdf(data):
-    """ Compute ECDF """
+    """Compute ECDF"""
     x = np.sort(data)
     n = x.size
     y = np.arange(1, n + 1) / n
@@ -235,7 +250,7 @@ def cal_fdc(data: np.array, quantile_num=100):
         ind = (np.arange(quantile_num) / quantile_num * n_len).astype(int)
         fdc_flow = temp_sort[ind]
         if len(fdc_flow) != quantile_num:
-            raise Exception('unknown assimilation variable')
+            raise Exception("unknown assimilation variable")
         else:
             fdc[ii, :] = fdc_flow
 

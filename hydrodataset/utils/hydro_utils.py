@@ -28,9 +28,11 @@ import logging
 
 # -----------------------------------------------logger setting----------------------------------------------------
 def get_hydro_logger(logger_name):
-    logging.basicConfig(level=logging.DEBUG,
-                        format='%(name)s  %(asctime)s  %(message)s',
-                        datefmt='%a, %d %b %Y %H:%M:%S +0000')
+    logging.basicConfig(
+        level=logging.DEBUG,
+        format="%(name)s  %(asctime)s  %(message)s",
+        datefmt="%a, %d %b %Y %H:%M:%S +0000",
+    )
     logger = logging.getLogger(logger_name)
     return logger
 
@@ -39,7 +41,9 @@ hydro_logger = get_hydro_logger("HydroBench")
 
 
 # ------------------------------------------------progress bar----------------------------------------------------
-def provide_progress_bar(function, estimated_time, tstep=0.2, tqdm_kwargs={}, args=[], kwargs={}):
+def provide_progress_bar(
+    function, estimated_time, tstep=0.2, tqdm_kwargs={}, args=[], kwargs={}
+):
     """Tqdm wrapper for a long-running function
 
     args:
@@ -57,7 +61,9 @@ def provide_progress_bar(function, estimated_time, tstep=0.2, tqdm_kwargs={}, ar
     def myrunner(function, ret, *args, **kwargs):
         ret[0] = function(*args, **kwargs)
 
-    thread = threading.Thread(target=myrunner, args=(function, ret) + tuple(args), kwargs=kwargs)
+    thread = threading.Thread(
+        target=myrunner, args=(function, ret) + tuple(args), kwargs=kwargs
+    )
     pbar = tqdm.tqdm(total=estimated_time, **tqdm_kwargs)
 
     thread.start()
@@ -74,15 +80,21 @@ def progress_wrapped(estimated_time, tstep=0.2, tqdm_kwargs={}):
     def real_decorator(function):
         @functools.wraps(function)
         def wrapper(*args, **kwargs):
-            return provide_progress_bar(function, estimated_time=estimated_time, tstep=tstep, tqdm_kwargs=tqdm_kwargs,
-                                        args=args, kwargs=kwargs)
+            return provide_progress_bar(
+                function,
+                estimated_time=estimated_time,
+                tstep=tstep,
+                tqdm_kwargs=tqdm_kwargs,
+                args=args,
+                kwargs=kwargs,
+            )
 
         return wrapper
 
     return real_decorator
 
 
-def setup_log(tag='VOC_TOPICS'):
+def setup_log(tag="VOC_TOPICS"):
     # create logger
     logger = logging.getLogger(tag)
     # logger.handlers = []
@@ -92,7 +104,9 @@ def setup_log(tag='VOC_TOPICS'):
     ch = logging.StreamHandler()
     ch.setLevel(logging.DEBUG)
     # create formatter
-    formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+    formatter = logging.Formatter(
+        "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
+    )
     # add formatter to ch
     ch.setFormatter(formatter)
     # add ch to logger
@@ -102,7 +116,7 @@ def setup_log(tag='VOC_TOPICS'):
 
 
 # ------------------------------------------------progress bar----------------------------------------------------
-def setup_log(tag='VOC_TOPICS'):
+def setup_log(tag="VOC_TOPICS"):
     # create logger
     logger = logging.getLogger(tag)
     # logger.handlers = []
@@ -112,7 +126,9 @@ def setup_log(tag='VOC_TOPICS'):
     ch = logging.StreamHandler()
     ch.setLevel(logging.DEBUG)
     # create formatter
-    formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+    formatter = logging.Formatter(
+        "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
+    )
     # add formatter to ch
     ch.setFormatter(formatter)
     # add ch to logger
@@ -122,11 +138,11 @@ def setup_log(tag='VOC_TOPICS'):
 
 
 # -------------------------------------------------- notification tools--------------------------------------------
-def send_email(subject, text, receiver='hust2014owen@gmail.com'):
-    sender = 'hydro.wyouyang@gmail.com'
-    password = 'D4VEFya3UQxGR3z'
+def send_email(subject, text, receiver="hust2014owen@gmail.com"):
+    sender = "hydro.wyouyang@gmail.com"
+    password = "D4VEFya3UQxGR3z"
     context = ssl.create_default_context()
-    msg = 'Subject: {}\n\n{}'.format(subject, text)
+    msg = "Subject: {}\n\n{}".format(subject, text)
     with smtplib.SMTP_SSL("smtp.gmail.com", 465, context=context) as server:
         server.login(sender, password)
         server.sendmail(from_addr=sender, to_addrs=receiver, msg=msg)
@@ -143,7 +159,7 @@ def save_or_show_plot(file_nm: str, save: bool, save_path=""):
 # ----------------------------------------------------data tools--------------------------------------------------------
 def unzip_file(dataset_zip, path_unzip):
     """extract a zip file"""
-    with zipfile.ZipFile(dataset_zip, 'r') as zip_temp:
+    with zipfile.ZipFile(dataset_zip, "r") as zip_temp:
         zip_temp.extractall(path_unzip)
 
 
@@ -160,22 +176,24 @@ def unzip_nested_zip(dataset_zip, path_unzip):
     path_unzip: where it is unzipped
     """
 
-    with zipfile.ZipFile(dataset_zip, 'r') as zfile:
+    with zipfile.ZipFile(dataset_zip, "r") as zfile:
         try:
             zfile.extractall(path=path_unzip)
         except OSError as e:
-            logging.warning("Please check the unzipped files manually. There may be some missed important files.")
+            logging.warning(
+                "Please check the unzipped files manually. There may be some missed important files."
+            )
             logging.warning("The directory is: " + path_unzip)
     for root, dirs, files in os.walk(path_unzip):
         for filename in files:
-            if re.search(r'\.zip$', filename):
+            if re.search(r"\.zip$", filename):
                 file_spec = os.path.join(root, filename)
                 new_dir = os.path.join(root, filename[0:-4])
                 unzip_nested_zip(file_spec, new_dir)
 
 
 def zip_file_name_from_url(data_url, data_dir):
-    data_url_str = data_url.split('/')
+    data_url_str = data_url.split("/")
     filename = parse.unquote(data_url_str[-1])
     zipfile_path = os.path.join(data_dir, filename)
     unzip_dir = os.path.join(data_dir, filename[0:-4])
@@ -229,7 +247,7 @@ def download_small_zip(data_url, data_dir):
 def download_small_file(data_url, temp_file):
     """download data from url to the temp_file"""
     r = requests.get(data_url)
-    with open(temp_file, 'w') as f:
+    with open(temp_file, "w") as f:
         f.write(r.text)
 
 
@@ -240,52 +258,54 @@ def download_excel(data_url, temp_file):
 
 
 def download_a_file_from_google_drive(drive, dir_id, download_dir):
-    file_list = drive.ListFile({'q': "'" + dir_id + "' in parents and trashed=false"}).GetList()
+    file_list = drive.ListFile(
+        {"q": "'" + dir_id + "' in parents and trashed=false"}
+    ).GetList()
     for file in file_list:
-        print('title: %s, id: %s' % (file['title'], file['id']))
-        file_dl = drive.CreateFile({'id': file['id']})
-        print('mimetype is %s' % file_dl['mimeType'])
-        if file_dl['mimeType'] == 'application/vnd.google-apps.folder':
-            download_dir_sub = os.path.join(download_dir, file_dl['title'])
+        print("title: %s, id: %s" % (file["title"], file["id"]))
+        file_dl = drive.CreateFile({"id": file["id"]})
+        print("mimetype is %s" % file_dl["mimeType"])
+        if file_dl["mimeType"] == "application/vnd.google-apps.folder":
+            download_dir_sub = os.path.join(download_dir, file_dl["title"])
             if not os.path.isdir(download_dir_sub):
                 os.makedirs(download_dir_sub)
-            download_a_file_from_google_drive(drive, file_dl['id'], download_dir_sub)
+            download_a_file_from_google_drive(drive, file_dl["id"], download_dir_sub)
         else:
             # download
-            temp_file = os.path.join(download_dir, file_dl['title'])
+            temp_file = os.path.join(download_dir, file_dl["title"])
             if os.path.isfile(temp_file):
-                print('file has been downloaded')
+                print("file has been downloaded")
                 continue
-            file_dl.GetContentFile(os.path.join(download_dir, file_dl['title']))
-            print('Downloading file finished')
+            file_dl.GetContentFile(os.path.join(download_dir, file_dl["title"]))
+            print("Downloading file finished")
 
 
 def serialize_json(my_dict, my_file):
-    with open(my_file, 'w') as FP:
+    with open(my_file, "w") as FP:
         json.dump(my_dict, FP, indent=4)
 
 
 def unserialize_json_ordered(my_file):
     # m_file = os.path.join(my_file, 'master.json')
-    with open(my_file, 'r') as fp:
+    with open(my_file, "r") as fp:
         m_dict = json.load(fp, object_pairs_hook=OrderedDict)
     return m_dict
 
 
 def unserialize_json(my_file):
-    with open(my_file, 'r') as fp:
+    with open(my_file, "r") as fp:
         my_object = json.load(fp)
     return my_object
 
 
 def serialize_pickle(my_object, my_file):
-    f = open(my_file, 'wb')
+    f = open(my_file, "wb")
     pickle.dump(my_object, f)
     f.close()
 
 
 def unserialize_pickle(my_file):
-    f = open(my_file, 'rb')
+    f = open(my_file, "rb")
     my_object = pickle.load(f)
     f.close()
     return my_object
@@ -324,20 +344,20 @@ def t2dt(t, hr=False):
         t_out = t.date() if hr is False else t
 
     if t_out is None:
-        raise Exception('hydroDL.utils.t2dt failed')
+        raise Exception("hydroDL.utils.t2dt failed")
     return t_out
 
 
-def t_range2_array(t_range, *, step=np.timedelta64(1, 'D')):
+def t_range2_array(t_range, *, step=np.timedelta64(1, "D")):
     sd = t2dt(t_range[0])
     ed = t2dt(t_range[1])
     tArray = np.arange(sd, ed, step)
     return tArray
 
 
-def t_range_days(t_range, *, step=np.timedelta64(1, 'D')):
-    sd = dt.datetime.strptime(t_range[0], '%Y-%m-%d')
-    ed = dt.datetime.strptime(t_range[1], '%Y-%m-%d')
+def t_range_days(t_range, *, step=np.timedelta64(1, "D")):
+    sd = dt.datetime.strptime(t_range[0], "%Y-%m-%d")
+    ed = dt.datetime.strptime(t_range[1], "%Y-%m-%d")
     t_array = np.arange(sd, ed, step)
     return t_array
 
@@ -349,8 +369,8 @@ def t_days_lst2range(t_array):
     else:
         t0 = t_array[0]
         t1 = t_array[-1]
-    sd = t0.strftime('%Y-%m-%d')
-    ed = t1.strftime('%Y-%m-%d')
+    sd = t0.strftime("%Y-%m-%d")
+    ed = t1.strftime("%Y-%m-%d")
     return [sd, ed]
 
 
@@ -371,7 +391,7 @@ def get_year(a_time):
     if isinstance(a_time, datetime.date):
         return a_time.year
     elif isinstance(a_time, np.datetime64):
-        return a_time.astype('datetime64[Y]').astype(int) + 1970
+        return a_time.astype("datetime64[Y]").astype(int) + 1970
     else:
         return int(a_time[0:4])
 
@@ -383,7 +403,7 @@ def intersect(t_lst1, t_lst2):
 
 def date_to_julian(a_time):
     if type(a_time) == str:
-        fmt = '%Y-%m-%d'
+        fmt = "%Y-%m-%d"
         dt = datetime.datetime.strptime(a_time, fmt)
     else:
         dt = a_time
@@ -399,8 +419,11 @@ def t_range_to_julian(t_range):
     return julian_dates
 
 
-def utc_to_local(utc_time: Union[str, np.datetime64], local_tz: str = "Asia/Hong_Kong",
-                 time_format="%Y-%m-%dT%H:%M:%S"):
+def utc_to_local(
+    utc_time: Union[str, np.datetime64],
+    local_tz: str = "Asia/Hong_Kong",
+    time_format="%Y-%m-%dT%H:%M:%S",
+):
     """
     Transform UTC time to local time.
 
@@ -420,7 +443,7 @@ def utc_to_local(utc_time: Union[str, np.datetime64], local_tz: str = "Asia/Hong
     str
         return local time string; its format is time_format
     """
-    from_zone = tz.gettz('UTC')
+    from_zone = tz.gettz("UTC")
     to_zone = tz.gettz(local_tz)
     if type(utc_time) is np.datetime64:
         utc_time = np.datetime_as_string(utc_time)
@@ -470,7 +493,9 @@ def pair_comb(combine_attrs):
                 return list(dict_item.keys())[0]
 
     combs = [comb for comb in all_combs if not is_in_same_item(comb[0], comb[1])]
-    combs_dict = [{which_dict(comb[0]): comb[0], which_dict(comb[1]): comb[1]} for comb in combs]
+    combs_dict = [
+        {which_dict(comb[0]): comb[0], which_dict(comb[1]): comb[1]} for comb in combs
+    ]
     return combs_dict
 
 
@@ -481,7 +506,7 @@ def flat_data(x):
     return xSort
 
 
-def interpNan(x, mode='linear'):
+def interpNan(x, mode="linear"):
     if len(x.shape) == 1:
         ngrid = 1
         nt = x.shape[0]
@@ -493,13 +518,13 @@ def interpNan(x, mode='linear'):
     return x
 
 
-def interpNan1d(x, mode='linear'):
+def interpNan1d(x, mode="linear"):
     i0 = np.where(np.isnan(x))[0]
     i1 = np.where(~np.isnan(x))[0]
     if len(i1) > 0:
-        if mode == 'linear':
+        if mode == "linear":
             x[i0] = np.interp(i0, i1, x[i1])
-        if mode == 'pre':
+        if mode == "pre":
             x0 = x[i1[0]]
             for k in range(len(x)):
                 if k in i0:

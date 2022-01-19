@@ -35,9 +35,16 @@ from hydrodataset.utils import hydro_utils
 DEF_CRS = "epsg:4326"
 
 
-def download_era5(downloaded_file: str, date_range: Union[tuple, list],
-                  lat_lon_range: Union[Polygon, MultiPolygon, Tuple[float, float, float, float], List[float]],
-                  variables_list: Union[list, str], file_format='grib', crs: str = DEF_CRS):
+def download_era5(
+    downloaded_file: str,
+    date_range: Union[tuple, list],
+    lat_lon_range: Union[
+        Polygon, MultiPolygon, Tuple[float, float, float, float], List[float]
+    ],
+    variables_list: Union[list, str],
+    file_format="grib",
+    crs: str = DEF_CRS,
+):
     """
     Download ERA5 data.
     Notice: it seems that it will cost much time when the time range is over 1 year,
@@ -81,48 +88,80 @@ def download_era5(downloaded_file: str, date_range: Union[tuple, list],
     if type(lat_lon_range) is Polygon or type(lat_lon_range) is MultiPolygon:
         _geometry = geoutils.pygeoutils._geo2polygon(lat_lon_range, crs, DEF_CRS)
         bound = _geometry.bounds  # (minx, miny, maxx, maxy)
-        lat_lon_range = [bound[3], bound[0], bound[1],
-                         bound[2]]  # lat_max(maxy), lon_min(minx), lat_min(miny), lon_max
+        lat_lon_range = [
+            bound[3],
+            bound[0],
+            bound[1],
+            bound[2],
+        ]  # lat_max(maxy), lon_min(minx), lat_min(miny), lon_max
     lat_max, lon_min, lat_min, lon_max = lat_lon_range
 
     t_ranges = hydro_utils.t_range_days(date_range)
-    years = [str(t_ranges[0].astype(object).year + i) for i in
-             range(t_ranges[-1].astype(object).year - t_ranges[0].astype(object).year + 1)]
-    months = [str(month).zfill(2) for month in
-              np.sort(np.unique([t_range.astype(object).month for t_range in t_ranges]))]
+    years = [
+        str(t_ranges[0].astype(object).year + i)
+        for i in range(
+            t_ranges[-1].astype(object).year - t_ranges[0].astype(object).year + 1
+        )
+    ]
+    months = [
+        str(month).zfill(2)
+        for month in np.sort(
+            np.unique([t_range.astype(object).month for t_range in t_ranges])
+        )
+    ]
     if len(t_ranges) > 31:
         # in ERA5, we need specify the days, not the range, so if days' number > 31, we need download all days' data
         start_day = 1
         end_day = 31
         days = [str(start_day + i).zfill(2) for i in range(end_day - start_day + 1)]
     else:
-        days = [str(day).zfill(2) for day in np.sort([t_range.astype(object).day for t_range in t_ranges])]
+        days = [
+            str(day).zfill(2)
+            for day in np.sort([t_range.astype(object).day for t_range in t_ranges])
+        ]
 
-    print('Process started. Please wait the ending message ... ')
+    print("Process started. Please wait the ending message ... ")
     start = datetime.datetime.now()  # Start Timer
 
     c = cdsapi.Client()
 
     c.retrieve(
-        'reanalysis-era5-land',
+        "reanalysis-era5-land",
         {
-            'year': years,
-            'variable': variables_list,
-            'month': months,
-            'day': days,
-            'time': [
-                '00:00', '01:00', '02:00',
-                '03:00', '04:00', '05:00',
-                '06:00', '07:00', '08:00',
-                '09:00', '10:00', '11:00',
-                '12:00', '13:00', '14:00',
-                '15:00', '16:00', '17:00',
-                '18:00', '19:00', '20:00',
-                '21:00', '22:00', '23:00',
+            "year": years,
+            "variable": variables_list,
+            "month": months,
+            "day": days,
+            "time": [
+                "00:00",
+                "01:00",
+                "02:00",
+                "03:00",
+                "04:00",
+                "05:00",
+                "06:00",
+                "07:00",
+                "08:00",
+                "09:00",
+                "10:00",
+                "11:00",
+                "12:00",
+                "13:00",
+                "14:00",
+                "15:00",
+                "16:00",
+                "17:00",
+                "18:00",
+                "19:00",
+                "20:00",
+                "21:00",
+                "22:00",
+                "23:00",
             ],
-            'area': [lat_max, lon_min, lat_min, lon_max],
-            'format': file_format,
+            "area": [lat_max, lon_min, lat_min, lon_max],
+            "format": file_format,
         },
-        downloaded_file)
+        downloaded_file,
+    )
 
-    print('Process completed in ', datetime.datetime.now() - start)
+    print("Process completed in ", datetime.datetime.now() - start)

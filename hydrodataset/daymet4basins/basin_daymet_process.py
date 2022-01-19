@@ -20,13 +20,13 @@ DEF_CRS = "epsg:4326"
 
 
 def download_daymet_by_geom_bound(
-        geometry: Union[Polygon, MultiPolygon, Tuple[float, float, float, float]],
-        dates: Union[Tuple[str, str], Union[int, List[int]]],
-        crs: str = DEF_CRS,
-        variables: Optional[List[str]] = None,
-        region: str = "na",
-        time_scale: str = "daily",
-        boundary: bool = True
+    geometry: Union[Polygon, MultiPolygon, Tuple[float, float, float, float]],
+    dates: Union[Tuple[str, str], Union[int, List[int]]],
+    crs: str = DEF_CRS,
+    variables: Optional[List[str]] = None,
+    region: str = "na",
+    time_scale: str = "daily",
+    boundary: bool = True,
 ) -> xr.Dataset:
     """
     Get gridded data from the Daymet database at 1-km resolution in the boundary of the "geometry"
@@ -95,14 +95,17 @@ def download_daymet_by_geom_bound(
 
     try:
         clm = xr.open_mfdataset(
-            (io.BytesIO(r) for r in ar.retrieve(urls, "binary", request_kwds=kwds, max_workers=8)),
+            (
+                io.BytesIO(r)
+                for r in ar.retrieve(urls, "binary", request_kwds=kwds, max_workers=8)
+            ),
             engine="scipy",
             coords="minimal",
         )
     except ValueError:
         msg = (
-                "The server did NOT process your request successfully. "
-                + "Check your inputs and try again."
+            "The server did NOT process your request successfully. "
+            + "Check your inputs and try again."
         )
         raise ValueError(msg)
 
@@ -142,7 +145,9 @@ def download_daymet_by_geom_bound(
         return clm
 
 
-def calculate_basin_grids_pet(clm_ds: xr.Dataset, pet_method: Union[str, list] = "priestley_taylor") -> xr.Dataset:
+def calculate_basin_grids_pet(
+    clm_ds: xr.Dataset, pet_method: Union[str, list] = "priestley_taylor"
+) -> xr.Dataset:
     """
     Compute Potential EvapoTranspiration using Daymet dataset.
 
@@ -198,10 +203,14 @@ def calculate_basin_grids_pet(clm_ds: xr.Dataset, pet_method: Union[str, list] =
 
     for pet_name in pet_method:
         if pet_name == "pm_fao56":
-            clm_ds["pet_fao56"] = pm_fao56(t_min, t_max, r_surf, phi, elevation, doy, e_a=e_a)
+            clm_ds["pet_fao56"] = pm_fao56(
+                t_min, t_max, r_surf, phi, elevation, doy, e_a=e_a
+            )
             clm_ds["pet_fao56"].attrs["units"] = "mm/day"
         elif pet_name == "priestley_taylor":
-            clm_ds["pet_pt"] = priestley_taylor(t_min, t_max, r_surf, phi, elevation, doy, e_a=e_a)
+            clm_ds["pet_pt"] = priestley_taylor(
+                t_min, t_max, r_surf, phi, elevation, doy, e_a=e_a
+            )
             clm_ds["pet_pt"].attrs["units"] = "mm/day"
 
     # after calculation, recover the value of time and vp
@@ -210,9 +219,11 @@ def calculate_basin_grids_pet(clm_ds: xr.Dataset, pet_method: Union[str, list] =
     return clm_ds
 
 
-def calculate_basin_mean(clm_ds: xr.Dataset,
-                         geometry: Union[Polygon, MultiPolygon, Tuple[float, float, float, float]],
-                         geo_crs: str = DEF_CRS) -> xr.Dataset:
+def calculate_basin_mean(
+    clm_ds: xr.Dataset,
+    geometry: Union[Polygon, MultiPolygon, Tuple[float, float, float, float]],
+    geo_crs: str = DEF_CRS,
+) -> xr.Dataset:
     """
     Get gridded data from the Daymet database at 1-km resolution.
 
@@ -232,15 +243,17 @@ def calculate_basin_mean(clm_ds: xr.Dataset,
     """
 
     clm = _xarray_geomask(clm_ds, geometry, geo_crs)
-    ds = xr.Dataset({}, coords={'time': clm.time})
+    ds = xr.Dataset({}, coords={"time": clm.time})
     for k in clm.data_vars:
-        ds[k] = clm[k].mean(dim=('x', 'y'))
+        ds[k] = clm[k].mean(dim=("x", "y"))
     return ds
 
 
-def generate_boundary_dataset(clm_ds: xr.Dataset,
-                              geometry: Union[Polygon, MultiPolygon, Tuple[float, float, float, float]],
-                              geo_crs: str = DEF_CRS) -> xr.Dataset:
+def generate_boundary_dataset(
+    clm_ds: xr.Dataset,
+    geometry: Union[Polygon, MultiPolygon, Tuple[float, float, float, float]],
+    geo_crs: str = DEF_CRS,
+) -> xr.Dataset:
     """
     Generate an xarray dataset in the boundary of geometry, but the boundary belongs to clm_ds's array, not the geometry
 
@@ -264,7 +277,9 @@ def generate_boundary_dataset(clm_ds: xr.Dataset,
     transform, width, height = geoutils.pygeoutils._get_transform(clm_ds, ds_dims)
     _geometry = geoutils.pygeoutils._geo2polygon(geometry, geo_crs, clm_ds.crs)
 
-    _mask = rio_features.geometry_mask([_geometry], (height, width), transform, invert=True)
+    _mask = rio_features.geometry_mask(
+        [_geometry], (height, width), transform, invert=True
+    )
     # x - column, y - row
     y_idx, x_idx = np.where(_mask)
     y_idx_min = y_idx.min()
@@ -272,9 +287,12 @@ def generate_boundary_dataset(clm_ds: xr.Dataset,
     x_idx_min = x_idx.min()
     x_idx_max = x_idx.max()
     _mask_bound = np.full(_mask.shape, False)
-    _mask_bound[y_idx_min:y_idx_max + 1, x_idx_min:x_idx_max + 1] = True
+    _mask_bound[y_idx_min : y_idx_max + 1, x_idx_min : x_idx_max + 1] = True
 
-    coords = {ds_dims[0]: clm_ds.coords[ds_dims[0]], ds_dims[1]: clm_ds.coords[ds_dims[1]]}
+    coords = {
+        ds_dims[0]: clm_ds.coords[ds_dims[0]],
+        ds_dims[1]: clm_ds.coords[ds_dims[1]],
+    }
     mask_bound = xr.DataArray(_mask_bound, coords, dims=ds_dims)
 
     ds_bound_masked = clm_ds.where(mask_bound, drop=True)
@@ -282,8 +300,7 @@ def generate_boundary_dataset(clm_ds: xr.Dataset,
     return ds_bound_masked
 
 
-def resample_nc(clm_ds: xr.Dataset,
-                resample_size: Union[int, float]) -> xr.Dataset:
+def resample_nc(clm_ds: xr.Dataset, resample_size: Union[int, float]) -> xr.Dataset:
     """
     Resample the dataset to the resample_size
 
@@ -306,7 +323,12 @@ def resample_nc(clm_ds: xr.Dataset,
 
     if resample_size > 1:
         # coarsen the original values
-        ds = clm_ds.coarsen(x=resample_size, boundary="pad").mean().coarsen(y=resample_size, boundary="pad").mean()
+        ds = (
+            clm_ds.coarsen(x=resample_size, boundary="pad")
+            .mean()
+            .coarsen(y=resample_size, boundary="pad")
+            .mean()
+        )
     else:
         ydim, xdim = ("y", "x")
         height, width = clm_ds.sizes[ydim], clm_ds.sizes[xdim]
@@ -327,11 +349,9 @@ def resample_nc(clm_ds: xr.Dataset,
     return ds
 
 
-def trans_daymet_to_camels_format(daymet_dir: str,
-                                  output_dir: str,
-                                  gage_dict: dict,
-                                  region: str,
-                                  year: int):
+def trans_daymet_to_camels_format(
+    daymet_dir: str, output_dir: str, gage_dict: dict, region: str, year: int
+):
     """
     Transform forcing data of daymet downloaded from GEE to the format in CAMELS.
 
@@ -359,9 +379,30 @@ def trans_daymet_to_camels_format(daymet_dir: str,
     None
     """
 
-    name_dataset = ['gage_id', "time_start", "dayl", "prcp", "srad", "swe", "tmax", "tmin", "vp"]
-    camels_index = ['Year', 'Mnth', 'Day', 'Hr', 'dayl(s)', 'prcp(mm/day)', 'srad(W/m2)', 'swe(mm)', 'tmax(C)',
-                    'tmin(C)', 'vp(Pa)']
+    name_dataset = [
+        "gage_id",
+        "time_start",
+        "dayl",
+        "prcp",
+        "srad",
+        "swe",
+        "tmax",
+        "tmin",
+        "vp",
+    ]
+    camels_index = [
+        "Year",
+        "Mnth",
+        "Day",
+        "Hr",
+        "dayl(s)",
+        "prcp(mm/day)",
+        "srad(W/m2)",
+        "swe(mm)",
+        "tmax(C)",
+        "tmin(C)",
+        "vp(Pa)",
+    ]
 
     if "STAID" in gage_dict.keys():
         gage_id_key = "STAID"
@@ -380,23 +421,27 @@ def trans_daymet_to_camels_format(daymet_dir: str,
         raise NotImplementedError("No such huc02 id")
 
     for f_name in os.listdir(daymet_dir):
-        if fnmatch.fnmatch(f_name, 'daymet_' + region + '_mean_' + str(year) + '.csv'):
+        if fnmatch.fnmatch(f_name, "daymet_" + region + "_mean_" + str(year) + ".csv"):
             data_file = os.path.join(daymet_dir, f_name)
             # because this func only works for one region and one year, it means it only works for one file once
             # Hence, when we find the file and transform it, just finish
             break
-    data_temp = pd.read_csv(data_file, sep=',', dtype={name_dataset[0]: str})
+    data_temp = pd.read_csv(data_file, sep=",", dtype={name_dataset[0]: str})
     for i_basin in range(len(gage_dict[gage_id_key])):
         # name csv
         basin_data = data_temp[
-            data_temp[name_dataset[0]].values.astype(int) == int(gage_dict[gage_id_key][i_basin])]
+            data_temp[name_dataset[0]].values.astype(int)
+            == int(gage_dict[gage_id_key][i_basin])
+        ]
         if basin_data.shape[0] == 0:
             raise ArithmeticError("chosen basins' number is zero")
         # get Year,Month,Day,Hour info
         csv_date = pd.to_datetime(basin_data[name_dataset[1]])
         # the hour is set to 12, as 12 is the average hour of a day
-        year_month_day_hour = pd.DataFrame([[dt.year, dt.month, dt.day, 12] for dt in csv_date],
-                                           columns=camels_index[0:4])
+        year_month_day_hour = pd.DataFrame(
+            [[dt.year, dt.month, dt.day, 12] for dt in csv_date],
+            columns=camels_index[0:4],
+        )
         data_df = pd.DataFrame(basin_data.iloc[:, 2:].values, columns=camels_index[4:])
         # concat
         new_data_df = pd.concat([year_month_day_hour, data_df], axis=1)
@@ -405,21 +450,30 @@ def trans_daymet_to_camels_format(daymet_dir: str,
         output_huc_dir = os.path.join(output_dir, huc_id)
         if not os.path.isdir(output_huc_dir):
             os.makedirs(output_huc_dir)
-        output_file = os.path.join(output_huc_dir, gage_dict[gage_id_key][i_basin] + '_lump_daymet_forcing.txt')
-        print("output forcing data of", gage_dict[gage_id_key][i_basin], "year", str(year))
+        output_file = os.path.join(
+            output_huc_dir, gage_dict[gage_id_key][i_basin] + "_lump_daymet_forcing.txt"
+        )
+        print(
+            "output forcing data of", gage_dict[gage_id_key][i_basin], "year", str(year)
+        )
         if os.path.isfile(output_file):
-            data_old = pd.read_csv(output_file, sep=' ')
+            data_old = pd.read_csv(output_file, sep=" ")
             years = np.unique(data_old[camels_index[0]].values)
             if year in years:
                 continue
             else:
                 os.remove(output_file)
-                new_data_df = pd.concat([data_old, new_data_df]).sort_values(by=camels_index[0:3])
-        new_data_df.to_csv(output_file, header=True, index=False, sep=' ', float_format='%.2f')
+                new_data_df = pd.concat([data_old, new_data_df]).sort_values(
+                    by=camels_index[0:3]
+                )
+        new_data_df.to_csv(
+            output_file, header=True, index=False, sep=" ", float_format="%.2f"
+        )
 
 
-def insert_daymet_value_in_leap_year(data_dir: str,
-                                     t_range: list = ["1980-01-01", "2020-01-01"]):
+def insert_daymet_value_in_leap_year(
+    data_dir: str, t_range: list = ["1980-01-01", "2020-01-01"]
+):
     """
     interpolation for the 12.31 data in leap year
 
@@ -436,7 +490,15 @@ def insert_daymet_value_in_leap_year(data_dir: str,
     """
 
     subdir_str = os.listdir(data_dir)
-    col_lst = ["dayl(s)", "prcp(mm/day)", "srad(W/m2)", "swe(mm)", "tmax(C)", "tmin(C)", "vp(Pa)"]
+    col_lst = [
+        "dayl(s)",
+        "prcp(mm/day)",
+        "srad(W/m2)",
+        "swe(mm)",
+        "tmax(C)",
+        "tmin(C)",
+        "vp(Pa)",
+    ]
     for i in range(len(subdir_str)):
         subdir = os.path.join(data_dir, subdir_str[i])
         path_list = os.listdir(subdir)
@@ -447,12 +509,12 @@ def insert_daymet_value_in_leap_year(data_dir: str,
             if "leap" in is_leap_file_name:
                 continue
             print("reading", data_file)
-            data_temp = pd.read_csv(data_file, sep=r'\s+')
-            data_temp.rename(columns={'Mnth': 'Month'}, inplace=True)
-            df_date = data_temp[['Year', 'Month', 'Day']]
-            date = pd.to_datetime(df_date).values.astype('datetime64[D]')
+            data_temp = pd.read_csv(data_file, sep=r"\s+")
+            data_temp.rename(columns={"Mnth": "Month"}, inplace=True)
+            df_date = data_temp[["Year", "Month", "Day"]]
+            date = pd.to_datetime(df_date).values.astype("datetime64[D]")
             # daymet file not for leap year, there is no data in 12.31 in leap year
-            assert (all(x < y for x, y in zip(date, date[1:])))
+            assert all(x < y for x, y in zip(date, date[1:]))
             t_range_list = t_range_days(t_range)
             [c, ind1, ind2] = np.intersect1d(date, t_range_list, return_indices=True)
             assert date[0] <= t_range_list[0] and date[-1] >= t_range_list[-1]
@@ -460,12 +522,18 @@ def insert_daymet_value_in_leap_year(data_dir: str,
             out = np.full([nt, 7], np.nan)
             out[ind2, :] = data_temp[col_lst].values[ind1]
             x = pd.DataFrame(out, columns=col_lst)
-            x_intepolate = x.interpolate(method='linear', limit_direction='forward', axis=0)
+            x_intepolate = x.interpolate(
+                method="linear", limit_direction="forward", axis=0
+            )
             csv_date = pd.to_datetime(t_range_list)
             year_month_day_hour = pd.DataFrame(
-                [[dt.year, dt.month, dt.day, dt.hour] for dt in csv_date], columns=['Year', 'Mnth', 'Day', "Hr"])
+                [[dt.year, dt.month, dt.day, dt.hour] for dt in csv_date],
+                columns=["Year", "Mnth", "Day", "Hr"],
+            )
             # concat
             new_data_df = pd.concat([year_month_day_hour, x_intepolate], axis=1)
             output_file = data_file[:-4] + "_leap.txt"
-            new_data_df.to_csv(output_file, header=True, index=False, sep=' ', float_format='%.2f')
+            new_data_df.to_csv(
+                output_file, header=True, index=False, sep=" ", float_format="%.2f"
+            )
             os.remove(data_file)

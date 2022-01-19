@@ -5,12 +5,14 @@ import xarray as xr
 from hydrodataset.pet.meteo_utils import calc_ea
 
 
-def calc_rad_short(s_rad: Union[np.ndarray, xr.DataArray] = None,
-                   doy: Union[np.ndarray, xr.DataArray] = None,
-                   lat: Union[np.ndarray, xr.DataArray] = None,
-                   alpha=0.23,
-                   n=None,
-                   nn=None) -> Union[np.ndarray, xr.DataArray]:
+def calc_rad_short(
+    s_rad: Union[np.ndarray, xr.DataArray] = None,
+    doy: Union[np.ndarray, xr.DataArray] = None,
+    lat: Union[np.ndarray, xr.DataArray] = None,
+    alpha=0.23,
+    n=None,
+    nn=None,
+) -> Union[np.ndarray, xr.DataArray]:
     """Net shortwave radiation [MJ m-2 d-1].
 
     Parameters
@@ -44,12 +46,14 @@ def calc_rad_short(s_rad: Union[np.ndarray, xr.DataArray] = None,
         return (1 - alpha) * calc_rad_sol_in(doy, lat, n=n, nn=nn)
 
 
-def calc_rad_sol_in(doy: Union[np.ndarray, xr.DataArray],
-                    lat: Union[np.ndarray, xr.DataArray],
-                    as1=0.25,
-                    bs1=0.5,
-                    n=None,
-                    nn=None) -> Union[np.ndarray, xr.DataArray]:
+def calc_rad_sol_in(
+    doy: Union[np.ndarray, xr.DataArray],
+    lat: Union[np.ndarray, xr.DataArray],
+    as1=0.25,
+    bs1=0.5,
+    n=None,
+    nn=None,
+) -> Union[np.ndarray, xr.DataArray]:
     """Incoming solar radiation [MJ m-2 d-1].
 
     Parameters
@@ -82,8 +86,10 @@ def calc_rad_sol_in(doy: Union[np.ndarray, xr.DataArray],
     return (as1 + bs1 * n / nn) * ra
 
 
-def extraterrestrial_r(doy: Union[np.ndarray, xr.DataArray],
-                       lat: Union[np.ndarray, xr.DataArray], ) -> Union[np.ndarray, xr.DataArray]:
+def extraterrestrial_r(
+    doy: Union[np.ndarray, xr.DataArray],
+    lat: Union[np.ndarray, xr.DataArray],
+) -> Union[np.ndarray, xr.DataArray]:
     """Extraterrestrial daily radiation [MJ m-2 d-1].
 
     Parameters
@@ -110,7 +116,9 @@ def extraterrestrial_r(doy: Union[np.ndarray, xr.DataArray],
     return (24 * 60) / np.pi * 0.082 * dr * (omega * xx + yy * np.sin(omega))
 
 
-def relative_distance(doy: Union[np.ndarray, xr.DataArray]) -> Union[np.ndarray, xr.DataArray]:
+def relative_distance(
+    doy: Union[np.ndarray, xr.DataArray]
+) -> Union[np.ndarray, xr.DataArray]:
     """Inverse relative distance between earth and sun from day of the year.
 
     Parameters
@@ -126,10 +134,12 @@ def relative_distance(doy: Union[np.ndarray, xr.DataArray]) -> Union[np.ndarray,
     -------
     Based on equations 23 in [allen_1998]_.
     """
-    return 1 + 0.033 * np.cos(2. * np.pi / 365. * doy)
+    return 1 + 0.033 * np.cos(2.0 * np.pi / 365.0 * doy)
 
 
-def solar_declination(doy: Union[np.ndarray, xr.DataArray]) -> Union[np.ndarray, xr.DataArray]:
+def solar_declination(
+    doy: Union[np.ndarray, xr.DataArray]
+) -> Union[np.ndarray, xr.DataArray]:
     """Solar declination from day of year [rad].
 
     Parameters
@@ -145,11 +155,12 @@ def solar_declination(doy: Union[np.ndarray, xr.DataArray]) -> Union[np.ndarray,
     -------
     Based on equations 24 in [allen_1998]_.
     """
-    return 0.409 * np.sin(2. * np.pi / 365. * doy - 1.39)
+    return 0.409 * np.sin(2.0 * np.pi / 365.0 * doy - 1.39)
 
 
-def sunset_angle(sol_dec: Union[np.ndarray, xr.DataArray],
-                 lat: Union[np.ndarray, xr.DataArray]) -> Union[np.ndarray, xr.DataArray]:
+def sunset_angle(
+    sol_dec: Union[np.ndarray, xr.DataArray], lat: Union[np.ndarray, xr.DataArray]
+) -> Union[np.ndarray, xr.DataArray]:
     """Sunset hour angle from latitude and solar declination - daily [rad].
 
     Parameters
@@ -171,8 +182,9 @@ def sunset_angle(sol_dec: Union[np.ndarray, xr.DataArray],
     return np.arccos(-np.tan(sol_dec) * np.tan(lat))
 
 
-def daylight_hours(doy: Union[np.ndarray, xr.DataArray],
-                   lat: Union[np.ndarray, xr.DataArray]) -> Union[np.ndarray, xr.DataArray]:
+def daylight_hours(
+    doy: Union[np.ndarray, xr.DataArray], lat: Union[np.ndarray, xr.DataArray]
+) -> Union[np.ndarray, xr.DataArray]:
     """Daylight hours [hour].
 
     Parameters
@@ -195,22 +207,24 @@ def daylight_hours(doy: Union[np.ndarray, xr.DataArray],
     return 24 / np.pi * sangle
 
 
-def calc_rad_long(s_rad,
-                  doy,
-                  hour=None,
-                  t_mean=None,
-                  t_max=None,
-                  t_min=None,
-                  rh_max=None,
-                  rh_min=None,
-                  rh=None,
-                  elevation=None,
-                  lat=None,
-                  rso=None,
-                  a=1.35,
-                  b=-0.35,
-                  ea=None,
-                  freq="D"):
+def calc_rad_long(
+    s_rad,
+    doy,
+    hour=None,
+    t_mean=None,
+    t_max=None,
+    t_min=None,
+    rh_max=None,
+    rh_min=None,
+    rh=None,
+    elevation=None,
+    lat=None,
+    rso=None,
+    a=1.35,
+    b=-0.35,
+    ea=None,
+    freq="D",
+):
     """Net longwave radiation [MJ m-2 d-1].
 
     Parameters
@@ -262,7 +276,9 @@ def calc_rad_long(s_rad,
     ----------
     """
     if ea is None:
-        ea = calc_ea(t_mean=t_mean, t_max=t_max, t_min=t_min, rh_max=rh_max, rh_min=rh_min, rh=rh)
+        ea = calc_ea(
+            t_mean=t_mean, t_max=t_max, t_min=t_min, rh_max=rh_max, rh_min=rh_min, rh=rh
+        )
 
     if freq == "H":
         # TODO: not tested
@@ -285,7 +301,11 @@ def calc_rad_long(s_rad,
         # Stefan Boltzmann constant - daily [MJm-2K-4d-1]
         STEFAN_BOLTZMANN_DAY = 4.903 * 10 ** -9
         if t_max is not None:
-            tmp1 = STEFAN_BOLTZMANN_DAY * ((t_max + 273.16) ** 4 + (t_min + 273.16) ** 4) / 2
+            tmp1 = (
+                STEFAN_BOLTZMANN_DAY
+                * ((t_max + 273.16) ** 4 + (t_min + 273.16) ** 4)
+                / 2
+            )
         else:
             tmp1 = STEFAN_BOLTZMANN_DAY * (t_mean + 273.16) ** 4
 
@@ -326,13 +346,19 @@ def extraterrestrial_r_hour(doy, hour, lat, lz=0, lm=0):
     dr = relative_distance(doy)
     sol_dec = solar_declination(doy)
 
-    omega2, omega1 = sunset_angle_hour(doy, hour, lz=lz, lm=lm, lat=lat,
-                                       sol_dec=sol_dec)
+    omega2, omega1 = sunset_angle_hour(
+        doy, hour, lz=lz, lm=lm, lat=lat, sol_dec=sol_dec
+    )
     xx = np.sin(sol_dec) * np.sin(lat)
     yy = np.cos(sol_dec) * np.cos(lat)
     gsc = 4.92
-    return 12 / np.pi * gsc * dr * ((omega2 - omega1) * xx + yy *
-                                    (np.sin(omega2) - np.sin(omega1)))
+    return (
+        12
+        / np.pi
+        * gsc
+        * dr
+        * ((omega2 - omega1) * xx + yy * (np.sin(omega2) - np.sin(omega1)))
+    )
 
 
 def sunset_angle_hour(doy, hour, sol_dec, lat, lz, lm):
@@ -375,7 +401,10 @@ def sunset_angle_hour(doy, hour, sol_dec, lat, lz, lm):
 
     omega1 = np.clip(omega1, -omegas, omegas)
     omega2 = np.clip(omega2, -omegas, omegas)
-    omega1 = np.maximum(omega1, omega1, )
+    omega1 = np.maximum(
+        omega1,
+        omega1,
+    )
     omega1 = np.clip(omega1, -100000000, omega2)
 
     return omega2, omega1
