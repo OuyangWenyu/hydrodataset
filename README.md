@@ -11,6 +11,7 @@ Dataset downloader and processor for Watershed Hydrologic Modeling
 - ECMWF ERA5-Land
 - GHS
 - MODIS ET
+- NEX-GDDP-CMIP5/6
 - NLDAS
 
 More details are shown in the following sections.
@@ -163,6 +164,22 @@ TODO: provide a link -- [Download basin mean values of ET data]()
 
 Use hydrobench\app\modis4basins\trans_modis_et_to_camels_format.py to process the downloaded ET data from GEE to the
 format of forcing data in CAMELS
+
+## NEX-GDDP-CMIP5/6
+
+### Download
+
+NEX-GDDP-CMIP5 data for basins could be downloaded from Google Earth Engine. The code
+is [here](https://code.earthengine.google.com/5edfca6263bea36f5c093fc6b80a68aa)
+
+For NEX-GDDP-CMIP6, data should be downloaded
+from [this website](https://www.nccs.nasa.gov/services/data-collections/land-based-products/nex-gddp-cmip6)
+
+### Process
+
+Use hydrodataset/app/climateproj4basins/trans_nexdcp30_to_camels_format.py to process NEX-GDDP-CMIP5 data for basins
+
+We will provide tool for NEX-GDDP-CMIP6 data soon
 
 ## NLDAS
 
