@@ -16,7 +16,7 @@ Now the directories in "hydrodatasets" include:
 * data: this directory contains the data-source classes for source data;
 * daymet4basins: this is the directory for downloading and processing daymet data for camels-basins' boundaries;
 * ecmwf4basins: this is the directory for downloading and processing ERA5-Land data;
-* climateproj4basins: this is the directory for downloading and processing NEX-DCP30 data;
+* climateproj4basins: this is the directory for downloading and processing NEX-GDDP data;
 * modis4basins: this is the directory for downloading and processing MODIS ET products data;
 * nldas4basins: this is the directory for downloading and processing NLDAS forcing data;
 * pet: all methods for calculating potential evapotranspiration are here;

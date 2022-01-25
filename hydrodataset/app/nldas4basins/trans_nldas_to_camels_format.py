@@ -33,7 +33,7 @@ def main(args):
     years = list(range(int(args.year_range[0]), int(args.year_range[1])))
 
     if region == "camels":
-        camels = Camels(os.path.join(definitions.DATASET_DIR, "camels", "camels_us"))
+        camels = Camels(os.path.join(definitions.DATASET_DIR, "camels"), download=True)
         gage_dict = camels.camels_sites.to_dict(orient="list")
     else:
         if not os.path.isfile(gage_file):

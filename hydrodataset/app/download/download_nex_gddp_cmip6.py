@@ -17,7 +17,9 @@ def main(args):
     east = args.east
     south = args.south
     cmip6 = NexGddpCmip6()
-    cmip6.download_one_gcm_scenario_nex_gddp_cmip6_for_a_region(gcm, scenario, north, east, south, west, save_dir)
+    cmip6.download_one_gcm_scenario_nex_gddp_cmip6_for_a_region(
+        gcm, scenario, north, east, south, west, save_dir
+    )
 
 
 # python download_nex_gddp_cmip6.py --gcm ACCESS-CM2 --sce ssp585 --north 51 --east 294 --south 23 --west 234 --save_dir /mnt/sdc/owen/datasets/NEX-GDDP-CMIP6
@@ -28,14 +30,14 @@ if __name__ == "__main__":
         "--gcm",
         dest="gcm",
         help="The GCM",
-        default='ACCESS-CM2',
+        default="ACCESS-CM2",
         type=str,
     )
     parser.add_argument(
         "--sce",
         dest="sce",
         help="The scenario",
-        default='ssp585',
+        default="ssp585",
         type=str,
     )
     parser.add_argument(
