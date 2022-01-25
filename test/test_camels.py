@@ -92,6 +92,22 @@ def test_download_camels(camels_us_path):
     assert os.path.isfile(
         os.path.join(camels_us_path, "basin_set_full_res", "HCDN_nhru_final_671.shp")
     )
+    assert os.path.isdir(
+        os.path.join(camels_us_path, "camels_streamflow", "camels_streamflow")
+    )
+
+
+def test_read_camels_streamflow(camels_us_path, us_region):
+    camels_us = Camels(camels_us_path, download=False, region=us_region)
+    gage_ids = camels_us.read_object_ids()
+    flows1 = camels_us.read_target_cols(
+        gage_ids[:5], ["2013-01-01", "2018-01-01"], target_cols=["usgsFlow"]
+    )
+    print(flows1)
+    flows2 = camels_us.read_target_cols(
+        gage_ids[:5], ["2015-01-01", "2018-01-01"], target_cols=["usgsFlow"]
+    )
+    print(flows2)
 
 
 def test_read_camels_us(camels_us_path, us_region):

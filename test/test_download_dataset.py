@@ -9,8 +9,11 @@ import definitions
 from hydrodataset.climateproj4basins.download_cmip6 import NexGddpCmip6
 from hydrodataset.data.data_camels import Camels
 from hydrodataset.data.data_gages import read_usgs_daily_flow
-from hydrodataset.daymet4basins.basin_daymet_process import download_daymet_by_geom_bound, calculate_basin_grids_pet, \
-    calculate_basin_mean
+from hydrodataset.daymet4basins.basin_daymet_process import (
+    download_daymet_by_geom_bound,
+    calculate_basin_grids_pet,
+    calculate_basin_mean,
+)
 from hydrodataset.utils.hydro_utils import unserialize_geopandas
 from hydrodataset.ecmwf4basins.download_era5_land import download_era5
 from hydrodataset.nldas4basins.download_nldas import download_nldas_with_url_lst
@@ -26,14 +29,20 @@ def save_dir():
 
 @pytest.fixture()
 def var():
-    return ['dayl', 'prcp', 'srad', 'swe', 'tmax', 'tmin', 'vp']
+    return ["dayl", "prcp", "srad", "swe", "tmax", "tmin", "vp"]
 
 
 @pytest.fixture()
 def camels():
     camels_dir = os.path.join(definitions.DATASET_DIR, "camels", "camels_us")
     if not os.path.isfile(
-            os.path.join(camels_dir, "camels_attributes_v2.0", "camels_attributes_v2.0", "camels_name.txt")):
+        os.path.join(
+            camels_dir,
+            "camels_attributes_v2.0",
+            "camels_attributes_v2.0",
+            "camels_name.txt",
+        )
+    ):
         return Camels(camels_dir, True)
     return Camels(camels_dir, False)
 
@@ -43,7 +52,7 @@ def test_read_daymet_1basin_3days(save_dir):
     dates = ("2000-01-01", "2000-01-03")
     geometry = NLDI().get_basins(basin_id).geometry[0]
     # ``tmin``, ``tmax``, ``prcp``, ``srad``, ``vp``, ``swe``, ``dayl``
-    var = ['dayl', 'prcp', 'srad', 'swe', 'tmax', 'tmin', 'vp']
+    var = ["dayl", "prcp", "srad", "swe", "tmax", "tmin", "vp"]
     daily = daymet.get_bygeom(geometry, dates, variables=var, pet=True)
     save_path = os.path.join(save_dir, basin_id + "_2000_01_01-03.nc")
     daily.to_netcdf(save_path)
@@ -56,9 +65,11 @@ def test_read_daymet_1basin_in_camels_2days(camels, save_dir):
     camels_shp = gpd.read_file(camels_shp_file)
     # transform the geographic coordinates to wgs84 i.e. epsg4326  it seems NAD83 is equal to WGS1984 in geopandas
     camels_shp_epsg4326 = camels_shp.to_crs(epsg=4326)
-    geometry = camels_shp_epsg4326[camels_shp_epsg4326["hru_id"] == int(basin_id)].geometry[0]
+    geometry = camels_shp_epsg4326[
+        camels_shp_epsg4326["hru_id"] == int(basin_id)
+    ].geometry[0]
     # ``tmin``, ``tmax``, ``prcp``, ``srad``, ``vp``, ``swe``, ``dayl``
-    var = ['dayl', 'prcp', 'srad', 'swe', 'tmax', 'tmin', 'vp']
+    var = ["dayl", "prcp", "srad", "swe", "tmax", "tmin", "vp"]
     daily = daymet.get_bygeom(geometry, dates, variables=var, pet=True)
     save_path = os.path.join(save_dir, basin_id + "_in_camels_2000_01_01-02.nc")
     daily.to_netcdf(save_path)
@@ -112,7 +123,9 @@ def test_download_daymet_without_dask_local_shpfile(save_dir, var):
 def test_equal_local_shp_download_shp_nc(save_dir):
     basin_id = "01013500"
     read_path = os.path.join(save_dir, basin_id + "_2000_01_01-03_nomask.nc")
-    read_path_local = os.path.join(save_dir, basin_id + "_2000_01_01-03_nomask_local_shp.nc")
+    read_path_local = os.path.join(
+        save_dir, basin_id + "_2000_01_01-03_nomask_local_shp.nc"
+    )
     daily = xr.open_dataset(read_path)
     daily_local = xr.open_dataset(read_path_local)
     print(daily.equals(daily_local))
@@ -122,7 +135,9 @@ def test_download_from_url_directly(var, save_dir):
     basin_id = "01013500"
     dates = ("2000-01-01", "2000-01-03")
     geometry = NLDI().get_basins(basin_id).geometry[0]
-    daily = download_daymet_by_geom_bound(geometry, dates, variables=var, boundary=False)
+    daily = download_daymet_by_geom_bound(
+        geometry, dates, variables=var, boundary=False
+    )
     save_path = os.path.join(save_dir, basin_id + "_2000_01_01-03_from_urls.nc")
     daily.to_netcdf(save_path)
 
@@ -181,7 +196,9 @@ def test_batch_basins_pet(save_dir):
     for i in range(len(basin_id)):
         read_path = os.path.join(save_dir, basin_id[i] + "_2000_01_01-03_nomask.nc")
         daily = xr.open_dataset(read_path)
-        include_pet = calculate_basin_grids_pet(daily, pet_method=["pm_fao56", "priestley_taylor"])
+        include_pet = calculate_basin_grids_pet(
+            daily, pet_method=["pm_fao56", "priestley_taylor"]
+        )
         save_path = os.path.join(save_dir, basin_id[i] + "_2000_01_01-03_pet.nc")
         include_pet.to_netcdf(save_path)
 
@@ -202,8 +219,10 @@ def test_download_era5(save_dir):
     downloaded_file = os.path.join(save_dir, "a_test_range.nc")
     date_range = ["2000-01-01", "2000-01-03"]
     lat_lon_range = (31, 108, 30, 109)  # lat_max, lon_min, lat_min, lon_max
-    variables_list = 'total_precipitation'
-    download_era5(downloaded_file, date_range, lat_lon_range, variables_list, file_format="netcdf")
+    variables_list = "total_precipitation"
+    download_era5(
+        downloaded_file, date_range, lat_lon_range, variables_list, file_format="netcdf"
+    )
     print("Downloading ERA5 hourly data is finished!")
 
 
@@ -212,7 +231,9 @@ def test_download_nldas_hourly():
     save_dir = os.path.join(definitions.DATASET_DIR, "nldas_hourly")
     for file in os.listdir(download_lst_dir):
         if "NLDAS" in file and ".txt" in file:
-            url_lst_file = os.path.join(definitions.ROOT_DIR, "hydrobench", "nldas4basins", file)
+            url_lst_file = os.path.join(
+                definitions.ROOT_DIR, "hydrobench", "nldas4basins", file
+            )
             download_nldas_with_url_lst(url_lst_file, save_dir)
     print("Downloading NLDAS hourly data is finished!")
 
@@ -228,10 +249,10 @@ def test_download_usgs_streamflow(camels):
 
 
 def test_download_cmip6():
-    gcm = 'ACCESS-CM2'
-    scenario = 'ssp585'
+    gcm = "ACCESS-CM2"
+    scenario = "ssp585"
     year = 2015
-    var = 'tasmin'
+    var = "tasmin"
     north = 51
     west = 234
     east = 294
@@ -239,4 +260,6 @@ def test_download_cmip6():
     cmip6 = NexGddpCmip6()
     save_dir = os.path.join(definitions.DATASET_DIR, "NEX-GDDP-CMIP6")
 
-    cmip6.download_one_nex_gddp_cmip6_file_for_a_region(gcm, scenario, year, var, north, east, south, west, save_dir)
+    cmip6.download_one_nex_gddp_cmip6_file_for_a_region(
+        gcm, scenario, year, var, north, east, south, west, save_dir
+    )
