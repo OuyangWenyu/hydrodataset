@@ -6,6 +6,7 @@ import xarray as xr
 import pydaymet as daymet
 
 import definitions
+from hydrodataset.climateproj4basins.download_cmip6 import NexGddpCmip6
 from hydrodataset.data.data_camels import Camels
 from hydrodataset.data.data_gages import read_usgs_daily_flow
 from hydrodataset.daymet4basins.basin_daymet_process import download_daymet_by_geom_bound, calculate_basin_grids_pet, \
@@ -224,3 +225,18 @@ def test_download_usgs_streamflow(camels):
     unit = "cfs"
     qobs = read_usgs_daily_flow(sites_id, date_range, gage_dict, save_dir, unit)
     print(qobs)
+
+
+def test_download_cmip6():
+    gcm = 'ACCESS-CM2'
+    scenario = 'ssp585'
+    year = 2015
+    var = 'tasmin'
+    north = 51
+    west = 234
+    east = 294
+    south = 23
+    cmip6 = NexGddpCmip6()
+    save_dir = os.path.join(definitions.DATASET_DIR, "NEX-GDDP-CMIP6")
+
+    cmip6.download_one_nex_gddp_cmip6_file_for_a_region(gcm, scenario, year, var, north, east, south, west, save_dir)
