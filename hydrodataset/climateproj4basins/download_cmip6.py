@@ -1,5 +1,6 @@
 import logging
 import os
+from black import out
 
 import numpy as np
 import wget
@@ -220,4 +221,7 @@ class NexGddpCmip6:
         if not os.path.isdir(save_dir):
             os.makedirs(save_dir)
         out_file = os.path.join(save_dir, file_name)
-        wget.download(url, out=out_file)
+        if os.path.isfile(out_file):
+            print(out_file + " has been downloaded!")
+        else:
+            wget.download(url, out=out_file)
