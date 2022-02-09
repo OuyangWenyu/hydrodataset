@@ -1,8 +1,18 @@
+"""
+Author: Wenyu Ouyang
+Date: 2022-01-25 16:49:00
+LastEditTime: 2022-02-09 11:12:58
+LastEditors: Wenyu Ouyang
+Description: Download NEX-GDDP-CMIP6 data
+FilePath: /HydroBench/hydrodataset/app/download/download_nex_gddp_cmip6.py
+Copyright (c) 2021-2022 Wenyu Ouyang. All rights reserved.
+"""
 import argparse
 import os
 import sys
+from pathlib import Path
 
-sys.path.append(os.path.join("..", "..", ".."))
+sys.path.append(os.path.dirname(Path(os.path.abspath(__file__)).parent.parent.parent))
 import definitions
 from hydrodataset.utils.hydro_utils import hydro_logger
 from hydrodataset.climateproj4basins.download_cmip6 import NexGddpCmip6
