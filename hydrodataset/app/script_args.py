@@ -1,9 +1,18 @@
-#################################################
-# to test if the arg-parse commands are correct
+"""
+Author: Wenyu Ouyang
+Date: 2022-01-25 16:49:00
+LastEditTime: 2022-03-19 16:39:52
+LastEditors: Wenyu Ouyang
+Description: to test if the arg-parse commands are correct
+FilePath: /HydroBench/hydrodataset/app/script_args.py
+Copyright (c) 2021-2022 Wenyu Ouyang. All rights reserved.
+"""
 import argparse
 import sys
 
-sys.path.append("../..")
+from pathlib import Path
+
+sys.path.append(os.path.dirname(Path(os.path.abspath(__file__)).parent.parent))
 
 
 def main(args):

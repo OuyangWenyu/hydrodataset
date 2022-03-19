@@ -8,7 +8,9 @@ import sys
 import xarray as xr
 from tqdm import tqdm
 
-sys.path.append(os.path.join("..", "..", ".."))
+from pathlib import Path
+
+sys.path.append(os.path.dirname(Path(os.path.abspath(__file__)).parent.parent.parent))
 import definitions
 from hydrodataset.data.data_camels import Camels
 from hydrodataset.utils.hydro_utils import unserialize_geopandas, hydro_logger

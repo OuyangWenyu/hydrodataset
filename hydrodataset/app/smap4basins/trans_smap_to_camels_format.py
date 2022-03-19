@@ -1,19 +1,10 @@
 """
 Author: Wenyu Ouyang
 Date: 2022-01-18 23:30:01
-LastEditTime: 2022-01-19 00:42:14
+LastEditTime: 2022-03-19 16:39:25
 LastEditors: Wenyu Ouyang
 Description: Trans SMAP-USDA 3-day data to CAMELS format
 FilePath: /HydroBench/hydrodataset/app/smap4basins/trans_smap_to_camels_format.py
-Copyright (c) 2021-2022 Wenyu Ouyang. All rights reserved.
-"""
-"""
-Author: Wenyu Ouyang
-Date: 2021-12-16 14:31:21
-LastEditTime: 2022-01-18 20:04:10
-LastEditors: Wenyu Ouyang
-Description: Transform the data format of PMLV2, MOD16A2_105 and SSEBop to the camels'
-FilePath: /HydroBench/hydrodataset/app/modis4basins/trans_modis_et_to_camels_format.py
 Copyright (c) 2021-2022 Wenyu Ouyang. All rights reserved.
 """
 import argparse
