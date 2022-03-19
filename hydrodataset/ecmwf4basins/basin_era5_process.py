@@ -155,7 +155,14 @@ def trans_era5_land_to_camels_format(
         "total_precipitation_hourly",
     ]
 
-    gage_id_key = "gage_id"
+    if "STAID" in gage_dict.keys():
+        gage_id_key = "STAID"
+    elif "gauge_id" in gage_dict.keys():
+        gage_id_key = "gauge_id"
+    elif "gage_id" in gage_dict.keys():
+        gage_id_key = "gage_id"
+    else:
+        raise NotImplementedError("No such gage id name")
 
     # because this function only work for one year and one region, it's better to chose avg and sum files at first
     for f_name in os.listdir(era5_land_dir):
@@ -188,7 +195,7 @@ def trans_era5_land_to_camels_format(
             == int(gage_dict[gage_id_key][i_basin])
         ]
         if avg_basin_data.shape[0] == 0 or sum_basin_data.shape[0] == 0:
-            raise ArithmeticError("chosen basins' number is zero")
+            continue
         # get Year,Month,Day,Hour info
         csv_date = pd.to_datetime(avg_basin_data[avg_dataset[1]])
         # the hour is set to 12, as 12 is the average hour of a day
