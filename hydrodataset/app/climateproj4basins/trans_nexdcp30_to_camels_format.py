@@ -1,10 +1,21 @@
+"""
+Author: Wenyu Ouyang
+Date: 2022-01-25 16:49:00
+LastEditTime: 2022-03-19 16:28:02
+LastEditors: Wenyu Ouyang
+Description: Trans NEXDCP30 data to the format of CAMELS
+FilePath: /HydroBench/hydrodataset/app/climateproj4basins/trans_nexdcp30_to_camels_format.py
+Copyright (c) 2021-2022 Wenyu Ouyang. All rights reserved.
+"""
 import argparse
 import os
 import sys
 
 from tqdm import tqdm
 
-sys.path.append(os.path.join("..", "..", ".."))
+from pathlib import Path
+
+sys.path.append(os.path.dirname(Path(os.path.abspath(__file__)).parent.parent.parent))
 import definitions
 from hydrodataset.climateproj4basins.basin_nexdcp30_process import (
     trans_month_nex_dcp30to_camels_format,

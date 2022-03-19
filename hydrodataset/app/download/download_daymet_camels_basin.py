@@ -1,5 +1,11 @@
 """
-Download daymet grid data for the boundaries of basins in CAMELS
+Author: Wenyu Ouyang
+Date: 2022-01-25 16:49:00
+LastEditTime: 2022-03-19 16:30:32
+LastEditors: Wenyu Ouyang
+Description: Download daymet grid data for the boundaries of basins in CAMELS
+FilePath: /HydroBench/hydrodataset/app/download/download_daymet_camels_basin.py
+Copyright (c) 2021-2022 Wenyu Ouyang. All rights reserved.
 """
 
 import argparse
@@ -8,7 +14,9 @@ import sys
 
 from tqdm import tqdm
 
-sys.path.append(os.path.join("..", "..", ".."))
+from pathlib import Path
+
+sys.path.append(os.path.dirname(Path(os.path.abspath(__file__)).parent.parent.parent))
 import definitions
 from hydrodataset.data.data_camels import Camels
 from hydrodataset.daymet4basins.basin_daymet_process import (

@@ -1,5 +1,11 @@
 """
-Read nc files as xarray's dataset, then get masked dataset according to the bound of geometry
+Author: Wenyu Ouyang
+Date: 2022-01-25 16:49:00
+LastEditTime: 2022-03-19 16:29:23
+LastEditors: Wenyu Ouyang
+Description: Read nc files as xarray's dataset, then get masked dataset according to the bound of geometry
+FilePath: /HydroBench/hydrodataset/app/daymet4basins/cut_nc_to_bounds_add_pet.py
+Copyright (c) 2021-2022 Wenyu Ouyang. All rights reserved.
 """
 
 import argparse
@@ -8,7 +14,9 @@ import sys
 import xarray as xr
 from tqdm import tqdm
 
-sys.path.append(os.path.join("..", "..", ".."))
+from pathlib import Path
+
+sys.path.append(os.path.dirname(Path(os.path.abspath(__file__)).parent.parent.parent))
 import definitions
 from hydrodataset.data.data_camels import Camels
 from hydrodataset.utils.hydro_utils import unserialize_geopandas, hydro_logger

@@ -1,5 +1,11 @@
 """
-Transform the data format of ERA5-LAND-CAMELS to the camels'
+Author: Wenyu Ouyang
+Date: 2022-03-19 16:15:00
+LastEditTime: 2022-03-19 16:27:48
+LastEditors: Wenyu Ouyang
+Description: Trans ERA5-LAND data to the format of CAMELS
+FilePath: /HydroBench/hydrodataset/app/ecmwf4basins/trans_era5land_to_camels_format.py
+Copyright (c) 2021-2022 Wenyu Ouyang. All rights reserved.
 """
 import argparse
 import os
@@ -7,10 +13,14 @@ import sys
 
 from tqdm import tqdm
 
-sys.path.append(os.path.join("..", "..", ".."))
+from pathlib import Path
+
+sys.path.append(os.path.dirname(Path(os.path.abspath(__file__)).parent.parent.parent))
 import definitions
 from hydrodataset.data.data_camels import Camels
-from hydrodataset.ecmwf4basins.basin_era5_process import trans_era5_land_to_camels_format
+from hydrodataset.ecmwf4basins.basin_era5_process import (
+    trans_era5_land_to_camels_format,
+)
 
 
 def main(args):
@@ -27,7 +37,9 @@ def main(args):
     assert int(args.year_range[0]) < int(args.year_range[1])
     years = list(range(int(args.year_range[0]), int(args.year_range[1])))
 
-    camels = Camels(os.path.join(definitions.DATASET_DIR, "camels", "camels_us"), download=False)
+    camels = Camels(
+        os.path.join(definitions.DATASET_DIR, "camels", "camels_us"), download=False
+    )
     gage_dict = camels.camels_sites.to_dict(orient="list")
 
     for i in tqdm(range(len(years)), leave=False):
@@ -37,21 +49,26 @@ def main(args):
     print("Trans finished")
 
 
-# python trans_era5land_to_camels_format.py --input_dir /mnt/sdc/owen/datasets/ERA5_LAND_CAMELS --output_dir /mnt/sdc/owen/datasets/era5land4camels --name Camels_Pacific --year_range 1990 2019
+# python trans_era5land_to_camels_format.py --input_dir /mnt/sdc/owen/datasets/ERA5_LAND --output_dir /mnt/sdc/owen/datasets/ERA5_LAND_CAMELS --name Camels_Pacific --tz US/Pacific --year_range 1990 2022
+# python trans_era5land_to_camels_format.py --input_dir /mnt/sdc/owen/datasets/ERA5_LAND --output_dir /mnt/sdc/owen/datasets/ERA5_LAND_CAMELS --name Camels_Central --tz US/Central --year_range 1990 2022
+# python trans_era5land_to_camels_format.py --input_dir /mnt/sdc/owen/datasets/ERA5_LAND --output_dir /mnt/sdc/owen/datasets/ERA5_LAND_CAMELS --name Camels_Eastern --tz US/Eastern --year_range 1990 2022
+# python trans_era5land_to_camels_format.py --input_dir /mnt/sdc/owen/datasets/ERA5_LAND --output_dir /mnt/sdc/owen/datasets/ERA5_LAND_CAMELS --name Camels_Mountain --tz US/Mountain --year_range 1990 2022
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser(description="Trans ERA5-LAND data to CAMELS format")
+    parser = argparse.ArgumentParser(
+        description="Trans ERA5-LAND data to CAMELS format"
+    )
     parser.add_argument(
         "--input_dir",
         dest="input_dir",
         help="The directory of downloaded ERA5-LAND data",
-        default="D:/data/ERA5_LAND",
+        default="/mnt/sdc/owen/datasets/ERA5_LAND",
         type=str,
     )
     parser.add_argument(
         "--output_dir",
         dest="output_dir",
         help="The directory of transformed data",
-        default="D:/data/ERA5_LAND_CAMELS",
+        default="/mnt/sdc/owen/datasets/ERA5_LAND_CAMELS",
         type=str,
     )
     parser.add_argument(

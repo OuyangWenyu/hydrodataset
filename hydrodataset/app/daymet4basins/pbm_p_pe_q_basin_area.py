@@ -1,5 +1,11 @@
 """
-Get P (precipitation), PE (potential evapotranspiration), Q (streamflow) and Basin areas for some physics-based models
+Author: Wenyu Ouyang
+Date: 2022-01-25 16:49:00
+LastEditTime: 2022-03-19 16:29:47
+LastEditors: Wenyu Ouyang
+Description: Get P (precipitation), PE (potential evapotranspiration), Q (streamflow) and Basin areas for some physics-based models
+FilePath: /HydroBench/hydrodataset/app/daymet4basins/pbm_p_pe_q_basin_area.py
+Copyright (c) 2021-2022 Wenyu Ouyang. All rights reserved.
 """
 
 import argparse
@@ -8,8 +14,9 @@ import sys
 import numpy as np
 import pandas as pd
 from tqdm import tqdm
+from pathlib import Path
 
-sys.path.append(os.path.join("..", "..", ".."))
+sys.path.append(os.path.dirname(Path(os.path.abspath(__file__)).parent.parent.parent))
 import definitions
 from hydrodataset.utils.hydro_utils import hydro_logger, t_range_days
 from hydrodataset.data.data_daymet4camels import Daymet4Camels

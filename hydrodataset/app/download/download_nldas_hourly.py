@@ -1,8 +1,19 @@
+"""
+Author: Wenyu Ouyang
+Date: 2022-01-25 16:49:00
+LastEditTime: 2022-03-19 16:37:33
+LastEditors: Wenyu Ouyang
+Description: Download Hourly NLDAS data
+FilePath: /HydroBench/hydrodataset/app/download/download_nldas_hourly.py
+Copyright (c) 2021-2022 Wenyu Ouyang. All rights reserved.
+"""
 import argparse
 import os
 import sys
 
-sys.path.append(os.path.join("..", "..", ".."))
+from pathlib import Path
+
+sys.path.append(os.path.dirname(Path(os.path.abspath(__file__)).parent.parent.parent))
 import definitions
 from hydrodataset.utils.hydro_utils import hydro_logger
 from hydrodataset.nldas4basins.download_nldas import download_nldas_with_url_lst
