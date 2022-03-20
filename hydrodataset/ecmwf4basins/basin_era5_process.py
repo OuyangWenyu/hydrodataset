@@ -3,6 +3,7 @@ Process ERA5 land data for basins
 """
 import fnmatch
 import os
+import shutil
 import numpy as np
 import pandas as pd
 
@@ -233,3 +234,35 @@ def trans_era5_land_to_camels_format(
                     by=camels_format_index[0:3]
                 )
         new_data_df.to_csv(output_file, header=True, index=False, sep=" ")
+
+
+def move_camels_us_files_to_huc_dir(output_dir, gage_dict):
+    if "STAID" in gage_dict.keys():
+        gage_id_key = "STAID"
+    elif "gauge_id" in gage_dict.keys():
+        gage_id_key = "gauge_id"
+    elif "gage_id" in gage_dict.keys():
+        gage_id_key = "gage_id"
+    else:
+        raise NotImplementedError("No such gage id name")
+
+    if "HUC02" in gage_dict.keys():
+        huc02_key = "HUC02"
+    elif "huc_02" in gage_dict.keys():
+        huc02_key = "huc_02"
+    else:
+        raise NotImplementedError("No such huc02 id")
+    for i_basin in range(len(gage_dict[gage_id_key])):
+        huc_id = gage_dict[huc02_key][i_basin]
+        output_huc_dir = os.path.join(output_dir, huc_id)
+        if not os.path.isdir(output_huc_dir):
+            os.makedirs(output_huc_dir)
+        source_path = os.path.join(
+            output_dir,
+            gage_dict[gage_id_key][i_basin] + "_lump_era5_land_forcing.txt",
+        )
+        destination_path = os.path.join(
+            output_huc_dir,
+            gage_dict[gage_id_key][i_basin] + "_lump_era5_land_forcing.txt",
+        )
+        shutil.move(source_path, destination_path)
