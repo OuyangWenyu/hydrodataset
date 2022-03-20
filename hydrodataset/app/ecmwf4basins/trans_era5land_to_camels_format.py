@@ -1,7 +1,7 @@
 """
 Author: Wenyu Ouyang
 Date: 2022-03-19 16:15:00
-LastEditTime: 2022-03-19 16:27:48
+LastEditTime: 2022-03-20 10:48:40
 LastEditors: Wenyu Ouyang
 Description: Trans ERA5-LAND data to the format of CAMELS
 FilePath: /HydroBench/hydrodataset/app/ecmwf4basins/trans_era5land_to_camels_format.py
@@ -19,6 +19,7 @@ sys.path.append(os.path.dirname(Path(os.path.abspath(__file__)).parent.parent.pa
 import definitions
 from hydrodataset.data.data_camels import Camels
 from hydrodataset.ecmwf4basins.basin_era5_process import (
+    move_camels_us_files_to_huc_dir,
     trans_era5_land_to_camels_format,
 )
 
@@ -47,6 +48,15 @@ def main(args):
             nldas_dir, output_dir, gage_dict, region, years[i], time_zone
         )
     print("Trans finished")
+
+
+def process_camels_us(args):
+    output_dir = args.output_dir
+    camels = Camels(
+        os.path.join(definitions.DATASET_DIR, "camels", "camels_us"), download=False
+    )
+    gage_dict = camels.camels_sites.to_dict(orient="list")
+    move_camels_us_files_to_huc_dir(output_dir, gage_dict)
 
 
 # python trans_era5land_to_camels_format.py --input_dir /mnt/sdc/owen/datasets/ERA5_LAND --output_dir /mnt/sdc/owen/datasets/ERA5_LAND_CAMELS --name Camels_Pacific --tz US/Pacific --year_range 1990 2022
@@ -92,5 +102,15 @@ if __name__ == "__main__":
         default=[1990, 1992],
         nargs="+",
     )
+    parser.add_argument(
+        "--move",
+        dest="move",
+        help="Move files of CAMELS-US to huc dirs",
+        default=0,
+        type=int
+    )
     the_args = parser.parse_args()
-    main(the_args)
+    if the_args.move > 0:
+        process_camels_us(the_args)
+    else:
+        main(the_args)
