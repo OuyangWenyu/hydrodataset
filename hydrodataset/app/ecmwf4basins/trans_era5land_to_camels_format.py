@@ -38,9 +38,13 @@ def main(args):
     assert int(args.year_range[0]) < int(args.year_range[1])
     years = list(range(int(args.year_range[0]), int(args.year_range[1])))
 
-    camels = Camels(
-        os.path.join(definitions.DATASET_DIR, "camels", "camels_us"), download=False
-    )
+    if time_zone == 'Asia/Hong_Kong':
+        camels = Camels(os.path.join(definitions.DATASET_DIR, "camels", "camels_cc"), download=False, region="CC")
+    else:
+        # CAMELS US
+        camels = Camels(
+            os.path.join(definitions.DATASET_DIR, "camels", "camels_us"), download=False
+        )
     gage_dict = camels.camels_sites.to_dict(orient="list")
 
     for i in tqdm(range(len(years)), leave=False):
@@ -71,35 +75,35 @@ if __name__ == "__main__":
         "--input_dir",
         dest="input_dir",
         help="The directory of downloaded ERA5-LAND data",
-        default="/mnt/sdc/owen/datasets/ERA5_LAND",
+        default="D:/data/ERA5_LAND",
         type=str,
     )
     parser.add_argument(
         "--output_dir",
         dest="output_dir",
         help="The directory of transformed data",
-        default="/mnt/sdc/owen/datasets/ERA5_LAND_CAMELS",
+        default="D:/data/ERA5_LAND_CAMELS",
         type=str,
     )
     parser.add_argument(
         "--name",
         dest="name",
         help="All files are named era5_land_xx_avg/sum_mean_xxx, where xx is the NAME and xxx is the year",
-        default="Camels_Pacific",
+        default="camels_cc",
         type=str,
     )
     parser.add_argument(
         "--tz",
         dest="time_zone",
-        help="four time zones for US: US/Central, US/Eastern, US/Mountain, US/Pacific",
-        default="US/Pacific",
+        help="four time zones for US: US/Central, US/Eastern, US/Mountain, US/Pacific; one for China: Asia/Hong_Kong",
+        default="Asia/Hong_Kong",
         type=str,
     )
     parser.add_argument(
         "--year_range",
         dest="year_range",
         help="The start and end years (right open interval)",
-        default=[1990, 1992],
+        default=[2014, 2022],
         nargs="+",
     )
     parser.add_argument(
