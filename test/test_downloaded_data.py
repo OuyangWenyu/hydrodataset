@@ -57,12 +57,12 @@ def var():
 def camels():
     camels_dir = os.path.join(definitions.DATASET_DIR, "camels", "camels_us")
     if not os.path.isfile(
-        os.path.join(
-            camels_dir,
-            "camels_attributes_v2.0",
-            "camels_attributes_v2.0",
-            "camels_name.txt",
-        )
+            os.path.join(
+                camels_dir,
+                "camels_attributes_v2.0",
+                "camels_attributes_v2.0",
+                "camels_name.txt",
+            )
     ):
         return Camels(camels_dir, True)
     return Camels(camels_dir, False)
@@ -72,12 +72,12 @@ def camels():
 def gages():
     gages_dir = os.path.join(definitions.DATASET_DIR, "gages")
     if not os.path.isfile(
-        os.path.join(
-            gages_dir,
-            "basinchar_and_report_sept_2011",
-            "spreadsheets-in-csv-format",
-            "conterm_basinid.txt",
-        )
+            os.path.join(
+                gages_dir,
+                "basinchar_and_report_sept_2011",
+                "spreadsheets-in-csv-format",
+                "conterm_basinid.txt",
+            )
     ):
         return Gages(gages_dir, True)
     return Gages(gages_dir, False)
@@ -108,7 +108,7 @@ def test2_which_basin_boundary_out_of_camels(camels, save_dir):
     camels_shp_epsg4326 = camels_shp.to_crs(epsg=4326)
     geometry = camels_shp_epsg4326[
         camels_shp_epsg4326["hru_id"] == int(basin_id)
-    ].geometry.item()
+        ].geometry.item()
     gb = geometry.bounds
     gb_west = gb[0]
     gb_south = gb[1]
@@ -146,11 +146,11 @@ def test3_trans_to_rectangle(camels, save_dir):
     camels_shp_epsg4326 = camels_shp.to_crs(epsg=4326)
     geometry = camels_shp_epsg4326[
         camels_shp_epsg4326["hru_id"] == int(basin_id)
-    ].geometry.item()
+        ].geometry.item()
     save_path = os.path.join(save_dir, basin_id + "_camels.shp")
     camels_shp_epsg4326[
         camels_shp_epsg4326["hru_id"] == int(basin_id)
-    ].geometry.to_file(save_path)
+        ].geometry.to_file(save_path)
 
     read_path = os.path.join(save_dir, basin_id + "_2000_01_01-03_from_urls.nc")
     ds = xr.open_dataset(read_path)
@@ -168,7 +168,7 @@ def test3_trans_to_rectangle(camels, save_dir):
     x_idx_min = x_idx.min()
     x_idx_max = x_idx.max()
     _mask_bound = np.full(_mask.shape, False)
-    _mask_bound[y_idx_min : y_idx_max + 1, x_idx_min : x_idx_max + 1] = True
+    _mask_bound[y_idx_min: y_idx_max + 1, x_idx_min: x_idx_max + 1] = True
 
     coords = {ds_dims[0]: ds.coords[ds_dims[0]], ds_dims[1]: ds.coords[ds_dims[1]]}
     mask = xr.DataArray(_mask, coords, dims=ds_dims)
@@ -212,7 +212,7 @@ def test4_read_nc_write_boundary(camels, save_dir):
     camels_shp_epsg4326 = camels_shp.to_crs(epsg=4326)
     geometry = camels_shp_epsg4326[
         camels_shp_epsg4326["hru_id"] == int(basin_id)
-    ].geometry.item()
+        ].geometry.item()
 
     read_path = os.path.join(save_dir, basin_id + "_2000_01_01-03_from_urls.nc")
     ds = xr.open_dataset(read_path)
@@ -318,6 +318,19 @@ def test_gee_daily_era5_land_to_camels_format():
     flow_files = os.listdir(camels_mr_streamflow_dir)
     gage_dict = pd.DataFrame({"gage_id": np.sort([i[:-4] for i in flow_files])})
     trans_era5_land_to_camels_format(era5_land_dir, output_dir, gage_dict, region, year)
+    print("Trans finished")
+
+
+def test_gee_daily_era5_land_to_camels_format_for_china_basins():
+    era5_land_dir = "D:\\data\\DO_CHINA\\ERA5_LAND"
+    output_dir = "D:\\data\\DO_CHINA\\ERA5_LAND_CAMELS_DO_CHINA"
+    region = "camels_cc_do"
+    camels_cc_do_dir = "D:\\data\\DO_CHINA"
+    sites_file = os.path.join(camels_cc_do_dir, "sites_basins.txt")
+    gage_dict = pd.read_csv(sites_file, sep="\t")
+    year_list = np.arange(1981, 2022)
+    for year in year_list:
+        trans_era5_land_to_camels_format(era5_land_dir, output_dir, gage_dict, region, year)
     print("Trans finished")
 
 
