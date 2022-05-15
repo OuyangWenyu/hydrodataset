@@ -1,18 +1,34 @@
 # HydroDataset
 
-Dataset downloader and processor for Watershed Hydrologic Modeling
+HydroDataset is designed to help (1) find, (2) get, (3) visualize, and (4) format disparate earth systems data through a
+core language (Python) for watershed hydrological modeling.
 
-**Note: this repository is still developing!**
+It is inspired by https://github.com/mikejohnson51/HydroData and the following related similar packages:
 
-## Datasets zoo list
+- https://github.com/cheginit/hydrodata
+- https://github.com/jsta/nhdR
+- https://github.com/lawinslow/hydrolinks
+- https://github.com/mbtyers/riverdist
+- https://github.com/ropensci/FedData
+- https://github.com/usgs-r/nhdplusTools
+  ... others -- please suggest additions?
 
-- CAMELS/MOPEX/LAMAH
-- Daymet
-- ECMWF ERA5-Land
-- GHS
-- MODIS ET
-- NEX-GDDP-CMIP5/6
-- NLDAS
+Now this repository is still developing and only supports quite simple functions such as downloading and processing data
+for watersheds. In the future, we will upgrade all functions to unify vocabulary built around querying data by a basin
+of interest (AOI).
+
+Now the dataset zoo list includes:
+
+|**Number**|**Dataset**|**Description**|**Format**|
+|----------|-----------|---------------|-----------|
+|1|**CAMELS/MOPEX/LAMAH**|Datasets for large-sample hydrological modeling|Dataset Directory|
+|2|**Daymet**|Daymet meteorological forcing data North America|Dataset Directory|
+|3|**ECMWF ERA5-Land**|ERA5-LAND dataet|Dataset Directory|
+|4|**GHS**|Geospatial attributes and Hydrometeorological forcing for Streamflow modeling|Dataset Directory|
+|5|**MODIS ET**|Evapotranspiration data product of MODIS|Dataset Directory|
+|6|**NEX-GDDP-CMIP5/6**|NASA Earth Exchange Global Daily Downscaled Climate Projections dataset|Dataset Directory|
+|7|**NLDAS**|NLDAS datset|Dataset Directory|
+|8|**ChinaHydroMap**|Basic maps for watersheds in China|Vector|
 
 More details are shown in the following sections.
 
@@ -201,6 +217,18 @@ CAMELS.
 
 TODO: more processing scripts are needed for NLDAS grid data.
 
+## ChinaHydroMap
+
+We use data from https://github.com/GaryBikini/ChinaAdminDivisonSHP and refer to code
+from https://github.com/ytkz11/Visualization-of-China-Sentinel5P-NO2 to get maps for some basins.
+
+More maps could be found from:
+
+- http://gaohr.win/site/blogs/2017/2017-04-18-GIS-basic-data-of-China.html
+- https://zhuanlan.zhihu.com/p/25634886
+
+Data could be downloaded from these sources. Unzip and put them in the "hydromap" directory
+
 ## How to run the code
 
 Use environment.yml to create conda environment:
@@ -211,8 +239,3 @@ conda activate HydroDataset
 ```
 
 Then, you can try python script in "app" directory
-
-## Acknowledgement
-
-- [HyRiver](https://github.com/cheginit/HyRiver)
-- [WeatherBench](https://github.com/pangeo-data/WeatherBench)

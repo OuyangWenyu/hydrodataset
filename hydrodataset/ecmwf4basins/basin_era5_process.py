@@ -11,7 +11,7 @@ from hydrodataset.utils.hydro_utils import utc_to_local
 
 
 def trans_era5_land_to_camels_format(
-    era5_land_dir, output_dir, gage_dict, region, year, time_zone="Asia/Hong_Kong"
+        era5_land_dir, output_dir, gage_dict, region, year, time_zone="Asia/Hong_Kong"
 ):
     """
     Transform hourly forcing data of ERA5-LAND downloaded from GEE to the format in CAMELS.
@@ -168,11 +168,11 @@ def trans_era5_land_to_camels_format(
     # because this function only work for one year and one region, it's better to chose avg and sum files at first
     for f_name in os.listdir(era5_land_dir):
         if fnmatch.fnmatch(
-            f_name, "era5_land_" + region + "_avg_mean_" + str(year) + ".csv"
+                f_name, "era5_land_" + region + "_avg_mean_" + str(year) + ".csv"
         ):
             avg_data_file = os.path.join(era5_land_dir, f_name)
         if fnmatch.fnmatch(
-            f_name, "era5_land_" + region + "_sum_mean_" + str(year) + ".csv"
+                f_name, "era5_land_" + region + "_sum_mean_" + str(year) + ".csv"
         ):
             sum_data_file = os.path.join(era5_land_dir, f_name)
 
@@ -190,11 +190,11 @@ def trans_era5_land_to_camels_format(
         avg_basin_data = avg_data_temp[
             avg_data_temp[avg_dataset[0]].values.astype(int)
             == int(gage_dict[gage_id_key][i_basin])
-        ]
+            ]
         sum_basin_data = sum_data_temp[
             sum_data_temp[avg_dataset[0]].values.astype(int)
             == int(gage_dict[gage_id_key][i_basin])
-        ]
+            ]
         if avg_basin_data.shape[0] == 0 or sum_basin_data.shape[0] == 0:
             continue
         # get Year,Month,Day,Hour info
@@ -206,11 +206,11 @@ def trans_era5_land_to_camels_format(
         )
         avg_data_df = pd.DataFrame(
             avg_basin_data.iloc[:, 2:].values,
-            columns=camels_format_index[4 : 4 + len(avg_dataset) - 2],
+            columns=camels_format_index[4: 4 + len(avg_dataset) - 2],
         )
         sum_data_df = pd.DataFrame(
             sum_basin_data.iloc[:, 2:].values,
-            columns=camels_format_index[-(len(sum_dataset) - 2) :],
+            columns=camels_format_index[-(len(sum_dataset) - 2):],
         )
         # concat
         new_data_df = pd.concat([year_month_day_hour, avg_data_df, sum_data_df], axis=1)
@@ -218,7 +218,7 @@ def trans_era5_land_to_camels_format(
         if not os.path.isdir(output_dir):
             os.makedirs(output_dir)
         output_file = os.path.join(
-            output_dir, gage_dict[gage_id_key][i_basin] + "_lump_era5_land_forcing.txt"
+            output_dir, str(gage_dict[gage_id_key][i_basin]) + "_lump_era5_land_forcing.txt"
         )
         print(
             "output forcing data of", gage_dict[gage_id_key][i_basin], "year", str(year)
