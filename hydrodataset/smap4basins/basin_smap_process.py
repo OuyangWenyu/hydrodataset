@@ -15,7 +15,7 @@ import pandas as pd
 
 
 def trans_nasa_usda_smap_to_camels_format(
-    source_dir, output_dir, gage_dict, region, year
+        source_dir, output_dir, gage_dict, region, year
 ):
     """
     Transform 3-day SMAP data downloaded from GEE to the format in CAMELS.
@@ -75,17 +75,17 @@ def trans_nasa_usda_smap_to_camels_format(
     elif "huc_02" in gage_dict.keys():
         huc02_key = "huc_02"
     else:
-        raise NotImplementedError("No such huc02 id")
+        huc02_key = None
 
     # because this function only work for one year and one region, it's better to chose avg and sum files at first
     for f_name in os.listdir(source_dir):
         if fnmatch.fnmatch(
-            f_name,
-            "NASA_USDA_HSL_SMAP10KM_soil_moisture_"
-            + region
-            + "_mean_"
-            + str(year)
-            + "*.csv",
+                f_name,
+                "NASA_USDA_HSL_SMAP10KM_soil_moisture_"
+                + region
+                + "_mean_"
+                + str(year)
+                + "*.csv",
         ):
             smap_data_file = os.path.join(source_dir, f_name)
 
@@ -94,7 +94,7 @@ def trans_nasa_usda_smap_to_camels_format(
         basin_data = data_temp[
             data_temp[smap_dataset[0]].values.astype(int)
             == int(gage_dict[gage_id_key][i_basin])
-        ]
+            ]
         if basin_data.shape[0] == 0:
             raise ArithmeticError("chosen basins' number is zero")
         # get Year,Month,Day,Hour info
@@ -110,12 +110,15 @@ def trans_nasa_usda_smap_to_camels_format(
         # concat
         new_data_df = pd.concat([year_month_day_hour, data_df], axis=1)
         # output the result
-        huc_id = gage_dict[huc02_key][i_basin]
-        output_huc_dir = os.path.join(output_dir, huc_id)
+        if huc02_key is None:
+            output_huc_dir = output_dir
+        else:
+            huc_id = gage_dict[huc02_key][i_basin]
+            output_huc_dir = os.path.join(output_dir, huc_id)
         if not os.path.isdir(output_huc_dir):
             os.makedirs(output_huc_dir)
         output_file = os.path.join(
-            output_huc_dir, gage_dict[gage_id_key][i_basin] + "_lump_nasa_usda_smap.txt"
+            output_huc_dir, str(gage_dict[gage_id_key][i_basin]) + "_lump_nasa_usda_smap.txt"
         )
         print("output SMAP data of", gage_dict[gage_id_key][i_basin], "year", str(year))
         if os.path.isfile(output_file):

@@ -33,6 +33,7 @@ from hydrodataset.modis4basins.basin_pmlv2_process import (
 from hydrodataset.nldas4basins.basin_nldas_process import (
     trans_daily_nldas_to_camels_format,
 )
+from hydrodataset.smap4basins.basin_smap_process import trans_nasa_usda_smap_to_camels_format
 from hydrodataset.utils.hydro_geo import (
     gage_intersect_time_zone,
     split_shp_to_shps_in_time_zones,
@@ -321,17 +322,31 @@ def test_gee_daily_era5_land_to_camels_format():
     print("Trans finished")
 
 
-def test_gee_daily_era5_land_to_camels_format_for_china_basins():
-    era5_land_dir = "D:\\data\\DO_CHINA\\ERA5_LAND"
-    output_dir = "D:\\data\\DO_CHINA\\ERA5_LAND_CAMELS_DO_CHINA"
-    region = "camels_cc_do"
-    camels_cc_do_dir = "D:\\data\\DO_CHINA"
-    sites_file = os.path.join(camels_cc_do_dir, "sites_basins.txt")
-    gage_dict = pd.read_csv(sites_file, sep="\t")
-    year_list = np.arange(1981, 2022)
-    for year in year_list:
-        trans_era5_land_to_camels_format(era5_land_dir, output_dir, gage_dict, region, year)
-    print("Trans finished")
+# For specific use:
+# def test_gee_daily_era5_land_to_camels_format_for_china_basins():
+#     era5_land_dir = "D:\\data\\DO_CHINA\\ERA5_LAND"
+#     output_dir = "D:\\data\\DO_CHINA\\ERA5_LAND_CAMELS_DO_CHINA"
+#     region = "camels_cc_do"
+#     camels_cc_do_dir = "D:\\data\\DO_CHINA"
+#     sites_file = os.path.join(camels_cc_do_dir, "sites_basins.txt")
+#     gage_dict = pd.read_csv(sites_file, sep="\t")
+#     year_list = np.arange(1981, 2022)
+#     for year in year_list:
+#         trans_era5_land_to_camels_format(era5_land_dir, output_dir, gage_dict, region, year)
+#     print("Trans finished")
+#
+#
+# def test_gee_daily_smap_to_camels_format_for_china_basins():
+#     source_dir = "D:\\data\\SMAP10KM_soil_moisture_29"
+#     output_dir = "D:\\data\\smap4camels\\NASA_USDA_SMAP_CAMELS_CC"
+#     region = "camels_cc"
+#     camels_cc_dir = "D:\\data\\camels\\camels_cc"
+#     sites_file = os.path.join(camels_cc_dir, "gage_points.csv")
+#     gage_dict = pd.read_csv(sites_file, sep=",")
+#     year_list = np.arange(2015, 2022)
+#     for year in year_list:
+#         trans_nasa_usda_smap_to_camels_format(source_dir, output_dir, gage_dict, region, year)
+#     print("Trans finished")
 
 
 def test_gee_monthly_nexdcp30_history_to_camels_format(gages):
