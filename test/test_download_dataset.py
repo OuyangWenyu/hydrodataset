@@ -240,9 +240,9 @@ def test_download_nldas_hourly():
 
 def test_download_usgs_streamflow(camels):
     sites_id = camels.read_object_ids().tolist()
-    date_range = ("2015-01-01", "2021-12-31")
+    date_range = ("2020-10-01", "2021-10-01")
     gage_dict = camels.camels_sites
-    save_dir = os.path.join("test_data", "camels_streamflow")
+    save_dir = os.path.join("test_data", "camels_streamflow_2021")
     unit = "cfs"
     qobs = read_usgs_daily_flow(sites_id, date_range, gage_dict, save_dir, unit)
     print(qobs)

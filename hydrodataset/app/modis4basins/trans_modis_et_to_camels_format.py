@@ -29,6 +29,8 @@ from hydrodataset.modis4basins.basin_mod16a2v006_process import (
 
 def main(args):
     dataset_name = args.dataset_name
+    camels_name = args.camels_name
+    camels_region = args.camels_region
     modis_et_dir = args.input_dir
     output_dir = args.output_dir
     if not os.path.isdir(modis_et_dir):
@@ -40,22 +42,21 @@ def main(args):
     assert int(args.year_range[0]) < int(args.year_range[1])
     years = list(range(int(args.year_range[0]), int(args.year_range[1])))
 
-    region = "camels"
-    camels = Camels(os.path.join(definitions.DATASET_DIR, "camels", "camels_us"))
+    camels = Camels(os.path.join(definitions.DATASET_DIR, "camels", camels_region), region=camels_name)
     gage_dict = camels.camels_sites.to_dict(orient="list")
 
     for i in tqdm(range(len(years)), leave=False):
         if dataset_name == "PML_V2":
             trans_8day_pmlv2_to_camels_format(
-                modis_et_dir, output_dir, gage_dict, region, years[i]
+                modis_et_dir, output_dir, gage_dict, camels_region, years[i]
             )
         elif dataset_name == "MOD16A2_105":
             trans_8day_modis16a2v105_to_camels_format(
-                modis_et_dir, output_dir, gage_dict, region, years[i]
+                modis_et_dir, output_dir, gage_dict, camels_region, years[i]
             )
         elif dataset_name == "MOD16A2_006":
             trans_8day_modis16a2v006_to_camels_format(
-                modis_et_dir, output_dir, gage_dict, region, years[i]
+                modis_et_dir, output_dir, gage_dict, camels_region, years[i]
             )
         else:
             raise FileNotFoundError(
@@ -81,17 +82,31 @@ if __name__ == "__main__":
         type=str,
     )
     parser.add_argument(
+        "--camels_name",
+        dest="camels_name",
+        help="name of the region: US/CC/AUS/...",
+        default="CC",
+        type=str,
+    )
+    parser.add_argument(
+        "--camels_region",
+        dest="camels_region",
+        help="the region",
+        default="camels_cc",
+        type=str,
+    )
+    parser.add_argument(
         "--input_dir",
         dest="input_dir",
         help="The directory of downloaded ET data",
-        default="/mnt/sdc/owen/datasets/MOD16A2_006",
+        default="D:/data/MOD16A2_006_CC",
         type=str,
     )
     parser.add_argument(
         "--output_dir",
         dest="output_dir",
         help="The directory of transformed data",
-        default="/mnt/sdc/owen/datasets/MOD16A2_006_CAMELS",
+        default="D:/data/modiset4camels/basin_mean_forcing/MOD16A2_006_CAMELS_CC",
         type=str,
     )
     parser.add_argument(
