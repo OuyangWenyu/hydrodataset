@@ -1,7 +1,6 @@
 """
 Process MODIS16A2.006 ET data for basins
 """
-import datetime
 import fnmatch
 import os
 import numpy as np
@@ -69,7 +68,7 @@ def trans_8day_modis16a2v006_to_camels_format(
     elif "huc_02" in gage_dict.keys():
         huc02_key = "huc_02"
     else:
-        raise NotImplementedError("No such huc02 id")
+        huc02_key = None
 
     # because this function only work for one year and one region, it's better to chose avg and sum files at first
     for f_name in os.listdir(modis16a2v006_dir):
@@ -101,12 +100,13 @@ def trans_8day_modis16a2v006_to_camels_format(
         # concat
         new_data_df = pd.concat([year_month_day_hour, data_df], axis=1)
         # output the result
-        huc_id = gage_dict[huc02_key][i_basin]
-        output_huc_dir = os.path.join(output_dir, huc_id)
-        if not os.path.isdir(output_huc_dir):
-            os.makedirs(output_huc_dir)
+        if huc02_key is not None:
+            huc_id = gage_dict[huc02_key][i_basin]
+            output_dir = os.path.join(output_dir, huc_id)
+        if not os.path.isdir(output_dir):
+            os.makedirs(output_dir)
         output_file = os.path.join(
-            output_huc_dir,
+            output_dir,
             gage_dict[gage_id_key][i_basin] + "_lump_modis16a2v006_et.txt",
         )
         print(

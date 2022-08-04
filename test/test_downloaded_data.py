@@ -407,3 +407,13 @@ def test_tif_basin_mean(camels):
         )
     basins_shp_file = camels.data_source_description["CAMELS_BASINS_SHP_FILE"]
     print(calculate_tif_data_basin_mean(eta_tif_files, basins_shp_file))
+
+
+def test_read_camels_streaflow(camels):
+    sites_id = np.array(['01594950', '02112120', '02112360', '02125000', '02342933',
+                         '02430615', '02464146', '02464360', '03049000', '03238500',
+                         '03338780', '03500240', '03592718', '04127918', '04161580',
+                         '04233000', '06154410', '06291500', '09035800', '10336740',
+                         '12010000', '12147500', '12383500', '12388400'])
+    streamflow = camels.read_target_cols(sites_id, ["2014-04-01", "2021-10-01"], ["usgsFlow"])
+    print(streamflow)

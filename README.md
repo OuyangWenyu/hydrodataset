@@ -1,4 +1,6 @@
-# HydroDataset
+# HydroDatasets
+
+## What's HydroDatasets
 
 HydroDataset is designed to help (1) find, (2) get, (3) visualize, and (4) format disparate earth systems data through a
 core language (Python) for watershed hydrological modeling.
@@ -234,7 +236,7 @@ Data could be downloaded from these sources. Unzip and put them in the "hydromap
 Use environment.yml to create conda environment:
 
 ```Shell
-conda env create -f environment.yml
+mamba env create -f environment.yml
 conda activate HydroDataset
 ```
 

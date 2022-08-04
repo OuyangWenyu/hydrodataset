@@ -42,7 +42,7 @@ hydro_logger = get_hydro_logger("HydroBench")
 
 # ------------------------------------------------progress bar----------------------------------------------------
 def provide_progress_bar(
-    function, estimated_time, tstep=0.2, tqdm_kwargs={}, args=[], kwargs={}
+        function, estimated_time, tstep=0.2, tqdm_kwargs={}, args=[], kwargs={}
 ):
     """Tqdm wrapper for a long-running function
 
@@ -330,6 +330,17 @@ def unserialize_geopandas(my_file):
 
 
 # -------------------------------------------------time & date tools--------------------------------------------------
+def t2str(t_: Union[str, dt.datetime]):
+    if type(t_) is str:
+        t_str = dt.datetime.strptime(t_, "%Y-%m-%d")
+        return t_str
+    elif type(t_) is dt.datetime:
+        t = t_.strftime("%Y-%m-%d")
+        return t
+    else:
+        raise NotImplementedError("We don't support this data type yet")
+
+
 def t2dt(t, hr=False):
     t_out = None
     if type(t) is int:
@@ -420,9 +431,9 @@ def t_range_to_julian(t_range):
 
 
 def utc_to_local(
-    utc_time: Union[str, np.datetime64],
-    local_tz: str = "Asia/Hong_Kong",
-    time_format="%Y-%m-%dT%H:%M:%S",
+        utc_time: Union[str, np.datetime64],
+        local_tz: str = "Asia/Hong_Kong",
+        time_format="%Y-%m-%dT%H:%M:%S",
 ):
     """
     Transform UTC time to local time.
