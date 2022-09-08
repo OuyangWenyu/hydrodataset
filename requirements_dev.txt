@@ -2,12 +2,17 @@ pip
 bump2version
 wheel
 watchdog
-flake8
 tox
 coverage
 Sphinx
 twine
 grip
+black
+tqdm
 
 pytest
 pytest-runner
+
+pandas
+
+async-retriever
