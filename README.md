@@ -1,7 +1,7 @@
 <!--
  * @Author: Wenyu Ouyang
  * @Date: 2021-12-05 22:13:21
- * @LastEditTime: 2022-09-08 19:52:53
+ * @LastEditTime: 2022-09-08 20:01:09
  * @LastEditors: Wenyu Ouyang
  * @Description: README for hydrodataset
  * @FilePath: \hydrodataset\README.md
@@ -139,6 +139,7 @@ These functions are about reading attributes/forcing/streamflow data.
 
 ```Python
 import os
+from hydrodataset.camels import Camels
 camels = Camels(data_path=os.path.join("camels", "camels_us"), download=True, region="US")
 ```
 
@@ -148,6 +149,7 @@ It will unzip all downloaded files, and take some minutes, please be patient.
 
 ```Python
 import os
+from hydrodataset.camels import Camels
 # default is False
 camels = Camels(data_path=os.path.join("camels", "camels_us"), region="US")
 ```
