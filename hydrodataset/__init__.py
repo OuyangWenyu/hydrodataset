@@ -1,7 +1,7 @@
 """
 Author: Wenyu Ouyang
 Date: 2022-09-05 23:20:24
-LastEditTime: 2022-09-07 10:07:47
+LastEditTime: 2022-09-08 14:44:13
 LastEditors: Wenyu Ouyang
 Description: set file dir
 FilePath: \hydrodataset\hydrodataset\__init__.py
@@ -12,7 +12,7 @@ import os
 
 __author__ = """Wenyu Ouyang"""
 __email__ = "wenyuouyang@outlook.com"
-__version__ = "0.0.1"
+__version__ = '0.0.1'
 
 # we use a .hydrodataset dir to save the setting
 # more file/dir operations could be seen in:
