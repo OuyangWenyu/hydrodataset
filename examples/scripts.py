@@ -1,13 +1,12 @@
 """
 Author: Wenyu Ouyang
 Date: 2022-09-06 23:42:46
-LastEditTime: 2022-09-08 14:35:49
+LastEditTime: 2022-09-08 18:28:33
 LastEditors: Wenyu Ouyang
 Description: examples for using hydrodataset
 FilePath: \hydrodataset\examples\scripts.py
 Copyright (c) 2021-2022 Wenyu Ouyang. All rights reserved.
 """
-import sys
 import os
 import numpy as np
 

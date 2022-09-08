@@ -1,7 +1,7 @@
 """
 Author: Wenyu Ouyang
 Date: 2022-09-06 16:53:45
-LastEditTime: 2022-09-08 14:37:12
+LastEditTime: 2022-09-08 19:28:44
 LastEditors: Wenyu Ouyang
 Description: util functions
 FilePath: \hydrodataset\hydrodataset\hydro_utils.py
@@ -59,7 +59,8 @@ def zip_extract(the_dir) -> None:
     """Extract the downloaded zip files in the_dir"""
     for f in the_dir.glob("*.zip"):
         with zipfile.ZipFile(f) as zf:
-            zf.extractall(the_dir)
+            # extract files to a directory named by f.stem
+            zf.extractall(the_dir.joinpath(f.stem))
 
 
 def t_range_days(t_range, *, step=np.timedelta64(1, "D")):
