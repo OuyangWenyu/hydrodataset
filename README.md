@@ -33,7 +33,7 @@ for example:
 
 ```Bash
 # xxx is your env's name, such as hydrodataset
-conda env create -n xxx python=3.10
+conda create -n xxx python=3.10
 # activate the env
 conda activate xxx
 # install hydrodataset
