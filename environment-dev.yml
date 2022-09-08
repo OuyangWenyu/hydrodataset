@@ -1,0 +1,26 @@
+name: hydrodataset
+channels:
+  - conda-forge
+  - defaults
+dependencies:
+  # dev tools 
+  - pip
+  - bump2version
+  - wheel
+  - watchdog
+  - tox
+  - coverage
+  - Sphinx
+  - twine
+  - grip
+  - black
+  - tqdm
+
+  - pytest
+  - pytest-runner
+
+  # data tools
+  - pandas
+
+  # request tools
+  - async-retriever
