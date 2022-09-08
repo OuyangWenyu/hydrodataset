@@ -1,7 +1,7 @@
 <!--
  * @Author: Wenyu Ouyang
  * @Date: 2021-12-05 22:13:21
- * @LastEditTime: 2022-09-08 19:44:05
+ * @LastEditTime: 2022-09-08 19:52:53
  * @LastEditors: Wenyu Ouyang
  * @Description: README for hydrodataset
  * @FilePath: \hydrodataset\README.md
@@ -51,11 +51,11 @@ Now we only support auto-downloading for CAMELS-US (later for others), but I hig
 
 the download links:
 
-- [CAMELS-AUS (Australia)]()
-- [CAMELS-BR (Brazil)]()
-- [CAMELS-CL (Chile)]()
-- [CAMELS-GB (Great Britain)]()
-- [CAMELS-US (United States)]()
+- [CAMELS-AUS (Australia)](https://doi.pangaea.de/10.1594/PANGAEA.921850)
+- [CAMELS-BR (Brazil)](https://zenodo.org/record/3964745#.YNsjKOgzbIU)
+- [CAMELS-CL (Chile)](https://doi.pangaea.de/10.1594/PANGAEA.894885)
+- [CAMELS-GB (Great Britain)](https://doi.org/10.5285/8344e4f3-d2ea-44f5-8afa-86d2987543a9)
+- [CAMELS-US (United States)](https://gdex.ucar.edu/dataset/camels)
 
 put these downloaded files in the directory organized as follows:
 
