@@ -1,12 +1,15 @@
 """
 Author: Wenyu Ouyang
 Date: 2022-01-05 18:01:11
-LastEditTime: 2022-09-07 14:38:23
+LastEditTime: 2022-09-24 22:11:12
 LastEditors: Wenyu Ouyang
 Description: Read Camels Series ("AUStralia", "BRazil", "ChiLe", "GreatBritain", "UnitedStates") datasets
 FilePath: \hydrodataset\hydrodataset\camels.py
 Copyright (c) 2021-2022 Wenyu Ouyang. All rights reserved.
 """
+from functools import cache
+import json
+from select import select
 import warnings
 import collections
 import fnmatch
@@ -19,8 +22,7 @@ from pandas.core.dtypes.common import is_string_dtype, is_numeric_dtype
 from pathlib import Path
 from urllib.request import urlopen
 from tqdm import tqdm
-from hydrodataset import hydro_utils
-from hydrodataset.hydro_dataset import HydroDataset
+from hydrodataset import CACHE_DIR, hydro_utils, HydroDataset
 
 CAMELS_REGIONS = ["AUS", "BR", "CL", "GB", "US"]
 CAMELS_NO_DATASET_ERROR_LOG = (
@@ -1399,3 +1401,66 @@ class Camels(HydroDataset):
             )
         else:
             raise NotImplementedError(CAMELS_NO_DATASET_ERROR_LOG)
+
+    def cache_forcing(self):
+        """
+        Save all daymet basin-forcing data in a numpy array file in the cache directory.
+
+        Because it takes much time to read data from txt files,
+        it is a good way to cache data as a numpy file to speed up the reading.
+        In addition, we need a document to explain the meaning of all dimensions.
+        """
+        cache_npy_file = CACHE_DIR.joinpath("camels_daymet_forcing.npy")
+        json_file = CACHE_DIR.joinpath("camels_daymet_forcing.json")
+        variables = self.get_relevant_cols()
+        basins = self.camels_sites["gauge_id"].values
+        daymet_t_range = ["1980-01-01", "2015-01-01"]
+        times = [
+            hydro_utils.t2str(tmp)
+            for tmp in hydro_utils.t_range_days(daymet_t_range).tolist()
+        ]
+        data_info = collections.OrderedDict(
+            {
+                "dim": ["basin", "time", "variable"],
+                "basin": basins.tolist(),
+                "time": times,
+                "variable": variables.tolist(),
+            }
+        )
+        with open(json_file, "w") as FP:
+            json.dump(data_info, FP, indent=4)
+        data = self.read_relevant_cols(
+            gage_id_lst=basins.tolist(),
+            t_range=daymet_t_range,
+            var_lst=variables.tolist(),
+        )
+        np.save(cache_npy_file, data)
+
+    def cache_streamflow(self):
+        """
+        Save all basins' streamflow data in a numpy array file in the cache directory.
+        """
+        cache_npy_file = CACHE_DIR.joinpath("camels_streamflow.npy")
+        json_file = CACHE_DIR.joinpath("camels_streamflow.json")
+        variables = self.get_target_cols()
+        basins = self.camels_sites["gauge_id"].values
+        t_range = ["1980-01-01", "2015-01-01"]
+        times = [
+            hydro_utils.t2str(tmp) for tmp in hydro_utils.t_range_days(t_range).tolist()
+        ]
+        data_info = collections.OrderedDict(
+            {
+                "dim": ["basin", "time", "variable"],
+                "basin": basins.tolist(),
+                "time": times,
+                "variable": variables.tolist(),
+            }
+        )
+        with open(json_file, "w") as FP:
+            json.dump(data_info, FP, indent=4)
+        data = self.read_target_cols(
+            gage_id_lst=basins,
+            t_range=t_range,
+            target_cols=variables,
+        )
+        np.save(cache_npy_file, data)

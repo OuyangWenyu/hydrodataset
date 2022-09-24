@@ -1,7 +1,7 @@
 """
 Author: Wenyu Ouyang
 Date: 2022-09-05 23:20:24
-LastEditTime: 2022-09-08 14:44:13
+LastEditTime: 2022-09-24 21:13:36
 LastEditors: Wenyu Ouyang
 Description: set file dir
 FilePath: \hydrodataset\hydrodataset\__init__.py
@@ -31,7 +31,7 @@ if not hydrodataset_setting_file.is_file():
         os.path.join(sys_root_dir, "data", "hydrodataset")
     )
 hydrodataset_root_dir = Path(hydrodataset_setting_file.read_text())
-if not hydrodataset_root_dir.is_dir():
+if not os.path.isdir(hydrodataset_root_dir):
     try:
         hydrodataset_root_dir.mkdir(parents=True)
     except PermissionError:
@@ -45,3 +45,5 @@ if not hydrodataset_root_dir.is_dir():
 # set some constants for hydrodataset
 ROOT_DIR = hydrodataset_root_dir
 CACHE_DIR = hydrodataset_cache_dir
+from .hydro_dataset import *
+from .camels import *
