@@ -1,16 +1,18 @@
 """
 Author: Wenyu Ouyang
 Date: 2022-09-05 23:20:24
-LastEditTime: 2022-09-08 14:30:18
+LastEditTime: 2022-09-24 22:12:46
 LastEditors: Wenyu Ouyang
 Description: Tests for `hydrodataset` package
 FilePath: \hydrodataset\test\test_camels.py
 Copyright (c) 2021-2022 Wenyu Ouyang. All rights reserved.
 """
 import io
+import sys
 import async_retriever as ar
 
 from hydrodataset import CACHE_DIR
+from hydrodataset import Camels
 
 
 def test_binary():
@@ -27,3 +29,8 @@ def test_stream():
     url = "https://gdex.ucar.edu/dataset/camels/file/basin_set_full_res.zip"
     temp_name = CACHE_DIR.joinpath("basin_set_full_res.zip")
     ar.stream_write([url], [temp_name])
+
+
+def test_cache():
+    camels = Camels()
+    camels.cache_streamflow()
