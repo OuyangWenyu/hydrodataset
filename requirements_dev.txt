@@ -14,5 +14,6 @@ pytest
 pytest-runner
 
 pandas
+xarray
 
 async-retriever

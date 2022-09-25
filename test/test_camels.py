@@ -1,7 +1,7 @@
 """
 Author: Wenyu Ouyang
 Date: 2022-09-05 23:20:24
-LastEditTime: 2022-09-24 22:12:46
+LastEditTime: 2022-09-25 11:40:11
 LastEditors: Wenyu Ouyang
 Description: Tests for `hydrodataset` package
 FilePath: \hydrodataset\test\test_camels.py
@@ -33,4 +33,4 @@ def test_stream():
 
 def test_cache():
     camels = Camels()
-    camels.cache_streamflow()
+    camels.cache_forcing_xrdataset()

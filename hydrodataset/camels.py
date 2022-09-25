@@ -1,13 +1,14 @@
 """
 Author: Wenyu Ouyang
 Date: 2022-01-05 18:01:11
-LastEditTime: 2022-09-24 22:11:12
+LastEditTime: 2022-09-25 11:38:53
 LastEditors: Wenyu Ouyang
 Description: Read Camels Series ("AUStralia", "BRazil", "ChiLe", "GreatBritain", "UnitedStates") datasets
 FilePath: \hydrodataset\hydrodataset\camels.py
 Copyright (c) 2021-2022 Wenyu Ouyang. All rights reserved.
 """
 from functools import cache
+from genericpath import isfile
 import json
 from select import select
 import warnings
@@ -1402,13 +1403,15 @@ class Camels(HydroDataset):
         else:
             raise NotImplementedError(CAMELS_NO_DATASET_ERROR_LOG)
 
-    def cache_forcing(self):
+    def cache_forcing_np_json(self):
         """
         Save all daymet basin-forcing data in a numpy array file in the cache directory.
 
         Because it takes much time to read data from txt files,
         it is a good way to cache data as a numpy file to speed up the reading.
         In addition, we need a document to explain the meaning of all dimensions.
+
+        TODO: now only support CAMELS-US
         """
         cache_npy_file = CACHE_DIR.joinpath("camels_daymet_forcing.npy")
         json_file = CACHE_DIR.joinpath("camels_daymet_forcing.json")
@@ -1436,9 +1439,11 @@ class Camels(HydroDataset):
         )
         np.save(cache_npy_file, data)
 
-    def cache_streamflow(self):
+    def cache_streamflow_np_json(self):
         """
-        Save all basins' streamflow data in a numpy array file in the cache directory.
+        Save all basins' streamflow data in a numpy array file in the cache directory
+
+        TODO: now only support CAMELS-US
         """
         cache_npy_file = CACHE_DIR.joinpath("camels_streamflow.npy")
         json_file = CACHE_DIR.joinpath("camels_streamflow.json")
@@ -1464,3 +1469,110 @@ class Camels(HydroDataset):
             target_cols=variables,
         )
         np.save(cache_npy_file, data)
+
+    def cache_attributes_feather(self):
+        """Convert all the attributes to a single dataframe
+        TODO: now only support CAMELS-US
+
+        Returns
+        -------
+        None
+        """
+        attr_files = self.data_source_dir.glob("camels_*.txt")
+        attrs = {
+            f.stem.split("_")[1]: pd.read_csv(
+                f, sep=";", index_col=0, dtype={"huc_02": str, "gauge_id": str}
+            )
+            for f in attr_files
+        }
+
+        attrs_df = pd.concat(attrs.values(), axis=1)
+
+        def fix_station_nm(station_nm):
+            name = station_nm.title().rsplit(" ", 1)
+            name[0] = name[0] if name[0][-1] == "," else f"{name[0]},"
+            name[1] = name[1].replace(".", "")
+            return " ".join(
+                (name[0], name[1].upper() if len(name[1]) == 2 else name[1].title())
+            )
+
+        attrs_df["gauge_name"] = [fix_station_nm(n) for n in attrs_df["gauge_name"]]
+        obj_cols = attrs_df.columns[attrs_df.dtypes == "object"]
+        for c in obj_cols:
+            attrs_df[c] = attrs_df[c].str.strip().astype(str)
+        cache_attrs_df_file = CACHE_DIR.joinpath("camels_attributes_v2.0.feather")
+        attrs_df.reset_index().to_feather(cache_attrs_df_file)
+
+    def cache_streamflow_xrdataset(self):
+        """Save all basins' streamflow data in a netcdf file in the cache directory
+
+        TODO: ONLY SUPPORT CAMELS-US now
+        """
+        cache_npy_file = CACHE_DIR.joinpath("camels_streamflow.npy")
+        json_file = CACHE_DIR.joinpath("camels_streamflow.json")
+        if (not os.path.isfile(cache_npy_file)) or (not os.path.isfile(json_file)):
+            self.cache_streamflow_np_json()
+        streamflow = np.load(cache_npy_file)
+        with open(json_file, "r") as fp:
+            streamflow_dict = json.load(fp, object_pairs_hook=collections.OrderedDict)
+        import xarray as xr
+
+        basins = streamflow_dict["basin"]
+        times = pd.date_range(
+            streamflow_dict["time"][0], periods=len(streamflow_dict["time"])
+        )
+        streamflow_ds = xr.Dataset(
+            {
+                "streamflow": (
+                    ["basin", "time"],
+                    streamflow.reshape(streamflow.shape[0], streamflow.shape[1]),
+                )
+            },
+            coords={
+                "basin": basins,
+                "time": times,
+            },
+        )
+        streamflow_ds["streamflow"].attrs["units"] = "cfs"
+        streamflow_ds.to_netcdf(CACHE_DIR.joinpath("camels_streamflow.nc"))
+
+    def cache_forcing_xrdataset(self):
+        """Save all daymet basin-forcing data in a netcdf file in the cache directory.
+
+        TODO: ONLY SUPPORT CAMELS-US now
+        """
+        cache_npy_file = CACHE_DIR.joinpath("camels_daymet_forcing.npy")
+        json_file = CACHE_DIR.joinpath("camels_daymet_forcing.json")
+        if (not os.path.isfile(cache_npy_file)) or (not os.path.isfile(json_file)):
+            self.cache_forcing_np_json()
+        daymet_forcing = np.load(cache_npy_file)
+        with open(json_file, "r") as fp:
+            daymet_forcing_dict = json.load(
+                fp, object_pairs_hook=collections.OrderedDict
+            )
+        import xarray as xr
+
+        basins = daymet_forcing_dict["basin"]
+        times = pd.date_range(
+            daymet_forcing_dict["time"][0], periods=len(daymet_forcing_dict["time"])
+        )
+        variables = daymet_forcing_dict["variable"]
+        units = ["s", "mm/day", "W/m2", "mm", "C", "C", "Pa"]
+        forcing_ds = xr.Dataset(
+            data_vars={
+                **{
+                    variables[i]: (
+                        ["basin", "time"],
+                        daymet_forcing[:, :, i],
+                        {"units": units[i]},
+                    )
+                    for i in range(len(variables))
+                }
+            },
+            coords={
+                "basin": basins,
+                "time": times,
+            },
+            attrs={"forcing_type": "daymet"},
+        )
+        forcing_ds.to_netcdf(CACHE_DIR.joinpath("camels_daymet_forcing.nc"))
