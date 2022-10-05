@@ -1,7 +1,7 @@
 """
 Author: Wenyu Ouyang
 Date: 2022-09-06 23:42:46
-LastEditTime: 2022-09-24 21:45:09
+LastEditTime: 2022-10-05 17:57:49
 LastEditors: Wenyu Ouyang
 Description: examples for using hydrodataset
 FilePath: \hydrodataset\examples\scripts.py
@@ -10,7 +10,7 @@ Copyright (c) 2021-2022 Wenyu Ouyang. All rights reserved.
 import os
 import numpy as np
 
-from hydrodataset.camels import Camels
+from hydrodataset import Camels
 
 camels_aus_path = os.path.join("camels", "camels_aus")
 camels_br_path = os.path.join("camels", "camels_br")
@@ -24,7 +24,7 @@ cl_region = "CL"
 gb_region = "GB"
 us_region = "US"
 
-camels_us = Camels(camels_us_path, download=True, region=us_region)
+camels_us = Camels(camels_us_path, download=False, region=us_region)
 gage_ids = camels_us.read_object_ids()
 flows = camels_us.read_target_cols(
     gage_ids[:5], ["2013-01-01", "2014-01-01"], target_cols=["usgsFlow"]
