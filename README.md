@@ -1,7 +1,7 @@
 <!--
  * @Author: Wenyu Ouyang
  * @Date: 2021-12-05 22:13:21
- * @LastEditTime: 2022-09-08 20:01:09
+ * @LastEditTime: 2022-10-05 18:03:53
  * @LastEditors: Wenyu Ouyang
  * @Description: README for hydrodataset
  * @FilePath: \hydrodataset\README.md
@@ -47,7 +47,7 @@ pip install hydrodataset
 
 There are many CAMELS datasets, including CAMELS-AUS (Australia), CAMELS-BR (Brazil), CAMELS-CL (Chile), CAMELS-GB (Great Britain), CAMELS-US (United States).
 
-Now we only support auto-downloading for CAMELS-US (later for others), but I highly recommend you to download them manually, because the downloading is not stable sometimes because of unstable web connection to the servers of these datasets all over the world.
+Now we only support auto-downloading for CAMELS-US (later for others), but I highly recommend you to download them manually, as the downloading is not stable sometimes because of unstable web connection to the servers of these datasets all over the world.
 
 the download links:
 
