@@ -12,7 +12,7 @@ import os
 
 __author__ = """Wenyu Ouyang"""
 __email__ = "wenyuouyang@outlook.com"
-__version__ = '0.0.4'
+__version__ = '0.0.5'
 
 # we use a .hydrodataset dir to save the setting
 # more file/dir operations could be seen in:
