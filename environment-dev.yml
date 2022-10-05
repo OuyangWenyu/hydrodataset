@@ -21,6 +21,7 @@ dependencies:
 
   # data tools
   - pandas
+  - xarray
 
   # request tools
   - async-retriever

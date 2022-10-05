@@ -1,7 +1,7 @@
 """
 Author: Wenyu Ouyang
 Date: 2022-09-05 23:20:24
-LastEditTime: 2022-09-08 14:44:13
+LastEditTime: 2022-10-05 17:52:26
 LastEditors: Wenyu Ouyang
 Description: set file dir
 FilePath: \hydrodataset\hydrodataset\__init__.py
@@ -26,22 +26,22 @@ if not hydrodataset_cache_dir.is_dir():
 hydrodataset_setting_file = hydrodataset_setting_dir.joinpath("settings.txt")
 if not hydrodataset_setting_file.is_file():
     hydrodataset_setting_file.touch(exist_ok=False)
-    sys_root_dir = os.path.abspath(os.sep)
-    hydrodataset_setting_file.write_text(
-        os.path.join(sys_root_dir, "data", "hydrodataset")
-    )
+    # default data dir is cache, user should modify it to his/her own
+    hydrodataset_setting_file.write_text(hydrodataset_cache_dir)
 hydrodataset_root_dir = Path(hydrodataset_setting_file.read_text())
-if not hydrodataset_root_dir.is_dir():
-    try:
+try:
+    if not os.path.isdir(hydrodataset_root_dir):
         hydrodataset_root_dir.mkdir(parents=True)
-    except PermissionError:
-        print(
-            "You cannot create this directory: "
-            + hydrodataset_root_dir
-            + "\n Please change the first line in "
-            + hydrodataset_setting_file
-            + " to a directory you have permission and run the code agian"
-        )
+except PermissionError:
+    print(
+        "You cannot create this directory: "
+        + hydrodataset_root_dir
+        + "\n Please change the first line in "
+        + hydrodataset_setting_file
+        + " to a directory you have permission and run the code agian"
+    )
 # set some constants for hydrodataset
 ROOT_DIR = hydrodataset_root_dir
 CACHE_DIR = hydrodataset_cache_dir
+from .hydro_dataset import *
+from .camels import *
