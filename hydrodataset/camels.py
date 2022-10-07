@@ -1,16 +1,13 @@
 """
 Author: Wenyu Ouyang
 Date: 2022-01-05 18:01:11
-LastEditTime: 2022-09-25 11:38:53
+LastEditTime: 2022-10-07 18:37:34
 LastEditors: Wenyu Ouyang
 Description: Read Camels Series ("AUStralia", "BRazil", "ChiLe", "GreatBritain", "UnitedStates") datasets
 FilePath: \hydrodataset\hydrodataset\camels.py
 Copyright (c) 2021-2022 Wenyu Ouyang. All rights reserved.
 """
-from functools import cache
-from genericpath import isfile
 import json
-from select import select
 import warnings
 import collections
 import fnmatch
