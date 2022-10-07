@@ -1,7 +1,7 @@
 """
 Author: Wenyu Ouyang
 Date: 2022-09-05 23:20:24
-LastEditTime: 2022-10-05 18:19:10
+LastEditTime: 2022-10-07 10:12:34
 LastEditors: Wenyu Ouyang
 Description: set file dir
 FilePath: \hydrodataset\hydrodataset\__init__.py
@@ -12,7 +12,7 @@ import os
 
 __author__ = """Wenyu Ouyang"""
 __email__ = "wenyuouyang@outlook.com"
-__version__ = '0.0.5'
+__version__ = "0.0.5"
 
 # we use a .hydrodataset dir to save the setting
 # more file/dir operations could be seen in:
@@ -35,9 +35,9 @@ try:
 except PermissionError:
     print(
         "You cannot create this directory: "
-        + hydrodataset_root_dir
-        + "\n Please change the first line in "
-        + hydrodataset_setting_file
+        + hydrodataset_root_dir._str
+        + "\nPlease change the first line in "
+        + hydrodataset_setting_file._str
         + " to a directory you have permission and run the code agian"
     )
 # set some constants for hydrodataset
