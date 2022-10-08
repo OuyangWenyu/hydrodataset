@@ -1,7 +1,7 @@
 """
 Author: Wenyu Ouyang
 Date: 2022-09-05 23:20:24
-LastEditTime: 2022-10-07 10:17:57
+LastEditTime: 2022-10-08 14:23:27
 LastEditors: Wenyu Ouyang
 Description: set file dir
 FilePath: \hydrodataset\hydrodataset\__init__.py
@@ -28,7 +28,8 @@ if not hydrodataset_setting_file.is_file():
     hydrodataset_setting_file.touch(exist_ok=False)
     # default data dir is cache, user should modify it to his/her own
     hydrodataset_setting_file.write_text(hydrodataset_cache_dir._str)
-hydrodataset_root_dir = Path(hydrodataset_setting_file.read_text())
+# read first line
+hydrodataset_root_dir = Path(hydrodataset_setting_file.read_text().split("\n")[0])
 try:
     if not os.path.isdir(hydrodataset_root_dir):
         hydrodataset_root_dir.mkdir(parents=True)
