@@ -104,6 +104,9 @@ camels/
 ├─ camels_us/
 │  ├─ basin_set_full_res.zip
 │  ├─ basin_timeseries_v1p2_metForcing_obsFlow.zip
+│  ├─ basin_timeseries_v1p2_modelOutput_daymet.zip
+│  ├─ basin_timeseries_v1p2_modelOutput_maurer.zip
+│  ├─ basin_timeseries_v1p2_modelOutput_nldas.zip
 │  ├─ camels_attributes_v2.0.xlsx
 │  ├─ camels_clim.txt
 │  ├─ camels_geol.txt
