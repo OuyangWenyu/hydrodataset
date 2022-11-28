@@ -55,7 +55,7 @@ the download links:
 - [CAMELS-BR (Brazil)](https://zenodo.org/record/3964745#.YNsjKOgzbIU)
 - [CAMELS-CL (Chile)](https://doi.pangaea.de/10.1594/PANGAEA.894885)
 - [CAMELS-GB (Great Britain)](https://doi.org/10.5285/8344e4f3-d2ea-44f5-8afa-86d2987543a9)
-- [CAMELS-US (United States)](https://gdex.ucar.edu/dataset/camels)
+- [CAMELS-US (United States)](https://gdex.ucar.edu/dataset/camels.html)
 
 put these downloaded files in the directory organized as follows:
 
