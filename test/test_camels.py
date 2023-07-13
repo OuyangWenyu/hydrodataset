@@ -1,10 +1,10 @@
 """
 Author: Wenyu Ouyang
 Date: 2022-09-05 23:20:24
-LastEditTime: 2022-10-05 17:58:41
+LastEditTime: 2023-07-12 20:35:42
 LastEditors: Wenyu Ouyang
 Description: Tests for `hydrodataset` package
-FilePath: \hydrodataset\test\test_camels.py
+FilePath: /hydrodataset/test/test_camels.py
 Copyright (c) 2021-2022 Wenyu Ouyang. All rights reserved.
 """
 import io

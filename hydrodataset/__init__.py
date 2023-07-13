@@ -1,10 +1,10 @@
 """
 Author: Wenyu Ouyang
 Date: 2022-09-05 23:20:24
-LastEditTime: 2022-10-08 14:23:27
+LastEditTime: 2023-07-12 20:54:47
 LastEditors: Wenyu Ouyang
 Description: set file dir
-FilePath: \hydrodataset\hydrodataset\__init__.py
+FilePath: /hydrodataset/hydrodataset/__init__.py
 Copyright (c) 2021-2022 Wenyu Ouyang. All rights reserved.
 """
 from pathlib import Path
@@ -46,3 +46,4 @@ ROOT_DIR = hydrodataset_root_dir
 CACHE_DIR = hydrodataset_cache_dir
 from .hydro_dataset import *
 from .camels import *
+from .camels_series import *
