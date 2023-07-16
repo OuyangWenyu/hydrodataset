@@ -21,7 +21,7 @@ logger = logging.getLogger(__name__)
 
 MetaDataType = Dict[str, Union[str, int, float]]
 
-# TODO rename to to_utcdatetime
+# TODO: A GRDC class that implement the interface of hydrodataset, so that we can use it in the same way as other datasets.
 def get_time(time_iso: str) -> datetime.datetime:
     """Return a datetime in UTC.
     Convert a date string in ISO format to a datetime

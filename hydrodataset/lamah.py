@@ -1,7 +1,7 @@
 """
 Author: Wenyu Ouyang
 Date: 2022-01-05 18:01:11
-LastEditTime: 2022-09-10 10:38:49
+LastEditTime: 2023-07-16 15:03:22
 LastEditors: Wenyu Ouyang
 Description: Read Camels datasets
 FilePath: \hydrodataset\hydrodataset\lamah.py
@@ -17,12 +17,11 @@ import numpy as np
 from pandas.core.dtypes.common import is_string_dtype, is_numeric_dtype
 from tqdm import tqdm
 
-from hydrodataset import hydro_utils
-from hydrodataset.hydro_dataset import HydroDataset
+from hydrodataset import hydro_utils, HydroDataset
 
 
 class Lamah(HydroDataset):
-    def __init__(self, data_path, download=False):
+    def __init__(self, data_path, download=False, region="CE"):
         """
         Initialization for LamaH-CE dataset
 
@@ -32,12 +31,14 @@ class Lamah(HydroDataset):
             where we put the dataset
         download
             if true, download
+        region
+            the region of LamaH-CE, now only CE
         """
         super().__init__(data_path)
         self.data_source_description = self.set_data_source_describe()
         if download:
             self.download_data_source()
-        self.camels_sites = self.read_site_info()
+        self.sites = self.read_site_info()
 
     def get_name(self):
         return "LamaH_CE"
@@ -207,7 +208,7 @@ class Lamah(HydroDataset):
             gage/station ids
         """
         # Not all basins have attributes, so we just chose those with attrs
-        ids = self.camels_sites["ID"].values
+        ids = self.sites["ID"].values
         attr_all_file = os.path.join(
             self.data_source_description["CAMELS_ATTR_DIR"],
             "Catchment_attributes.csv",

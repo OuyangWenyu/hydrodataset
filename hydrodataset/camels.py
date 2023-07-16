@@ -1,7 +1,7 @@
 """
 Author: Wenyu Ouyang
 Date: 2022-01-05 18:01:11
-LastEditTime: 2022-10-07 18:37:34
+LastEditTime: 2023-07-16 16:34:22
 LastEditors: Wenyu Ouyang
 Description: Read Camels Series ("AUStralia", "BRazil", "ChiLe", "GreatBritain", "UnitedStates") datasets
 FilePath: \hydrodataset\hydrodataset\camels.py
@@ -20,9 +20,8 @@ from pandas.core.dtypes.common import is_string_dtype, is_numeric_dtype
 from pathlib import Path
 from urllib.request import urlopen
 from tqdm import tqdm
-from hydrodataset import CACHE_DIR, hydro_utils, HydroDataset
+from hydrodataset import CACHE_DIR, hydro_utils, HydroDataset, CAMELS_REGIONS
 
-CAMELS_REGIONS = ["AUS", "BR", "CL", "GB", "US"]
 CAMELS_NO_DATASET_ERROR_LOG = (
     "We cannot read this dataset now. Please check if you choose correctly:\n"
     + str(CAMELS_REGIONS)
@@ -90,7 +89,7 @@ class Camels(HydroDataset):
         self.data_source_description = self.set_data_source_describe()
         if download:
             self.download_data_source()
-        self.camels_sites = self.read_site_info()
+        self.sites = self.read_site_info()
 
     def get_name(self):
         return "CAMELS_" + self.region
@@ -480,7 +479,7 @@ class Camels(HydroDataset):
                 var_lst.extend(var_lst_temp)
             return np.array(var_lst)
         elif self.region == "CL":
-            camels_cl_attr_data = self.camels_sites
+            camels_cl_attr_data = self.sites
             # exclude station id
             return camels_cl_attr_data.index.values
         elif self.region == "GB":
@@ -517,13 +516,14 @@ class Camels(HydroDataset):
             ):
                 if root == self.data_source_description["CAMELS_FORCING_DIR"]:
                     continue
-                for file in files:
-                    forcing_types.append(file[:-4])
+                forcing_types.extend(
+                    file[:-4] for file in files if file != "ClimaticIndices.csv"
+                )
             return np.array(forcing_types)
         elif self.region == "BR":
             return np.array(
                 [
-                    forcing_dir.split(os.sep)[-1][13:]
+                    str(forcing_dir).split(os.sep)[-1][13:]
                     for forcing_dir in self.data_source_description[
                         "CAMELS_FORCING_DIR"
                     ]
@@ -532,7 +532,7 @@ class Camels(HydroDataset):
         elif self.region == "CL":
             return np.array(
                 [
-                    "_".join(forcing_dir.split(os.sep)[-1].split("_")[2:])
+                    "_".join(str(forcing_dir).split(os.sep)[-1].split("_")[2:])
                     for forcing_dir in self.data_source_description[
                         "CAMELS_FORCING_DIR"
                     ]
@@ -580,14 +580,14 @@ class Camels(HydroDataset):
         elif self.region == "BR":
             return np.array(
                 [
-                    flow_dir.split(os.sep)[-1][13:]
+                    str(flow_dir).split(os.sep)[-1][13:]
                     for flow_dir in self.data_source_description["CAMELS_FLOW_DIR"]
                 ]
             )
         elif self.region == "CL":
             return np.array(
                 [
-                    flow_dir.split(os.sep)[-1][11:]
+                    str(flow_dir).split(os.sep)[-1][11:]
                     for flow_dir in self.data_source_description["CAMELS_FLOW_DIR"]
                 ]
             )
@@ -611,11 +611,11 @@ class Camels(HydroDataset):
             gage/station ids
         """
         if self.region in ["BR", "GB", "US"]:
-            return self.camels_sites["gauge_id"].values
+            return self.sites["gauge_id"].values
         elif self.region == "AUS":
-            return self.camels_sites["station_id"].values
+            return self.sites["station_id"].values
         elif self.region == "CL":
-            station_ids = self.camels_sites.columns.values
+            station_ids = self.sites.columns.values
             # for 7-digit id, replace the space with 0 to get a 8-digit id
             cl_station_ids = [
                 station_id.split(" ")[-1].zfill(8) for station_id in station_ids
@@ -641,7 +641,7 @@ class Camels(HydroDataset):
             streamflow data of one station for a given time range
         """
         logging.debug("reading %s streamflow data before 2015", usgs_id)
-        gage_id_df = self.camels_sites
+        gage_id_df = self.sites
         huc = gage_id_df[gage_id_df["gauge_id"] == usgs_id]["huc_02"].values[0]
         usgs_file = os.path.join(
             self.data_source_description["CAMELS_FLOW_DIR"],
@@ -683,7 +683,7 @@ class Camels(HydroDataset):
             streamflow data of one station for a given time range
         """
         logging.debug("reading %s streamflow data after 2015", usgs_id)
-        gage_id_df = self.camels_sites
+        gage_id_df = self.sites
         huc = gage_id_df[gage_id_df["gauge_id"] == usgs_id]["huc_02"].values[0]
         usgs_file = os.path.join(
             self.data_source_description["CAMELS_FLOW_AFTER2015_DIR"],
@@ -726,9 +726,9 @@ class Camels(HydroDataset):
         """
         logging.debug("reading %s streamflow data", gage_id)
         dir_ = [
-            flow_dir
+            str(flow_dir)
             for flow_dir in self.data_source_description["CAMELS_FLOW_DIR"]
-            if flow_type in flow_dir
+            if flow_type in str(flow_dir)
         ][0]
         if flow_type == "streamflow_mm_selected_catchments":
             flow_type = "streamflow_mm"
@@ -962,7 +962,7 @@ class Camels(HydroDataset):
         chosen_camels_mods = np.full([len(gage_id_lst), nt, len(var_lst)], np.nan)
         count = 0
         for usgs_id in tqdm(gage_id_lst, desc="Read model output data of CAMELS-US"):
-            gage_id_df = self.camels_sites
+            gage_id_df = self.sites
             huc02_ = gage_id_df[gage_id_df["gauge_id"] == usgs_id]["huc_02"].values[0]
             file_path_dir = os.path.join(
                 self.data_source_dir,
@@ -1009,7 +1009,7 @@ class Camels(HydroDataset):
     def read_forcing_gage(self, usgs_id, var_lst, t_range_list, forcing_type="daymet"):
         # data_source = daymet or maurer or nldas
         logging.debug("reading %s forcing data", usgs_id)
-        gage_id_df = self.camels_sites
+        gage_id_df = self.sites
         huc = gage_id_df[gage_id_df["gauge_id"] == usgs_id]["huc_02"].values[0]
 
         data_folder = self.data_source_description["CAMELS_FORCING_DIR"]
@@ -1070,9 +1070,9 @@ class Camels(HydroDataset):
             one type forcing data of a basin in a given time range
         """
         dir_ = [
-            _dir
+            str(_dir)
             for _dir in self.data_source_description["CAMELS_FORCING_DIR"]
-            if var_type in _dir
+            if var_type in str(_dir)
         ][0]
         if var_type in [
             "temperature_min_cpc",
@@ -1210,7 +1210,7 @@ class Camels(HydroDataset):
         var_dict = dict()
         var_lst = list()
         out_lst = list()
-        gage_dict = self.camels_sites
+        gage_dict = self.sites
         if self.region == "US":
             camels_str = "camels_"
             sep_ = ";"
@@ -1413,7 +1413,7 @@ class Camels(HydroDataset):
         cache_npy_file = CACHE_DIR.joinpath("camels_daymet_forcing.npy")
         json_file = CACHE_DIR.joinpath("camels_daymet_forcing.json")
         variables = self.get_relevant_cols()
-        basins = self.camels_sites["gauge_id"].values
+        basins = self.sites["gauge_id"].values
         daymet_t_range = ["1980-01-01", "2015-01-01"]
         times = [
             hydro_utils.t2str(tmp)
@@ -1445,7 +1445,7 @@ class Camels(HydroDataset):
         cache_npy_file = CACHE_DIR.joinpath("camels_streamflow.npy")
         json_file = CACHE_DIR.joinpath("camels_streamflow.json")
         variables = self.get_target_cols()
-        basins = self.camels_sites["gauge_id"].values
+        basins = self.sites["gauge_id"].values
         t_range = ["1980-01-01", "2015-01-01"]
         times = [
             hydro_utils.t2str(tmp) for tmp in hydro_utils.t_range_days(t_range).tolist()
