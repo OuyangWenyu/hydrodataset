@@ -7,17 +7,30 @@ import pandas as pd
 import numpy as np
 from hydrodataset import (
     HydroDataset,
-    CAMELS_REGIONS,
+    DATASETS,
+    REGIONS,
     Camels,
     CAMELS_NO_DATASET_ERROR_LOG,
     hydro_utils,
 )
+from hydrodataset.lamah import Lamah
+
+DATASETS_DICT = {
+    "CAMELS": Camels,
+    "LamaH": Lamah,
+}
 
 
-class CamelsSeries(HydroDataset):
-    """A data source class for multiple camels series datasets"""
+class MultiDatasets(HydroDataset):
+    """A data source class for multiple datasets"""
 
-    def __init__(self, data_path: list, download=False, regions: list = ["US"]):
+    def __init__(
+        self,
+        data_path: list,
+        download=False,
+        datasets: list = None,
+        regions: list = None,
+    ):
         """
 
         Parameters
@@ -26,56 +39,61 @@ class CamelsSeries(HydroDataset):
             the paths of all necessary data
         download:
             if True, download the dataset
+        datasets:
+            a list with multiple datasets
         regions
-            a list with multiple regions
+            a list with multiple regions, each region corresponds to a dataset
         """
+        if regions is None:
+            regions = ["US"]
         if type(regions) != list:
             regions = [regions]
         if type(data_path) != list:
             data_path = [data_path]
-        if not set(regions).issubset(set(["AUS", "BR", "CL", "GB", "US", "CE"])):
-            raise NotImplementedError(
-                'We only support ["AUS", "BR", "CL", "GB", "US", "CE"] now'
-            )
+        if not set(datasets).issubset(set(DATASETS)):
+            raise NotImplementedError("We only support " + DATASETS + " now")
+        if not set(regions).issubset(set(REGIONS)):
+            raise NotImplementedError("We only support " + REGIONS + " now")
         if len(data_path) != len(regions):
             raise RuntimeError("Please choose directory for each region")
         for one_path in data_path:
             super().__init__(one_path)
         self.data_path = data_path
-        if not set(regions).issubset(set(CAMELS_REGIONS)):
-            raise NotImplementedError(
-                "Please chose regions we have already have:\n" + str(CAMELS_REGIONS)
-            )
+        self.datasets = datasets
         self.regions = regions
         self.data_source_description = self.set_data_source_describe()
         if download:
             self.download_data_source()
-        self.camels_sites = self.read_site_info()
-        self.camels_site_region_dict = self.read_site_id_dict()
-        self.camels_streamflow_dict = self.get_target_dict()
-        self.camels_forcing_dict = self.get_relevant_dict()
-        self.camels_attr_dict = self.get_constant_dict()
+        self.sites = self.read_site_info()
+        self.site_region_dict = self.read_site_id_dict()
+        self.streamflow_dict = self.get_target_dict()
+        self.forcing_dict = self.get_relevant_dict()
+        self.attr_dict = self.get_constant_dict()
         self.str_attr_name = ["high_prec_timing", "low_prec_timing", "geol_1st_class"]
 
     def get_name(self):
-        return "CAMELS_SERIES"
+        return "MULTI_DATASETS"
 
     def set_data_source_describe(self) -> collections.OrderedDict:
         describe = collections.OrderedDict({})
         for i in range(len(self.regions)):
-            camels_region = Camels(self.data_path[i], False, region=self.regions[i])
+            region = DATASETS_DICT[self.datasets[i]](
+                self.data_path[i], False, region=self.regions[i]
+            )
             describe = collections.OrderedDict(
-                **describe, **{self.regions[i]: camels_region.data_source_description}
+                **describe, **{self.regions[i]: region.data_source_description}
             )
         return describe
 
     def download_data_source(self):
         for i in range(len(self.regions)):
-            Camels(self.data_path[i], True, region=self.regions[i])
+            DATASETS_DICT[self.datasets[i]](
+                self.data_path[i], True, region=self.regions[i]
+            )
 
     def read_site_info(self) -> collections.OrderedDict:
         """
-        Read the basic information of gages in multiple CAMELS datasets
+        Read the basic information of gages in multiple datasets
 
         Returns
         -------
@@ -83,18 +101,22 @@ class CamelsSeries(HydroDataset):
             basic info of gages for different regions
         """
         site_info = collections.OrderedDict({})
-        for i in range(len(self.regions)):
-            camels_region = Camels(self.data_path[i], False, region=self.regions[i])
+        for i in range(len(self.datasets)):
+            region = DATASETS_DICT[self.datasets[i]](
+                self.data_path[i], False, region=self.regions[i]
+            )
             site_info = collections.OrderedDict(
-                **site_info, **{self.regions[i]: camels_region.read_site_info()}
+                **site_info, **{self.regions[i]: region.read_site_info()}
             )
         return site_info
 
     def read_object_ids(self, object_params=None) -> np.array:
         region_id_lst = []
         for i in range(len(self.regions)):
-            camels = Camels(self.data_path[i], False, region=self.regions[i])
-            region_id_lst = region_id_lst + camels.read_object_ids().tolist()
+            dataset = DATASETS_DICT[self.datasets[i]](
+                self.data_path[i], False, region=self.regions[i]
+            )
+            region_id_lst = region_id_lst + dataset.read_object_ids().tolist()
         region_id_arr = np.array(region_id_lst)
         if np.unique(region_id_arr).size != region_id_arr.size:
             raise RuntimeError(
@@ -105,9 +127,11 @@ class CamelsSeries(HydroDataset):
     def read_site_id_dict(self):
         site_id = collections.OrderedDict({})
         for i in range(len(self.regions)):
-            camels_region = Camels(self.data_path[i], False, region=self.regions[i])
+            region = DATASETS_DICT[self.datasets[i]](
+                self.data_path[i], False, region=self.regions[i]
+            )
             site_id = collections.OrderedDict(
-                **site_id, **{self.regions[i]: camels_region.read_object_ids()}
+                **site_id, **{self.regions[i]: region.read_object_ids()}
             )
         return site_id
 
@@ -139,19 +163,21 @@ class CamelsSeries(HydroDataset):
         flow = np.full((len(object_ids), nt, len(target_cols)), np.nan)
         for i in range(len(self.regions)):
             region_now = self.regions[i]
-            camels = Camels(self.data_path[i], False, region=region_now)
-            flow_dict_map = {target_cols[0]: self.camels_streamflow_dict[region_now]}
+            dataset = DATASETS_DICT[self.datasets[i]](
+                self.data_path[i], False, region=region_now
+            )
+            flow_dict_map = {target_cols[0]: self.streamflow_dict[region_now]}
             in_region_flow_tuple = [
                 (k, value) for k, (key, value) in enumerate(flow_dict_map.items())
             ]
             sites_tuple = [
                 (k, object_ids[k])
                 for k in range(len(object_ids))
-                if object_ids[k] in self.camels_site_region_dict[region_now]
+                if object_ids[k] in self.site_region_dict[region_now]
             ]
             sites_in_this_region = [a_tuple[1] for a_tuple in sites_tuple]
             in_region_flow = [index_attr[1] for index_attr in in_region_flow_tuple]
-            flow_this_region = camels.read_target_cols(
+            flow_this_region = dataset.read_target_cols(
                 sites_in_this_region, t_range_list, in_region_flow
             )
             sites_idx = [a_tuple[0] for a_tuple in sites_tuple]
@@ -184,14 +210,17 @@ class CamelsSeries(HydroDataset):
         forcings = np.full((len(object_ids), nt, len(relevant_cols)), np.nan)
         for i in range(len(self.regions)):
             region_now = self.regions[i]
-            camels = Camels(self.data_path[i], False, region=region_now)
-            region_forcing_all = camels.get_relevant_cols()
+            dataset = DATASETS_DICT[self.datasets[i]](
+                self.data_path[i], False, region=region_now
+            )
+            region_forcing_all = dataset.get_relevant_cols()
             common_forcing_all = self.get_relevant_cols()
-            j_index = []
-            for ii in range(len(relevant_cols)):
-                j_index.append(common_forcing_all.tolist().index(relevant_cols[ii]))
+            j_index = [
+                common_forcing_all.tolist().index(relevant_cols[ii])
+                for ii in range(len(relevant_cols))
+            ]
             forcing_dict_lst = [
-                {relevant_cols[j]: self.camels_forcing_dict[region_now][j_index[j]]}
+                {relevant_cols[j]: self.forcing_dict[region_now][j_index[j]]}
                 for j in range(len(relevant_cols))
             ]
             forcing_dict_map = reduce(
@@ -210,20 +239,20 @@ class CamelsSeries(HydroDataset):
             sites_tuple = [
                 (k, object_ids[k])
                 for k in range(len(object_ids))
-                if object_ids[k] in self.camels_site_region_dict[region_now]
+                if object_ids[k] in self.site_region_dict[region_now]
             ]
             sites_in_this_region = [a_tuple[1] for a_tuple in sites_tuple]
             in_region_forcing = [
                 index_attr[1] for index_attr in in_region_forcing_tuple
             ]
-            forcing1 = camels.read_relevant_cols(
+            forcing1 = dataset.read_relevant_cols(
                 sites_in_this_region, t_range_list, in_region_forcing
             )
             forcing2 = self.read_not_included_forcings(
                 sites_in_this_region,
                 t_range_list,
                 [index_attr[1] for index_attr in not_in_region_forcing_tuple],
-                camels,
+                dataset,
             )
             forcing1_idx = [
                 index_forcing[0] for index_forcing in in_region_forcing_tuple
@@ -251,10 +280,10 @@ class CamelsSeries(HydroDataset):
 
     @staticmethod
     def read_not_included_forcings(
-        sites_id, t_range_list, forcing_cols, camels
+        sites_id, t_range_list, forcing_cols, dataset
     ) -> np.array:
         """
-        read forcings not included in the CAMELS of the region
+        read forcings not included in the dataset of the region
 
         Parameters
         ----------
@@ -264,28 +293,30 @@ class CamelsSeries(HydroDataset):
 
         forcing_cols
 
-        camels
-            camels data source
+        dataset
+            data source
 
 
         Returns
         -------
         np.array
-            forcings not included in original CAMELS
+            forcings not included in original dataset
         """
         nt = hydro_utils.t_range_days(t_range_list).shape[0]
         forcing_data = np.empty([len(sites_id), nt, len(forcing_cols)])
         for i in range(len(forcing_cols)):
             if forcing_cols[i] == "":
                 forcing_data[:, :, i] = np.full((len(sites_id), nt), np.nan)
-            elif forcing_cols[i] == "PET" and camels.get_name() == "CAMELS_US":
-                forcing_data[:, :, i : i + 1] = camels.read_camels_us_model_output_data(
-                    sites_id, t_range_list, ["PET"]
-                )
-            elif forcing_cols[i] == "PET_A" and camels.get_name() == "CAMELS_CE":
+            elif forcing_cols[i] == "PET" and dataset.get_name() == "CAMELS_US":
                 forcing_data[
                     :, :, i : i + 1
-                ] = camels.read_lamah_hydro_model_time_series(
+                ] = dataset.read_camels_us_model_output_data(
+                    sites_id, t_range_list, ["PET"]
+                )
+            elif forcing_cols[i] == "PET_A" and dataset.get_name() == "LamaH_CE":
+                forcing_data[
+                    :, :, i : i + 1
+                ] = dataset.read_lamah_hydro_model_time_series(
                     sites_id, t_range_list, ["PET_A"]
                 )
         return forcing_data
@@ -312,22 +343,25 @@ class CamelsSeries(HydroDataset):
         """
         attrs = np.full((len(object_ids), len(constant_cols)), np.nan)
         str_attr_dict = {}
-        for i in range(len(constant_cols)):
-            if constant_cols[i] in self.str_attr_name:
+        for constant_col in constant_cols:
+            if constant_col in self.str_attr_name:
                 str_attr_dict = {
                     **str_attr_dict,
-                    **{constant_cols[i]: np.empty(len(object_ids)).astype(str)},
+                    **{constant_col: np.empty(len(object_ids)).astype(str)},
                 }
         for i in range(len(self.regions)):
             region_now = self.regions[i]
-            camels = Camels(self.data_path[i], False, region=region_now)
-            region_attr_all = camels.get_constant_cols()
+            dataset = DATASETS_DICT[self.datasets[i]](
+                self.data_path[i], False, region=region_now
+            )
+            region_attr_all = dataset.get_constant_cols()
             common_attr_all = self.get_constant_cols()
-            j_index = []
-            for ii in range(len(constant_cols)):
-                j_index.append(common_attr_all.tolist().index(constant_cols[ii]))
+            j_index = [
+                common_attr_all.tolist().index(constant_col_)
+                for constant_col_ in constant_cols
+            ]
             constant_dict_lst = [
-                {constant_cols[j]: self.camels_attr_dict[region_now][j_index[j]]}
+                {constant_cols[j]: self.attr_dict[region_now][j_index[j]]}
                 for j in range(len(constant_cols))
             ]
             constant_dict_map = reduce(
@@ -346,7 +380,7 @@ class CamelsSeries(HydroDataset):
             sites_tuple = [
                 (k, object_ids[k])
                 for k in range(len(object_ids))
-                if object_ids[k] in self.camels_site_region_dict[region_now]
+                if object_ids[k] in self.site_region_dict[region_now]
             ]
             sites_in_this_region = [a_tuple[1] for a_tuple in sites_tuple]
             in_region_attr = [index_attr[1] for index_attr in in_region_attr_tuple]
@@ -354,13 +388,13 @@ class CamelsSeries(HydroDataset):
                 raise NotImplementedError(
                     "Wrong name for attributes, please check your input for attributes"
                 )
-            attrs1, var_dict, f_dict = camels.read_constant_cols(
+            attrs1, var_dict, f_dict = dataset.read_constant_cols(
                 sites_in_this_region, in_region_attr, is_return_dict=True
             )
             attrs2 = self.read_not_included_attrs(
                 sites_in_this_region,
                 [index_attr[1] for index_attr in not_in_region_attr_tuple],
-                camels,
+                dataset,
             )
             attrs1_idx = [index_attr[0] for index_attr in in_region_attr_tuple]
             attrs2_idx = [index_attr[0] for index_attr in not_in_region_attr_tuple]
@@ -376,9 +410,11 @@ class CamelsSeries(HydroDataset):
                     # self.str_attr_name = ["high_prec_timing", "low_prec_timing", "geol_1st_class"]
                     restore_attr = np.array(
                         [
-                            f_dict[list(constant_dict_lst[j].values())[0]][int(tmp)]
-                            if not np.isnan(tmp)
-                            else ""
+                            ""
+                            if np.isnan(tmp)
+                            else f_dict[list(constant_dict_lst[j].values())[0]][
+                                int(tmp)
+                            ]
                             for tmp in attrs_this_region[:, j]
                         ]
                     )
@@ -409,7 +445,7 @@ class CamelsSeries(HydroDataset):
                         "gc_vb_fra",
                         "gc_wb_fra",
                     ]
-                    geo_fracs = camels.read_constant_cols(
+                    geo_fracs = dataset.read_constant_cols(
                         sites_in_this_region, geo_types_names_in_ce
                     )
                     attrs_this_region[:, j] = np.array(
@@ -484,9 +520,9 @@ class CamelsSeries(HydroDataset):
         return attrs
 
     @staticmethod
-    def read_not_included_attrs(sites_id, attr_cols, camels) -> np.array:
+    def read_not_included_attrs(sites_id, attr_cols, dataset) -> np.array:
         """
-        read attributes not included in the CAMELS of the region
+        read attributes not included in the dataset of the region
 
         Parameters
         ----------
@@ -494,14 +530,14 @@ class CamelsSeries(HydroDataset):
 
         attr_cols
 
-        camels
-            a camels class instance
+        dataset
+            a dataset class instance
 
 
         Returns
         -------
         np.array
-            attrs not included in original CAMELS
+            attrs not included in original dataset
         """
         attr_data = np.empty([len(sites_id), len(attr_cols)])
         for i in range(len(attr_cols)):
@@ -509,9 +545,9 @@ class CamelsSeries(HydroDataset):
                 attr_data[:, i] = np.full(len(sites_id), np.nan)
             elif (
                 attr_cols[i] == "dwood_perc+ewood_perc+shrub_perc"
-                and camels.get_name() == "CAMELS_GB"
+                and dataset.get_name() == "CAMELS_GB"
             ):
-                three_perc = camels.read_constant_cols(
+                three_perc = dataset.read_constant_cols(
                     sites_id, ["dwood_perc", "ewood_perc", "shrub_perc"]
                 )
                 attr_data[:, i] = np.sum(three_perc, axis=1)
@@ -555,7 +591,7 @@ class CamelsSeries(HydroDataset):
 
     def get_constant_dict(self) -> collections.OrderedDict:
         """
-        common attribute variables, get their real names in different camels datasets
+        common attribute variables, get their real names in different datasets
 
         Returns
         -------
@@ -771,7 +807,7 @@ class CamelsSeries(HydroDataset):
 
     def get_relevant_dict(self) -> collections.OrderedDict:
         """
-        common forcing variables, get their real names in different camels datasets
+        common forcing variables, get their real names in different datasets
 
         Returns
         -------
@@ -922,7 +958,7 @@ class CamelsSeries(HydroDataset):
 
     def get_target_dict(self) -> collections.OrderedDict:
         """
-        common target variable -- streamflow, get its real name in different camels datasets
+        common target variable -- streamflow, get its real name in different datasets
 
         Returns
         -------
@@ -941,7 +977,7 @@ class CamelsSeries(HydroDataset):
                 streamflow_dict = collections.OrderedDict(
                     **streamflow_dict, **{self.regions[i]: "streamflow_MLd"}
                 )
-            elif self.regions[i] == "BR" or self.regions[i] == "CL":
+            elif self.regions[i] in ["BR", "CL"]:
                 streamflow_dict = collections.OrderedDict(
                     **streamflow_dict, **{self.regions[i]: "streamflow_m3s"}
                 )

@@ -1,10 +1,10 @@
 """
 Author: Wenyu Ouyang
 Date: 2022-09-05 23:20:24
-LastEditTime: 2023-07-12 20:54:47
+LastEditTime: 2023-07-16 14:12:55
 LastEditors: Wenyu Ouyang
 Description: set file dir
-FilePath: /hydrodataset/hydrodataset/__init__.py
+FilePath: \hydrodataset\hydrodataset\__init__.py
 Copyright (c) 2021-2022 Wenyu Ouyang. All rights reserved.
 """
 from pathlib import Path
@@ -12,11 +12,9 @@ import os
 
 __author__ = """Wenyu Ouyang"""
 __email__ = "wenyuouyang@outlook.com"
-__version__ = '0.0.8'
+__version__ = "0.0.8"
 
 # we use a .hydrodataset dir to save the setting
-# more file/dir operations could be seen in:
-# https://zhuanlan.zhihu.com/p/139783331
 hydrodataset_setting_dir = Path.home().joinpath(".hydrodataset")
 if not hydrodataset_setting_dir.is_dir():
     hydrodataset_setting_dir.mkdir(parents=True)
@@ -44,6 +42,15 @@ except PermissionError:
 # set some constants for hydrodataset
 ROOT_DIR = hydrodataset_root_dir
 CACHE_DIR = hydrodataset_cache_dir
+
+# set some constants for datasets
+DATASETS = ["CAMELS", "Caravan", "GRDC", "HYSETS", "LamaH", "MOPEX"]
+CAMELS_REGIONS = ["AUS", "BR", "CL", "GB", "US"]
+LAMAH_REGIONS = ["CE"]
+# For CANOPEX, We don't treat it as a dataset, but a special case for MOPEX. We only have CANOPEX now.
+MOPEX_REGIONS = ["CA"]
+REGIONS = CAMELS_REGIONS + LAMAH_REGIONS + MOPEX_REGIONS
 from .hydro_dataset import *
 from .camels import *
-from .camels_series import *
+from .multi_datasets import *
+from .lamah import *
