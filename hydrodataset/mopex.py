@@ -1,7 +1,7 @@
 """
 Author: Wenyu Ouyang
 Date: 2022-01-05 18:01:11
-LastEditTime: 2022-09-10 10:38:08
+LastEditTime: 2023-07-16 20:16:58
 LastEditors: Wenyu Ouyang
 Description: Read Camels datasets
 FilePath: \hydrodataset\hydrodataset\mopex.py
@@ -81,7 +81,7 @@ class Mopex(HydroDataset):
         camels_config = self.data_source_description
         for f_name in os.listdir(camels_config["CAMELS_DIR"]):
             if fnmatch.fnmatch(f_name, "*.zip"):
-                unzip_dir = os.path.join(camels_config["CAMELS_DIR"], f_name[0:-4])
+                unzip_dir = os.path.join(camels_config["CAMELS_DIR"], f_name[:-4])
                 file_name = os.path.join(camels_config["CAMELS_DIR"], f_name)
                 hydro_utils.unzip_nested_zip(file_name, unzip_dir)
 
@@ -95,8 +95,7 @@ class Mopex(HydroDataset):
             basic info of gages
         """
         camels_file = self.data_source_description["CAMELS_GAUGE_FILE"]
-        data = pd.read_excel(camels_file)
-        return data
+        return pd.read_excel(camels_file)
 
     def get_constant_cols(self) -> np.array:
         """
@@ -107,14 +106,13 @@ class Mopex(HydroDataset):
         np.array
             attribute types
         """
-        data_folder = self.data_source_description["CAMELS_ATTR_DIR"]
         attr_all_file = os.path.join(
             self.data_source_description["CAMELS_DIR"],
             "HYSETS_watershed_properties.txt",
         )
         canopex_attr_indices_data = pd.read_csv(attr_all_file, sep=";")
         # exclude HYSETS watershed id
-        return canopex_attr_indices_data.columns.values[1:]
+        return canopex_attr_indices_data.columns.values[3:]
 
     def get_relevant_cols(self) -> np.array:
         """
@@ -216,7 +214,7 @@ class Mopex(HydroDataset):
             ]["CANOPEX_ID"].values[0]
             flow_file = os.path.join(
                 self.data_source_description["CAMELS_FLOW_DIR"],
-                str(canopex_id) + ".dly",
+                f"{str(canopex_id)}.dly",
             )
             read_flow_file = pd.read_csv(flow_file, header=None).values.tolist()
             flow_data = []
@@ -272,7 +270,7 @@ class Mopex(HydroDataset):
             ]["CANOPEX_ID"].values[0]
             forcing_file = os.path.join(
                 self.data_source_description["CAMELS_FLOW_DIR"],
-                str(canopex_id) + ".dly",
+                f"{str(canopex_id)}.dly",
             )
             read_forcing_file = pd.read_csv(forcing_file, header=None).values.tolist()
 
@@ -367,10 +365,7 @@ class Mopex(HydroDataset):
         ind_grid = [id_lst_all.tolist().index(tmp) for tmp in gage_id_lst]
         temp = attr_all[ind_grid, :]
         out = temp[:, ind_var]
-        if is_return_dict:
-            return out, var_dict, f_dict
-        else:
-            return out
+        return (out, var_dict, f_dict) if is_return_dict else out
 
     def read_basin_area(self, object_ids) -> np.array:
         return self.read_constant_cols(
@@ -386,7 +381,7 @@ class Mopex(HydroDataset):
             ]["CANOPEX_ID"].values[0]
             forcing_file = os.path.join(
                 self.data_source_description["CAMELS_FLOW_DIR"],
-                str(canopex_id) + ".dly",
+                f"{str(canopex_id)}.dly",
             )
             read_forcing_file = pd.read_csv(forcing_file, header=None).values.tolist()
             prcp_data = []
