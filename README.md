@@ -1,7 +1,7 @@
 <!--
  * @Author: Wenyu Ouyang
  * @Date: 2021-12-05 22:13:21
- * @LastEditTime: 2022-10-05 18:03:53
+ * @LastEditTime: 2023-07-18 11:42:59
  * @LastEditors: Wenyu Ouyang
  * @Description: README for hydrodataset
  * @FilePath: \hydrodataset\README.md
@@ -56,6 +56,8 @@ the download links:
 - [CAMELS-CL (Chile)](https://doi.pangaea.de/10.1594/PANGAEA.894885)
 - [CAMELS-GB (Great Britain)](https://doi.org/10.5285/8344e4f3-d2ea-44f5-8afa-86d2987543a9)
 - [CAMELS-US (United States)](https://gdex.ucar.edu/dataset/camels.html)
+- [HYSETS (North America)](https://osf.io/rpc3w/#!)
+- [Caravan (Global)](https://zenodo.org/record/7944025)
 
 put these downloaded files in the directory organized as follows:
 
@@ -115,6 +117,15 @@ camels/
 │  ├─ camels_soil.txt
 │  ├─ camels_topo.txt
 │  ├─ camels_vege.txt
+lamah_ce/
+├─ 2_LamaH-CE_daily
+hysets/
+├─ HYSETS_2020_ERA5Land.nc
+├─ HYSETS_2020_QC_stations.nc
+├─ HYSETS_watershed_boundaries.zip
+├─ HYSETS_watershed_properties.txt
+caravan/
+├─ Caravan.zip
 ```
 
 ### 2. Run the code
