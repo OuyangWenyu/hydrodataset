@@ -1,7 +1,7 @@
 <!--
  * @Author: Wenyu Ouyang
  * @Date: 2021-12-05 22:13:21
- * @LastEditTime: 2023-07-18 11:42:59
+ * @LastEditTime: 2023-07-25 15:13:52
  * @LastEditors: Wenyu Ouyang
  * @Description: README for hydrodataset
  * @FilePath: \hydrodataset\README.md
@@ -45,9 +45,9 @@ pip install hydrodataset
 
 ### 1. Download datasets
 
-There are many CAMELS datasets, including CAMELS-AUS (Australia), CAMELS-BR (Brazil), CAMELS-CL (Chile), CAMELS-GB (Great Britain), CAMELS-US (United States).
+There are many datasets similar to CAMELS(-US), including CAMELS-AUS (Australia), CAMELS-BR (Brazil), CAMELS-CL (Chile), CAMELS-GB (Great Britain), LamaH-CE, HYSETS. Recently, a new dataset named Caravan is released, which is a global dataset.
 
-Now we only support auto-downloading for CAMELS-US (later for others), but I highly recommend you to download them manually, as the downloading is not stable sometimes because of unstable web connection to the servers of these datasets all over the world.
+Now we only support auto-downloading for CAMELS-US (later for others), but I highly recommend you download them manually, as the downloading is not stable sometimes because of unstable web connections to the servers of these datasets in different places in the world.
 
 the download links:
 
@@ -56,6 +56,7 @@ the download links:
 - [CAMELS-CL (Chile)](https://doi.pangaea.de/10.1594/PANGAEA.894885)
 - [CAMELS-GB (Great Britain)](https://doi.org/10.5285/8344e4f3-d2ea-44f5-8afa-86d2987543a9)
 - [CAMELS-US (United States)](https://gdex.ucar.edu/dataset/camels.html)
+- [LamaH-CE (Central Europe)](https://doi.org/10.5281/zenodo.4525244)
 - [HYSETS (North America)](https://osf.io/rpc3w/#!)
 - [Caravan (Global)](https://zenodo.org/record/7944025)
 
@@ -120,7 +121,6 @@ camels/
 lamah_ce/
 ├─ 2_LamaH-CE_daily
 hysets/
-├─ HYSETS_2020_ERA5Land.nc
 ├─ HYSETS_2020_QC_stations.nc
 ├─ HYSETS_watershed_boundaries.zip
 ├─ HYSETS_watershed_properties.txt
@@ -179,9 +179,12 @@ core language (Python) for watershed hydrological modeling.
 
 Now the dataset zoo list includes:
 
-| **Number** | **Dataset** | **Description**                                         | **Format**        |
-| ---------- | ----------- | ------------------------------------------------------- | ----------------- |
-| 1          | **CAMELS**  | CAMELS series datasets including CAMELS-AUS/BR/CL/GB/US | Dataset Directory |
+| **Number** | **Dataset** | **Description**                                         |
+| ---------- | ----------- | ------------------------------------------------------- |
+| 1          | **CAMELS**  | CAMELS series datasets including CAMELS-AUS/BR/CL/GB/US |
+| 2          | **LamaH**   | LamaH-CE dataset for Central Europe                     |
+| 3          | **HYSETS**  | HYSETS dataset for North America                        |
+| 4          | **Caravan** | Caravan dataset for global                              |
 
 ## Credits
 
