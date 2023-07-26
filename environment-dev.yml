@@ -23,6 +23,9 @@ dependencies:
   - pandas
   - xarray
   - scipy
+  - pint
+  - pint-pandas
+  - pint-xarray
 
   # request tools
   - async-retriever

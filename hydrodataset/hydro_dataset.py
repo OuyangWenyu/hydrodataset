@@ -1,7 +1,7 @@
 """
 Author: Wenyu Ouyang
 Date: 2022-09-05 23:20:24
-LastEditTime: 2022-09-07 10:07:34
+LastEditTime: 2023-07-26 14:43:36
 LastEditors: Wenyu Ouyang
 Description: main modules for hydrodataset
 FilePath: \hydrodataset\hydrodataset\hydro_dataset.py
@@ -16,6 +16,8 @@ from hydrodataset import ROOT_DIR
 
 class HydroDataset(ABC):
     """An interface for Hydrological Dataset
+
+    For unit, we use Pint package's unit system -- unit registry
 
     Parameters
     ----------
@@ -78,4 +80,22 @@ class HydroDataset(ABC):
 
     def get_other_cols(self) -> dict:
         """the other cols in this data_source"""
+        raise NotImplementedError
+
+    def cache_xrdataset(self, **kwargs):
+        """cache xarray dataset and pandas feather for faster reading"""
+        raise NotImplementedError
+
+    def read_ts_xrdataset(
+        self,
+        gage_id_lst: list = None,
+        t_range: list = None,
+        var_lst: list = None,
+        **kwargs
+    ):
+        """read time-series xarray dataset"""
+        raise NotImplementedError
+
+    def read_attr_xrdataset(self, gage_id_lst=None, var_lst=None, **kwargs):
+        """read attribute pandas feather"""
         raise NotImplementedError
