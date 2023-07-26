@@ -3,3 +3,6 @@ xarray
 scipy
 async-retriever
 tqdm
+pint
+pint-pandas
+pint-xarray

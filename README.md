@@ -1,7 +1,7 @@
 <!--
  * @Author: Wenyu Ouyang
  * @Date: 2021-12-05 22:13:21
- * @LastEditTime: 2023-07-25 15:13:52
+ * @LastEditTime: 2023-07-26 13:35:41
  * @LastEditors: Wenyu Ouyang
  * @Description: README for hydrodataset
  * @FilePath: \hydrodataset\README.md
@@ -185,6 +185,10 @@ Now the dataset zoo list includes:
 | 2          | **LamaH**   | LamaH-CE dataset for Central Europe                     |
 | 3          | **HYSETS**  | HYSETS dataset for North America                        |
 | 4          | **Caravan** | Caravan dataset for global                              |
+
+For units, we use [pint](https://github.com/hgrecco/pint), and [pint-xarray](https://github.com/xarray-contrib/pint-xarray) to handle them.
+
+We highly recommend you to use [xarray](http://xarray.pydata.org/en/stable/) to read the data, as it is a powerful tool for handling multi-dimensional data. Then, you can see the units of all variables in the xarray dataset.
 
 ## Credits
 
