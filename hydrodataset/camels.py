@@ -1,7 +1,7 @@
 """
 Author: Wenyu Ouyang
 Date: 2022-01-05 18:01:11
-LastEditTime: 2023-07-27 08:20:50
+LastEditTime: 2023-07-27 21:44:47
 LastEditors: Wenyu Ouyang
 Description: Read Camels Series ("AUStralia", "BRazil", "ChiLe", "GreatBritain", "UnitedStates") datasets
 FilePath: \hydrodataset\hydrodataset\camels.py
@@ -1373,7 +1373,7 @@ class Camels(HydroDataset):
         out = temp[:, ind_var]
         return (out, var_dict, f_dict) if is_return_dict else out
 
-    def read_basin_area(self, object_ids) -> np.array:
+    def read_area(self, object_ids) -> np.array:
         if self.region == "US":
             return self.read_constant_cols(
                 object_ids, ["area_gages2"], is_return_dict=False
