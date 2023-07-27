@@ -1,7 +1,7 @@
 """
 Author: Wenyu Ouyang
 Date: 2022-01-05 18:01:11
-LastEditTime: 2023-07-26 16:58:00
+LastEditTime: 2023-07-27 08:20:50
 LastEditors: Wenyu Ouyang
 Description: Read Camels Series ("AUStralia", "BRazil", "ChiLe", "GreatBritain", "UnitedStates") datasets
 FilePath: \hydrodataset\hydrodataset\camels.py
@@ -1658,14 +1658,16 @@ class Camels(HydroDataset):
         var_lst: list = None,
         **kwargs,
     ):
+        if var_lst is None:
+            return None
         ts = xr.open_dataset(CACHE_DIR.joinpath("camelsus_timeseries.nc"))
         all_vars = ts.data_vars
-        if var_lst is None:
-            var_lst = list(all_vars)
         if any(var not in ts.variables for var in var_lst):
             raise ValueError(f"var_lst must all be in {all_vars}")
         return ts[var_lst].sel(basin=gage_id_lst, time=slice(t_range[0], t_range[1]))
 
     def read_attr_xrdataset(self, gage_id_lst=None, var_lst=None, **kwargs):
+        if var_lst is None or len(var_lst) == 0:
+            return None
         attr = xr.open_dataset(CACHE_DIR.joinpath("camelsus_attributes.nc"))
         return attr[var_lst].sel(basin=gage_id_lst)
