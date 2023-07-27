@@ -1,7 +1,7 @@
 """
 Author: Wenyu Ouyang
 Date: 2022-09-05 23:20:24
-LastEditTime: 2023-07-26 14:43:36
+LastEditTime: 2023-07-27 21:44:01
 LastEditors: Wenyu Ouyang
 Description: main modules for hydrodataset
 FilePath: \hydrodataset\hydrodataset\hydro_dataset.py
@@ -98,4 +98,8 @@ class HydroDataset(ABC):
 
     def read_attr_xrdataset(self, gage_id_lst=None, var_lst=None, **kwargs):
         """read attribute pandas feather"""
+        raise NotImplementedError
+    
+    def read_area(self, gage_id_lst=None):
+        """read area of each basin/unit"""
         raise NotImplementedError
