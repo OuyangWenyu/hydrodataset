@@ -1,7 +1,7 @@
 """
 Author: Wenyu Ouyang
 Date: 2022-01-05 18:01:11
-LastEditTime: 2023-07-27 21:44:47
+LastEditTime: 2023-07-27 22:43:25
 LastEditors: Wenyu Ouyang
 Description: Read Camels Series ("AUStralia", "BRazil", "ChiLe", "GreatBritain", "UnitedStates") datasets
 FilePath: \hydrodataset\hydrodataset\camels.py
@@ -1375,9 +1375,7 @@ class Camels(HydroDataset):
 
     def read_area(self, object_ids) -> np.array:
         if self.region == "US":
-            return self.read_constant_cols(
-                object_ids, ["area_gages2"], is_return_dict=False
-            )
+            return self.read_attr_xrdataset(object_ids, ["area_gages2"])
         elif self.region == "AUS":
             return self.read_constant_cols(
                 object_ids, ["catchment_area"], is_return_dict=False
@@ -1499,7 +1497,7 @@ class Camels(HydroDataset):
         for c in obj_cols:
             attrs_df[c] = attrs_df[c].str.strip().astype(str)
         # unify id to basin
-        attrs_df.index.name = 'basin'
+        attrs_df.index.name = "basin"
         # We use xarray dataset to cache all data
         ds_from_df = attrs_df.to_xarray()
         units = [
