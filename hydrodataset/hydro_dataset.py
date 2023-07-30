@@ -99,7 +99,11 @@ class HydroDataset(ABC):
     def read_attr_xrdataset(self, gage_id_lst=None, var_lst=None, **kwargs):
         """read attribute pandas feather"""
         raise NotImplementedError
-    
+
     def read_area(self, gage_id_lst=None):
         """read area of each basin/unit"""
+        raise NotImplementedError
+
+    def read_mean_prcp(self, gage_id_lst=None):
+        """read mean precipitation of each basin/unit"""
         raise NotImplementedError

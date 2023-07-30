@@ -1,7 +1,7 @@
 """
 Author: Wenyu Ouyang
 Date: 2022-01-05 18:01:11
-LastEditTime: 2023-07-27 22:43:25
+LastEditTime: 2023-07-30 09:41:07
 LastEditors: Wenyu Ouyang
 Description: Read Camels Series ("AUStralia", "BRazil", "ChiLe", "GreatBritain", "UnitedStates") datasets
 FilePath: \hydrodataset\hydrodataset\camels.py
@@ -1373,25 +1373,27 @@ class Camels(HydroDataset):
         out = temp[:, ind_var]
         return (out, var_dict, f_dict) if is_return_dict else out
 
-    def read_area(self, object_ids) -> np.array:
+    def read_area(self, gage_id_lst) -> np.array:
         if self.region == "US":
-            return self.read_attr_xrdataset(object_ids, ["area_gages2"])
+            return self.read_attr_xrdataset(gage_id_lst, ["area_gages2"])
         elif self.region == "AUS":
             return self.read_constant_cols(
-                object_ids, ["catchment_area"], is_return_dict=False
+                gage_id_lst, ["catchment_area"], is_return_dict=False
             )
         elif self.region in ["BR", "CL", "GB"]:
-            return self.read_constant_cols(object_ids, ["area"], is_return_dict=False)
+            return self.read_constant_cols(gage_id_lst, ["area"], is_return_dict=False)
         else:
             raise NotImplementedError(CAMELS_NO_DATASET_ERROR_LOG)
 
-    def read_mean_prep(self, object_ids) -> np.array:
+    def read_mean_prcp(self, gage_id_lst) -> np.array:
         if self.region in ["US", "AUS", "BR", "GB"]:
-            return self.read_constant_cols(object_ids, ["p_mean"], is_return_dict=False)
+            if self.region == "US":
+                return self.read_attr_xrdataset(gage_id_lst, ["p_mean"])
+            return self.read_constant_cols(gage_id_lst, ["p_mean"], is_return_dict=False)
         elif self.region == "CL":
             # there are different p_mean values for different forcings, here we chose p_mean_cr2met now
             return self.read_constant_cols(
-                object_ids, ["p_mean_cr2met"], is_return_dict=False
+                gage_id_lst, ["p_mean_cr2met"], is_return_dict=False
             )
         else:
             raise NotImplementedError(CAMELS_NO_DATASET_ERROR_LOG)
