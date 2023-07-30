@@ -1,7 +1,7 @@
 """
 Author: Wenyu Ouyang
 Date: 2022-09-05 23:20:24
-LastEditTime: 2023-07-26 16:48:24
+LastEditTime: 2023-07-30 09:43:02
 LastEditors: Wenyu Ouyang
 Description: Tests for `hydrodataset` package
 FilePath: \hydrodataset\test\test_camels.py
@@ -55,3 +55,10 @@ def test_read_attr_xrdataset():
         var_lst=["soil_conductivity", "elev_mean", "geol_1st_class"],
     )
     print(attr_data)
+
+
+def test_read_mean_prcp():
+    camels = Camels()
+    gage_ids = camels.read_object_ids()
+    mean_prcp = camels.read_mean_prcp(gage_ids[:5])
+    print(mean_prcp)
