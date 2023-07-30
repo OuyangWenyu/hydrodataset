@@ -1,7 +1,7 @@
 """
 Author: Wenyu Ouyang
 Date: 2022-09-05 23:20:24
-LastEditTime: 2023-07-30 09:43:02
+LastEditTime: 2023-07-30 16:17:31
 LastEditors: Wenyu Ouyang
 Description: Tests for `hydrodataset` package
 FilePath: \hydrodataset\test\test_camels.py
@@ -53,6 +53,7 @@ def test_read_attr_xrdataset():
     attr_data = camels.read_attr_xrdataset(
         gage_id_lst=gage_ids[:5],
         var_lst=["soil_conductivity", "elev_mean", "geol_1st_class"],
+        all_number=True
     )
     print(attr_data)
 

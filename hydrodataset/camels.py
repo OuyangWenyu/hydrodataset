@@ -1,7 +1,7 @@
 """
 Author: Wenyu Ouyang
 Date: 2022-01-05 18:01:11
-LastEditTime: 2023-07-30 09:41:07
+LastEditTime: 2023-07-30 16:15:34
 LastEditors: Wenyu Ouyang
 Description: Read Camels Series ("AUStralia", "BRazil", "ChiLe", "GreatBritain", "UnitedStates") datasets
 FilePath: \hydrodataset\hydrodataset\camels.py
@@ -1389,7 +1389,9 @@ class Camels(HydroDataset):
         if self.region in ["US", "AUS", "BR", "GB"]:
             if self.region == "US":
                 return self.read_attr_xrdataset(gage_id_lst, ["p_mean"])
-            return self.read_constant_cols(gage_id_lst, ["p_mean"], is_return_dict=False)
+            return self.read_constant_cols(
+                gage_id_lst, ["p_mean"], is_return_dict=False
+            )
         elif self.region == "CL":
             # there are different p_mean values for different forcings, here we chose p_mean_cr2met now
             return self.read_constant_cols(
@@ -1670,4 +1672,7 @@ class Camels(HydroDataset):
         if var_lst is None or len(var_lst) == 0:
             return None
         attr = xr.open_dataset(CACHE_DIR.joinpath("camelsus_attributes.nc"))
+        if "all_number" in list(kwargs.keys()) and kwargs["all_number"]:
+            attr_num = hydro_utils.map_string_vars(attr)
+            return attr_num[var_lst].sel(basin=gage_id_lst)
         return attr[var_lst].sel(basin=gage_id_lst)
