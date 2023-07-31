@@ -1,10 +1,10 @@
 """
 Author: Wenyu Ouyang
 Date: 2022-01-05 18:01:11
-LastEditTime: 2023-07-30 16:15:34
+LastEditTime: 2023-07-31 10:06:56
 LastEditors: Wenyu Ouyang
 Description: Read Camels Series ("AUStralia", "BRazil", "ChiLe", "GreatBritain", "UnitedStates") datasets
-FilePath: \hydrodataset\hydrodataset\camels.py
+FilePath: /hydrodataset/hydrodataset/camels.py
 Copyright (c) 2021-2022 Wenyu Ouyang. All rights reserved.
 """
 import json
@@ -1505,17 +1505,12 @@ class Camels(HydroDataset):
         # We use xarray dataset to cache all data
         ds_from_df = attrs_df.to_xarray()
         units = [
-            "mm/day",  # p_mean
-            "mm/day",  # pet_mean
-            "dimensionless",  # p_seasonality
-            "dimensionless",  # frac_snow
-            "dimensionless",  # aridity
-            "days/year",  # high_prec_freq
-            "day",  # high_prec_dur
-            "dimensionless",  # high_prec_timing, it is season: spring, summer, fall, winter
-            "days/year",  # low_prec_freq
-            "day",  # low_prec_dur
-            "dimensionless",  # low_prec_timing, season
+            "degrees",  # gauge_lat
+            "degrees",  # gauge_lon
+            "m",  # elev_mean
+            "m/km",  # slope_mean
+            "km^2",  # area_gages2
+            "km^2",  # area_geospa_fabric
             "dimensionless",  # geol_1st_class
             "dimensionless",  # glim_1st_class_frac
             "dimensionless",  # geol_2nd_class
@@ -1523,6 +1518,15 @@ class Camels(HydroDataset):
             "dimensionless",  # carbonate_rocks_frac
             "dimensionless",  # geol_porostiy
             "m^2",  # geol_permeability
+            "dimensionless",  # frac_forest
+            "dimensionless",  # lai_max
+            "dimensionless",  # lai_diff
+            "dimensionless",  # gvf_max
+            "dimensionless",  # gvf_diff
+            "dimensionless",  # dom_land_cover_frac
+            "dimensionless",  # dom_land_cover
+            "m",  # root_depth_50
+            "m",  # root_depth_99
             "mm/day",  # q_mean
             "dimensionless",  # runoff_ratio
             "dimensionless",  # slope_fdc
@@ -1536,8 +1540,6 @@ class Camels(HydroDataset):
             "day",  # low_q_dur
             "percent",  # zero_q_freq
             "dimensionless",  # hfd_mean, day of year
-            "dimensionless",  # huc_02
-            "dimensionless",  # gauge_name
             "m",  # soil_depth_pelletier
             "m",  # soil_depth_statsgo
             "dimensionless",  # soil_porosity
@@ -1549,24 +1551,22 @@ class Camels(HydroDataset):
             "percent",  # water_frac
             "percent",  # organic_frac
             "percent",  # other_frac
-            "degrees",  # gauge_lat
-            "degrees",  # gauge_lon
-            "m",  # elev_mean
-            "m/km",  # slope_mean
-            "km^2",  # area_gages2
-            "km^2",  # area_geospa_fabric
-            "dimensionless",  # frac_forest
-            "dimensionless",  # lai_max
-            "dimensionless",  # lai_diff
-            "dimensionless",  # gvf_max
-            "dimensionless",  # gvf_diff
-            "dimensionless",  # dom_land_cover_frac
-            "dimensionless",  # dom_land_cover
-            "m",  # root_depth_50
-            "m",  # root_depth_99
+            "mm/day",  # p_mean
+            "mm/day",  # pet_mean
+            "dimensionless",  # p_seasonality
+            "dimensionless",  # frac_snow
+            "dimensionless",  # aridity
+            "days/year",  # high_prec_freq
+            "day",  # high_prec_dur
+            "dimensionless",  # high_prec_timing, it is season: spring, summer, fall, winter
+            "days/year",  # low_prec_freq
+            "day",  # low_prec_dur
+            "dimensionless",  # low_prec_timing, season
+            "dimensionless",  # huc_02
+            "dimensionless",  # gauge_name
         ]
         # Assign units to the variables in the Dataset
-        for col, unit in zip(attrs_df.columns, units):
+        for col, unit in zip(list(ds_from_df), units):
             ds_from_df[col].attrs["units"] = unit
         return ds_from_df
 
