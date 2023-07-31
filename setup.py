@@ -3,10 +3,10 @@
 """
 Author: Wenyu Ouyang
 Date: 2022-09-05 23:22:54
-LastEditTime: 2023-07-26 17:54:32
+LastEditTime: 2023-07-31 17:21:05
 LastEditors: Wenyu Ouyang
 Description: The setup script
-FilePath: \hydrodataset\setup.py
+FilePath: /hydrodataset/setup.py
 Copyright (c) 2023-2024 Wenyu Ouyang. All rights reserved.
 """
 
@@ -65,6 +65,6 @@ setup(
     test_suite="tests",
     tests_require=test_requirements,
     url="https://github.com/OuyangWenyu/hydrodataset",
-    version="0.1.0",
+    version='0.1.0',
     zip_safe=False,
 )
