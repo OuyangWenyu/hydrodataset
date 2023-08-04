@@ -1,10 +1,10 @@
 """
 Author: Wenyu Ouyang
 Date: 2022-01-05 18:01:11
-LastEditTime: 2023-07-31 10:06:56
+LastEditTime: 2023-08-04 18:27:18
 LastEditors: Wenyu Ouyang
 Description: Read Camels Series ("AUStralia", "BRazil", "ChiLe", "GreatBritain", "UnitedStates") datasets
-FilePath: /hydrodataset/hydrodataset/camels.py
+FilePath: \hydrodataset\hydrodataset\camels.py
 Copyright (c) 2021-2022 Wenyu Ouyang. All rights reserved.
 """
 import json
@@ -1504,70 +1504,72 @@ class Camels(HydroDataset):
         attrs_df.index.name = "basin"
         # We use xarray dataset to cache all data
         ds_from_df = attrs_df.to_xarray()
-        units = [
-            "degrees",  # gauge_lat
-            "degrees",  # gauge_lon
-            "m",  # elev_mean
-            "m/km",  # slope_mean
-            "km^2",  # area_gages2
-            "km^2",  # area_geospa_fabric
-            "dimensionless",  # geol_1st_class
-            "dimensionless",  # glim_1st_class_frac
-            "dimensionless",  # geol_2nd_class
-            "dimensionless",  # glim_2nd_class_frac
-            "dimensionless",  # carbonate_rocks_frac
-            "dimensionless",  # geol_porostiy
-            "m^2",  # geol_permeability
-            "dimensionless",  # frac_forest
-            "dimensionless",  # lai_max
-            "dimensionless",  # lai_diff
-            "dimensionless",  # gvf_max
-            "dimensionless",  # gvf_diff
-            "dimensionless",  # dom_land_cover_frac
-            "dimensionless",  # dom_land_cover
-            "m",  # root_depth_50
-            "m",  # root_depth_99
-            "mm/day",  # q_mean
-            "dimensionless",  # runoff_ratio
-            "dimensionless",  # slope_fdc
-            "dimensionless",  # baseflow_index
-            "dimensionless",  # stream_elas
-            "mm/day",  # q5
-            "mm/day",  # q95
-            "days/year",  # high_q_freq
-            "day",  # high_q_dur
-            "days/year",  # low_q_freq
-            "day",  # low_q_dur
-            "percent",  # zero_q_freq
-            "dimensionless",  # hfd_mean, day of year
-            "m",  # soil_depth_pelletier
-            "m",  # soil_depth_statsgo
-            "dimensionless",  # soil_porosity
-            "cm/hr",  # soil_conductivity
-            "m",  # max_water_content
-            "percent",  # sand_frac
-            "percent",  # silt_frac
-            "percent",  # clay_frac
-            "percent",  # water_frac
-            "percent",  # organic_frac
-            "percent",  # other_frac
-            "mm/day",  # p_mean
-            "mm/day",  # pet_mean
-            "dimensionless",  # p_seasonality
-            "dimensionless",  # frac_snow
-            "dimensionless",  # aridity
-            "days/year",  # high_prec_freq
-            "day",  # high_prec_dur
-            "dimensionless",  # high_prec_timing, it is season: spring, summer, fall, winter
-            "days/year",  # low_prec_freq
-            "day",  # low_prec_dur
-            "dimensionless",  # low_prec_timing, season
-            "dimensionless",  # huc_02
-            "dimensionless",  # gauge_name
-        ]
+        units_dict = {
+            "gauge_lat": "degrees",
+            "gauge_lon": "degrees",
+            "elev_mean": "m",
+            "slope_mean": "m/km",
+            "area_gages2": "km^2",
+            "area_geospa_fabric": "km^2",
+            "geol_1st_class": "dimensionless",
+            "glim_1st_class_frac": "dimensionless",
+            "geol_2nd_class": "dimensionless",
+            "glim_2nd_class_frac": "dimensionless",
+            "carbonate_rocks_frac": "dimensionless",
+            "geol_porostiy": "dimensionless",
+            "geol_permeability": "m^2",
+            "frac_forest": "dimensionless",
+            "lai_max": "dimensionless",
+            "lai_diff": "dimensionless",
+            "gvf_max": "dimensionless",
+            "gvf_diff": "dimensionless",
+            "dom_land_cover_frac": "dimensionless",
+            "dom_land_cover": "dimensionless",
+            "root_depth_50": "m",
+            "root_depth_99": "m",
+            "q_mean": "mm/day",
+            "runoff_ratio": "dimensionless",
+            "slope_fdc": "dimensionless",
+            "baseflow_index": "dimensionless",
+            "stream_elas": "dimensionless",
+            "q5": "mm/day",
+            "q95": "mm/day",
+            "high_q_freq": "days/year",
+            "high_q_dur": "day",
+            "low_q_freq": "days/year",
+            "low_q_dur": "day",
+            "zero_q_freq": "percent",
+            "hfd_mean": "dimensionless",
+            "soil_depth_pelletier": "m",
+            "soil_depth_statsgo": "m",
+            "soil_porosity": "dimensionless",
+            "soil_conductivity": "cm/hr",
+            "max_water_content": "m",
+            "sand_frac": "percent",
+            "silt_frac": "percent",
+            "clay_frac": "percent",
+            "water_frac": "percent",
+            "organic_frac": "percent",
+            "other_frac": "percent",
+            "p_mean": "mm/day",
+            "pet_mean": "mm/day",
+            "p_seasonality": "dimensionless",
+            "frac_snow": "dimensionless",
+            "aridity": "dimensionless",
+            "high_prec_freq": "days/year",
+            "high_prec_dur": "day",
+            "high_prec_timing": "dimensionless",
+            "low_prec_freq": "days/year",
+            "low_prec_dur": "day",
+            "low_prec_timing": "dimensionless",
+            "huc_02": "dimensionless",
+            "gauge_name": "dimensionless",
+        }
+
         # Assign units to the variables in the Dataset
-        for col, unit in zip(list(ds_from_df), units):
-            ds_from_df[col].attrs["units"] = unit
+        for var_name in units_dict:
+            if var_name in ds_from_df.data_vars:
+                ds_from_df[var_name].attrs["units"] = units_dict[var_name]
         return ds_from_df
 
     def cache_streamflow_xrdataset(self):
