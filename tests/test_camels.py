@@ -1,10 +1,10 @@
 """
 Author: Wenyu Ouyang
 Date: 2022-09-05 23:20:24
-LastEditTime: 2023-07-30 16:17:31
+LastEditTime: 2023-09-20 15:48:07
 LastEditors: Wenyu Ouyang
 Description: Tests for `hydrodataset` package
-FilePath: \hydrodataset\test\test_camels.py
+FilePath: \hydrodataset\tests\test_camels.py
 Copyright (c) 2021-2022 Wenyu Ouyang. All rights reserved.
 """
 import io
@@ -36,6 +36,15 @@ def test_cache():
     camels.cache_xrdataset()
 
 
+def test_read_forcing():
+    camels = Camels()
+    gage_ids = camels.read_object_ids()
+    forcings = camels.read_relevant_cols(
+        gage_ids[:5], ["1980-01-01", "2015-01-01"], var_lst=["dayl", "prcp", "PET"]
+    )
+    print(forcings)
+
+
 def test_read_tsxrdataset():
     camels = Camels()
     gage_ids = camels.read_object_ids()
@@ -53,7 +62,7 @@ def test_read_attr_xrdataset():
     attr_data = camels.read_attr_xrdataset(
         gage_id_lst=gage_ids[:5],
         var_lst=["soil_conductivity", "elev_mean", "geol_1st_class"],
-        all_number=True
+        all_number=True,
     )
     print(attr_data)
 

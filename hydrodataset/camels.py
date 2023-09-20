@@ -1,7 +1,7 @@
 """
 Author: Wenyu Ouyang
 Date: 2022-01-05 18:01:11
-LastEditTime: 2023-08-04 18:27:18
+LastEditTime: 2023-09-20 16:01:22
 LastEditors: Wenyu Ouyang
 Description: Read Camels Series ("AUStralia", "BRazil", "ChiLe", "GreatBritain", "UnitedStates") datasets
 FilePath: \hydrodataset\hydrodataset\camels.py
@@ -507,7 +507,10 @@ class Camels(HydroDataset):
             forcing types
         """
         if self.region == "US":
-            return np.array(["dayl", "prcp", "srad", "swe", "tmax", "tmin", "vp"])
+            # PET is from model_output file in CAMELS-US
+            return np.array(
+                ["dayl", "prcp", "srad", "swe", "tmax", "tmin", "vp", "PET"]
+            )
         elif self.region == "AUS":
             forcing_types = []
             for root, dirs, files in os.walk(
@@ -699,20 +702,10 @@ class Camels(HydroDataset):
         t_lst = hydro_utils.t_range_days(t_range)
         nt = t_lst.shape[0]
         return (
-            self._extracted_from_read_camels_streamflow_33(nt, data_temp, t_lst, obs)
+            self._read_usgs_gage_for_some(nt, data_temp, t_lst, obs)
             if len(obs) != nt
             else obs
         )
-
-    # TODO Rename this here and in `read_camels_streamflow`
-    def _extracted_from_read_camels_streamflow_33(self, nt, data_temp, t_lst, obs):
-        result = np.full([nt], np.nan)
-        df_date = data_temp[[1, 2, 3]]
-        df_date.columns = ["year", "month", "day"]
-        date = pd.to_datetime(df_date).values.astype("datetime64[D]")
-        [C, ind1, ind2] = np.intersect1d(date, t_lst, return_indices=True)
-        result[ind2] = obs[ind1]
-        return result
 
     def read_br_gage_flow(self, gage_id, t_range, flow_type):
         """
@@ -938,18 +931,19 @@ class Camels(HydroDataset):
         forcing_type="daymet",
     ) -> np.array:
         """
-        Read model output data
+        Read model output data of CAMELS-US, including SWE, PRCP, RAIM, TAIR, PET, ET, MOD_RUN, OBS_RUN
+        Date starts from 1980-10-01 to 2014-12-31
 
         Parameters
         ----------
-        gage_id_lst : [type]
-            [description]
-        var_lst : [type]
-            [description]
-        t_range : [type]
-            [description]
+        gage_id_lst : list
+            the station id list
+        var_lst : list
+            the variable list
+        t_range : list
+            the time range, for example, ["1990-01-01", "2000-01-01"]
         forcing_type : str, optional
-            [description], by default "daymet"
+            by default "daymet"
         """
         t_range_list = hydro_utils.t_range_days(t_range)
         model_out_put_var_lst = [
@@ -1024,7 +1018,7 @@ class Camels(HydroDataset):
             data_folder,
             forcing_type,
             huc,
-            "%s_lump_%s_forcing_leap.txt" % (usgs_id, temp_s),
+            f"{usgs_id}_lump_{temp_s}_forcing_leap.txt",
         )
         data_temp = pd.read_csv(data_file, sep=r"\s+", header=None, skiprows=4)
         forcing_lst = [
@@ -1122,10 +1116,29 @@ class Camels(HydroDataset):
             for k in tqdm(
                 range(len(gage_id_lst)), desc="Read forcing data of CAMELS-US"
             ):
-                data = self.read_forcing_gage(
-                    gage_id_lst[k], var_lst, t_range_list, forcing_type=forcing_type
-                )
-                x[k, :, :] = data
+                if "PET" in var_lst:
+                    pet_idx = var_lst.index("PET")
+                    data_pet = self.read_camels_us_model_output_data(
+                        gage_id_lst[k : k + 1], t_range, ["PET"]
+                    )
+                    x[k, :, pet_idx : pet_idx + 1] = data_pet
+                    no_pet_var_lst = [x for x in var_lst if x != "PET"]
+                    data = self.read_forcing_gage(
+                        gage_id_lst[k],
+                        no_pet_var_lst,
+                        t_range_list,
+                        forcing_type=forcing_type,
+                    )
+                    var_indices = [var_lst.index(var) for var in no_pet_var_lst]
+                    x[k : k + 1, :, var_indices] = data
+                else:
+                    data = self.read_forcing_gage(
+                        gage_id_lst[k],
+                        var_lst,
+                        t_range_list,
+                        forcing_type=forcing_type,
+                    )
+                    x[k, :, :] = data
         elif self.region == "AUS":
             for k in tqdm(range(len(var_lst)), desc="Read forcing data of CAMELS-AUS"):
                 if "precipitation_" in var_lst[k]:
@@ -1626,7 +1639,8 @@ class Camels(HydroDataset):
         )
         variables = daymet_forcing_dict["variable"]
         # All units' names are from Pint https://github.com/hgrecco/pint/blob/master/pint/default_en.txt
-        units = ["s", "mm/day", "W/m^2", "mm", "°C", "°C", "Pa"]
+        # final is PET's unit. PET comes from the model output of CAMELS-US
+        units = ["s", "mm/day", "W/m^2", "mm", "°C", "°C", "Pa", "mm/day"]
         return xr.Dataset(
             data_vars={
                 **{
