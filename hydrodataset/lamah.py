@@ -1,7 +1,7 @@
 """
 Author: Wenyu Ouyang
 Date: 2022-01-05 18:01:11
-LastEditTime: 2023-07-16 15:03:22
+LastEditTime: 2023-10-15 14:42:46
 LastEditors: Wenyu Ouyang
 Description: Read Camels datasets
 FilePath: \hydrodataset\hydrodataset\lamah.py
@@ -16,8 +16,8 @@ import pandas as pd
 import numpy as np
 from pandas.core.dtypes.common import is_string_dtype, is_numeric_dtype
 from tqdm import tqdm
-
-from hydrodataset import hydro_utils, HydroDataset
+from hydroutils import hydro_file, hydro_time
+from hydrodataset import HydroDataset
 
 
 class Lamah(HydroDataset):
@@ -113,9 +113,9 @@ class Lamah(HydroDataset):
         file.close()
         for f_name in os.listdir(camels_config["CAMELS_DIR"]):
             if fnmatch.fnmatch(f_name, "*.zip"):
-                unzip_dir = os.path.join(camels_config["CAMELS_DIR"], f_name[0:-4])
+                unzip_dir = os.path.join(camels_config["CAMELS_DIR"], f_name[:-4])
                 file_name = os.path.join(camels_config["CAMELS_DIR"], f_name)
-                hydro_utils.hydro_utils.unzip_nested_zip(file_name, unzip_dir)
+                hydro_file.unzip_nested_zip(file_name, unzip_dir)
 
     def read_site_info(self) -> pd.DataFrame:
         """
@@ -127,8 +127,7 @@ class Lamah(HydroDataset):
             basic info of gages
         """
         camels_file = self.data_source_description["CAMELS_GAUGE_FILE"]
-        data = pd.read_csv(camels_file, sep=";")
-        return data
+        return pd.read_csv(camels_file, sep=";")
 
     def get_constant_cols(self) -> np.array:
         """
@@ -250,13 +249,13 @@ class Lamah(HydroDataset):
             return np.array([])
         else:
             nf = len(target_cols)
-        t_range_list = hydro_utils.t_range_days(t_range)
+        t_range_list = hydro_time.t_range_days(t_range)
         nt = t_range_list.shape[0]
         y = np.full([len(gage_id_lst), nt, nf], np.nan)
         for k in tqdm(range(len(gage_id_lst)), desc="Read streamflow data of LamaH-CE"):
             flow_file = os.path.join(
                 self.data_source_description["CAMELS_FLOW_DIR"],
-                "ID_" + str(gage_id_lst[k]) + ".csv",
+                f"ID_{str(gage_id_lst[k])}.csv",
             )
             flow_data = pd.read_csv(flow_file, sep=";")
             df_date = flow_data[["YYYY", "MM", "DD"]]
@@ -290,7 +289,7 @@ class Lamah(HydroDataset):
         np.array
 
         """
-        t_range_list = hydro_utils.t_range_days(t_range)
+        t_range_list = hydro_time.t_range_days(t_range)
         nt = t_range_list.shape[0]
         x = np.full([len(gage_id_lst), nt, len(var_lst)], np.nan)
         all_ts_types = [
@@ -322,7 +321,7 @@ class Lamah(HydroDataset):
                 "2_LamaH-CE_daily",
                 "F_hydrol_model",
                 "2_timeseries",
-                "ID_" + str(gage_id_lst[k]) + ".csv",
+                f"ID_{str(gage_id_lst[k])}.csv",
             )
             forcing_data = pd.read_csv(forcing_file, sep=";")
             df_date = forcing_data[["YYYY", "MM", "DD"]]
@@ -364,13 +363,13 @@ class Lamah(HydroDataset):
         np.array
             forcing data
         """
-        t_range_list = hydro_utils.t_range_days(t_range)
+        t_range_list = hydro_time.t_range_days(t_range)
         nt = t_range_list.shape[0]
         x = np.full([len(gage_id_lst), nt, len(var_lst)], np.nan)
         for k in tqdm(range(len(gage_id_lst)), desc="Read forcing data of LamaH-CE"):
             forcing_file = os.path.join(
                 self.data_source_description["CAMELS_FORCING_DIR"],
-                "ID_" + str(gage_id_lst[k]) + ".csv",
+                f"ID_{str(gage_id_lst[k])}.csv",
             )
             forcing_data = pd.read_csv(forcing_file, sep=";")
             df_date = forcing_data[["YYYY", "MM", "DD"]]
@@ -442,10 +441,7 @@ class Lamah(HydroDataset):
         ind_grid = [id_lst_all.tolist().index(tmp) for tmp in gage_id_lst]
         temp = attr_all[ind_grid, :]
         out = temp[:, ind_var]
-        if is_return_dict:
-            return out, var_dict, f_dict
-        else:
-            return out
+        return (out, var_dict, f_dict) if is_return_dict else out
 
     def read_basin_area(self, object_ids) -> np.array:
         return self.read_constant_cols(object_ids, ["area_calc"], is_return_dict=False)

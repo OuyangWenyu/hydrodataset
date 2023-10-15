@@ -1,7 +1,7 @@
 """
 Author: Wenyu Ouyang
 Date: 2022-01-05 18:01:11
-LastEditTime: 2023-07-16 20:16:58
+LastEditTime: 2023-10-15 14:51:13
 LastEditors: Wenyu Ouyang
 Description: Read Camels datasets
 FilePath: \hydrodataset\hydrodataset\mopex.py
@@ -15,9 +15,8 @@ import pandas as pd
 import numpy as np
 from pandas.core.dtypes.common import is_string_dtype, is_numeric_dtype
 from tqdm import tqdm
-
+from hydroutils import hydro_file, hydro_time
 from hydrodataset.hydro_dataset import HydroDataset
-from hydrodataset import hydro_utils
 
 
 class Mopex(HydroDataset):
@@ -83,7 +82,7 @@ class Mopex(HydroDataset):
             if fnmatch.fnmatch(f_name, "*.zip"):
                 unzip_dir = os.path.join(camels_config["CAMELS_DIR"], f_name[:-4])
                 file_name = os.path.join(camels_config["CAMELS_DIR"], f_name)
-                hydro_utils.unzip_nested_zip(file_name, unzip_dir)
+                hydro_file.unzip_nested_zip(file_name, unzip_dir)
 
     def read_site_info(self) -> pd.DataFrame:
         """
@@ -203,7 +202,7 @@ class Mopex(HydroDataset):
             return np.array([])
         else:
             nf = len(target_cols)
-        t_range_list = hydro_utils.t_range_days(t_range)
+        t_range_list = hydro_time.t_range_days(t_range)
         nt = t_range_list.shape[0]
         y = np.full([len(gage_id_lst), nt, nf], np.nan)
 
@@ -221,7 +220,8 @@ class Mopex(HydroDataset):
             flow_date = []
             for one_site in read_flow_file:
                 flow_date.append(
-                    hydro_utils.t2dt(int(one_site[0][:8].replace(" ", "0")))
+                    # TODO: check if t2dt is correct
+                    hydro_time.t2dt(int(one_site[0][:8].replace(" ", "0")))
                 )
                 all_data = one_site[0].split(" ")
                 real_data = [one_data for one_data in all_data if one_data != ""]
@@ -260,7 +260,7 @@ class Mopex(HydroDataset):
         np.array
             forcing data
         """
-        t_range_list = hydro_utils.t_range_days(t_range)
+        t_range_list = hydro_time.t_range_days(t_range)
         nt = t_range_list.shape[0]
         x = np.full([len(gage_id_lst), nt, len(var_lst)], np.nan)
 
@@ -279,7 +279,8 @@ class Mopex(HydroDataset):
                 forcing_data = []
                 for one_site in read_forcing_file:
                     forcing_date.append(
-                        hydro_utils.t2dt(int(one_site[0][:8].replace(" ", "0")))
+                        # TODO: check if t2dt is correct
+                        hydro_time.t2dt(int(one_site[0][:8].replace(" ", "0")))
                     )
                     all_data = one_site[0].split(" ")
                     real_data = [one_data for one_data in all_data if one_data != ""]

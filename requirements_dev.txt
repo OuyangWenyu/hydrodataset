@@ -21,3 +21,4 @@ pint-pandas
 pint-xarray
 
 async-retriever
+hydroutils

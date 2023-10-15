@@ -6,3 +6,4 @@ tqdm
 pint
 pint-pandas
 pint-xarray
+hydroutils

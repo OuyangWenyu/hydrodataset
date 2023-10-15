@@ -1,15 +1,12 @@
 import collections
-import fnmatch
 import os
 from typing import Union
 import xarray as xr
 import warnings
 import pandas as pd
 import numpy as np
-from pandas.core.dtypes.common import is_string_dtype, is_numeric_dtype
-from tqdm import tqdm
-
-from hydrodataset import hydro_utils, HydroDataset
+from hydroutils import hydro_file
+from hydrodataset import HydroDataset
 
 
 class Hysets(HydroDataset):
@@ -71,7 +68,7 @@ class Hysets(HydroDataset):
         warnings.warn(
             "We don't provide downloading methods for HYSETS yet. Please download all files manually from https://osf.io/rpc3w/"
         )
-        hydro_utils.zip_extract(self.data_source_description["DATASET_DIR"])
+        hydro_file.zip_extract(self.data_source_description["DATASET_DIR"])
 
     def read_site_info(self) -> pd.DataFrame:
         attr_file = self.data_source_description["ATTR_FILE"]
@@ -157,7 +154,4 @@ class Hysets(HydroDataset):
             data = data.loc[gage_id_lst]
         if var_lst is not None:
             data = data.loc[:, var_lst]
-        if is_return_dict:
-            return data.to_dict("index")
-        else:
-            return data.values
+        return data.to_dict("index") if is_return_dict else data.values
