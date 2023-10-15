@@ -7,10 +7,8 @@ import tarfile
 from urllib.request import urlopen
 import pandas as pd
 import numpy as np
-from pandas.core.dtypes.common import is_string_dtype, is_numeric_dtype
-from tqdm import tqdm
-
-from hydrodataset import hydro_utils, HydroDataset
+from hydroutils import hydro_file
+from hydrodataset import HydroDataset
 
 
 class Caravan(HydroDataset):
@@ -97,10 +95,10 @@ class Caravan(HydroDataset):
         to_dl = []
         if not Path(self.data_source_dir, url.rsplit("/", 1)[1]).exists():
             to_dl.append(url)
-        hydro_utils.download_zip_files(to_dl, self.data_source_dir)
+        hydro_file.download_zip_files(to_dl, self.data_source_dir)
         # It seems that there is sth. wrong with hysets_06444000.nc
         try:
-            hydro_utils.zip_extract(dataset_config["DATASET_DIR"])
+            hydro_file.zip_extract(dataset_config["DATASET_DIR"])
         except tarfile.ReadError:
             Warning("Please manually unzip the file.")
 
@@ -198,9 +196,7 @@ class Caravan(HydroDataset):
         target_cols: Union[list, np.array] = None,
         **kwargs,
     ) -> np.array:
-        return self._read_timeseries_data(
-            "FLOW_DIR", gage_id_lst, t_range, target_cols
-        )
+        return self._read_timeseries_data("FLOW_DIR", gage_id_lst, t_range, target_cols)
 
     def read_relevant_cols(
         self,
@@ -287,10 +283,7 @@ class Caravan(HydroDataset):
             data = data.loc[gage_id_lst]
         if var_lst is not None:
             data = data.loc[:, var_lst]
-        if is_return_dict:
-            return data.to_dict("index")
-        else:
-            return data.values
+        return data.to_dict("index") if is_return_dict else data.values
 
     def read_basin_area(self, object_ids) -> np.array:
         return self.read_constant_cols(object_ids, ["area_calc"], is_return_dict=False)

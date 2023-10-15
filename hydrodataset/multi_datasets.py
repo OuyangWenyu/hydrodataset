@@ -5,13 +5,13 @@ import collections
 from functools import reduce
 import pandas as pd
 import numpy as np
+from hydroutils import hydro_time
 from hydrodataset import (
     HydroDataset,
     DATASETS,
     REGIONS,
     Camels,
     CAMELS_NO_DATASET_ERROR_LOG,
-    hydro_utils,
 )
 from hydrodataset.lamah import Lamah
 
@@ -159,7 +159,7 @@ class MultiDatasets(HydroDataset):
         np.array
             streamflow data for given sites
         """
-        nt = hydro_utils.t_range_days(t_range_list).shape[0]
+        nt = hydro_time.t_range_days(t_range_list).shape[0]
         flow = np.full((len(object_ids), nt, len(target_cols)), np.nan)
         for i in range(len(self.regions)):
             region_now = self.regions[i]
@@ -206,7 +206,7 @@ class MultiDatasets(HydroDataset):
         np.array
             forcing data
         """
-        nt = hydro_utils.t_range_days(t_range_list).shape[0]
+        nt = hydro_time.t_range_days(t_range_list).shape[0]
         forcings = np.full((len(object_ids), nt, len(relevant_cols)), np.nan)
         for i in range(len(self.regions)):
             region_now = self.regions[i]
@@ -302,7 +302,7 @@ class MultiDatasets(HydroDataset):
         np.array
             forcings not included in original dataset
         """
-        nt = hydro_utils.t_range_days(t_range_list).shape[0]
+        nt = hydro_time.t_range_days(t_range_list).shape[0]
         forcing_data = np.empty([len(sites_id), nt, len(forcing_cols)])
         for i in range(len(forcing_cols)):
             if forcing_cols[i] == "":

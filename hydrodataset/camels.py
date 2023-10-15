@@ -1,7 +1,7 @@
 """
 Author: Wenyu Ouyang
 Date: 2022-01-05 18:01:11
-LastEditTime: 2023-09-20 16:01:22
+LastEditTime: 2023-10-15 14:38:46
 LastEditors: Wenyu Ouyang
 Description: Read Camels Series ("AUStralia", "BRazil", "ChiLe", "GreatBritain", "UnitedStates") datasets
 FilePath: \hydrodataset\hydrodataset\camels.py
@@ -21,12 +21,34 @@ from pathlib import Path
 from urllib.request import urlopen
 from tqdm import tqdm
 import xarray as xr
-from hydrodataset import CACHE_DIR, hydro_utils, HydroDataset, CAMELS_REGIONS
+from hydroutils import hydro_time, hydro_file
+from hydrodataset import CACHE_DIR, HydroDataset, CAMELS_REGIONS
 
 CAMELS_NO_DATASET_ERROR_LOG = (
     "We cannot read this dataset now. Please check if you choose correctly:\n"
     + str(CAMELS_REGIONS)
 )
+
+
+def map_string_vars(ds):
+    # Iterate over all variables in the dataset
+    for var in ds.data_vars:
+        # Check if the variable contains string data
+        if ds[var].dtype == object:
+            # Convert the DataArray to a pandas Series
+            var_series = ds[var].to_series()
+
+            # Get all unique strings and create a mapping to integers
+            unique_strings = sorted(var_series.unique())
+            mapping = {value: i for i, value in enumerate(unique_strings)}
+
+            # Apply the mapping to the series
+            mapped_series = var_series.map(mapping)
+
+            # Convert the series back to a DataArray and replace the old one in the Dataset
+            ds[var] = xr.DataArray(mapped_series)
+
+    return ds
 
 
 def time_intersect_dynamic_data(obs: np.array, date: np.array, t_range: list):
@@ -47,7 +69,7 @@ def time_intersect_dynamic_data(obs: np.array, date: np.array, t_range: list):
     np.array
         the chosen data
     """
-    t_lst = hydro_utils.t_range_days(t_range)
+    t_lst = hydro_time.t_range_days(t_range)
     nt = t_lst.shape[0]
     if len(obs) != nt:
         out = np.full([nt], np.nan)
@@ -419,10 +441,10 @@ class Camels(HydroDataset):
                 for url in links
                 if not Path(self.data_source_dir, url.rsplit("/", 1)[1]).exists()
             ]
-            hydro_utils.download_zip_files(to_dl, self.data_source_dir)
+            hydro_file.download_zip_files(to_dl, self.data_source_dir)
         else:
             warnings.warn("We only provide downloading methods for CAMELS-US now")
-        hydro_utils.zip_extract(camels_config["CAMELS_DIR"])
+        hydro_file.zip_extract(camels_config["CAMELS_DIR"])
 
     def read_site_info(self) -> pd.DataFrame:
         """
@@ -653,7 +675,7 @@ class Camels(HydroDataset):
         data_temp = pd.read_csv(usgs_file, sep=r"\s+", header=None)
         obs = data_temp[4].values
         obs[obs < 0] = np.nan
-        t_lst = hydro_utils.t_range_days(t_range)
+        t_lst = hydro_time.t_range_days(t_range)
         nt = t_lst.shape[0]
         return (
             self._read_usgs_gage_for_some(nt, data_temp, t_lst, obs)
@@ -699,7 +721,7 @@ class Camels(HydroDataset):
         data_temp = pd.read_csv(usgs_file, sep=",", header=None, skiprows=1)
         obs = data_temp[4].values
         obs[obs < 0] = np.nan
-        t_lst = hydro_utils.t_range_days(t_range)
+        t_lst = hydro_time.t_range_days(t_range)
         nt = t_lst.shape[0]
         return (
             self._read_usgs_gage_for_some(nt, data_temp, t_lst, obs)
@@ -811,14 +833,14 @@ class Camels(HydroDataset):
             return np.array([])
         else:
             nf = len(target_cols)
-        t_range_list = hydro_utils.t_range_days(t_range)
+        t_range_list = hydro_time.t_range_days(t_range)
         nt = t_range_list.shape[0]
         y = np.full([len(gage_id_lst), nt, nf], np.nan)
         if self.region == "US":
             for k in tqdm(
                 range(len(gage_id_lst)), desc="Read streamflow data of CAMELS-US"
             ):
-                dt150101 = hydro_utils.t2str("2015-01-01")
+                dt150101 = hydro_time.t2str("2015-01-01")
                 if t_range_list[-1] > dt150101 and t_range_list[0] < dt150101:
                     # latest streamflow data in CAMELS is 2014/12/31
                     data_obs_after_2015 = self.read_camels_streamflow(
@@ -945,7 +967,7 @@ class Camels(HydroDataset):
         forcing_type : str, optional
             by default "daymet"
         """
-        t_range_list = hydro_utils.t_range_days(t_range)
+        t_range_list = hydro_time.t_range_days(t_range)
         model_out_put_var_lst = [
             "SWE",
             "PRCP",
@@ -1109,7 +1131,7 @@ class Camels(HydroDataset):
         np.array
             forcing data
         """
-        t_range_list = hydro_utils.t_range_days(t_range)
+        t_range_list = hydro_time.t_range_days(t_range)
         nt = t_range_list.shape[0]
         x = np.full([len(gage_id_lst), nt, len(var_lst)], np.nan)
         if self.region == "US":
@@ -1332,7 +1354,7 @@ class Camels(HydroDataset):
                 gage_id_lst[k],
                 "attributes.json",
             )
-            attr_data = hydro_utils.unserialize_json_ordered(attr_file)
+            attr_data = hydro_file.unserialize_json_ordered(attr_file)
             for j in range(len(var_lst)):
                 c[k, j] = attr_data[var_lst[j]]
         data_temp = pd.DataFrame(c, columns=var_lst)
@@ -1429,8 +1451,8 @@ class Camels(HydroDataset):
         basins = self.sites["gauge_id"].values
         daymet_t_range = ["1980-01-01", "2015-01-01"]
         times = [
-            hydro_utils.t2str(tmp)
-            for tmp in hydro_utils.t_range_days(daymet_t_range).tolist()
+            hydro_time.t2str(tmp)
+            for tmp in hydro_time.t_range_days(daymet_t_range).tolist()
         ]
         data_info = collections.OrderedDict(
             {
@@ -1461,7 +1483,7 @@ class Camels(HydroDataset):
         basins = self.sites["gauge_id"].values
         t_range = ["1980-01-01", "2015-01-01"]
         times = [
-            hydro_utils.t2str(tmp) for tmp in hydro_utils.t_range_days(t_range).tolist()
+            hydro_time.t2str(tmp) for tmp in hydro_time.t_range_days(t_range).tolist()
         ]
         data_info = collections.OrderedDict(
             {
@@ -1689,6 +1711,6 @@ class Camels(HydroDataset):
             return None
         attr = xr.open_dataset(CACHE_DIR.joinpath("camelsus_attributes.nc"))
         if "all_number" in list(kwargs.keys()) and kwargs["all_number"]:
-            attr_num = hydro_utils.map_string_vars(attr)
+            attr_num = map_string_vars(attr)
             return attr_num[var_lst].sel(basin=gage_id_lst)
         return attr[var_lst].sel(basin=gage_id_lst)
