@@ -12,7 +12,7 @@ from hydrodataset import HydroDataset
 
 
 class Caravan(HydroDataset):
-    def __init__(self, data_path, download=False, region="US"):
+    def __init__(self, data_path, download=False, region="Global"):
         """
         Initialization for LamaH-CE dataset
 
@@ -37,7 +37,10 @@ class Caravan(HydroDataset):
             "NA": "hysets",
             "CE": "lamah",
         }
-        self.region_data_name = region_name_dict[region]
+        if region == "Global":
+            self.region_data_name = list(region_name_dict.values())
+        else:
+            self.region_data_name = region_name_dict[region]
         if download:
             self.download_data_source()
         self.sites = self.read_site_info()
@@ -111,6 +114,17 @@ class Caravan(HydroDataset):
         pd.DataFrame
             basic info of gages
         """
+        if self.region == "Global":
+            attr = []
+            for region in self.region_data_name:
+                site_file = os.path.join(
+                    self.data_source_description["ATTR_DIR"],
+                    region,
+                    "attributes_caravan_" + region + ".csv",
+                )
+                attr_region = pd.read_csv(site_file, sep=",")
+                attr.append(attr_region)
+            return pd.concat(attr)
         site_file = os.path.join(
             self.data_source_description["ATTR_DIR"],
             self.region_data_name,
@@ -127,6 +141,18 @@ class Caravan(HydroDataset):
         np.array
             attribute types
         """
+        if self.region == "Global":
+            attr_types = []
+            for region in self.region_data_name:
+                attr_file = os.path.join(
+                    self.data_source_description["DATASET_DIR"],
+                    "attributes",
+                    region,
+                    "attributes_caravan_" + region + ".csv",
+                )
+                attr_indices_data = pd.read_csv(attr_file, sep=",")
+                attr_types.append(attr_indices_data.columns.values[1:])
+            return np.unique(np.concatenate(attr_types))
         attr_file = os.path.join(
             self.data_source_description["DATASET_DIR"],
             "attributes",
@@ -145,6 +171,20 @@ class Caravan(HydroDataset):
         np.array
             forcing types
         """
+        if self.region == "Global":
+            forcing_types = []
+            for region in self.region_data_name:
+                forcing_dir = os.path.join(
+                    self.data_source_description["FORCING_DIR"],
+                    region,
+                )
+                if not (files := os.listdir(forcing_dir)):
+                    raise FileNotFoundError("No files found in the directory.")
+                first_file = files[0]
+                file_path = os.path.join(forcing_dir, first_file)
+                data = xr.open_dataset(file_path)
+                forcing_types.append(list(data.data_vars))
+            return np.unique(np.concatenate(forcing_types))
         forcing_dir = os.path.join(
             self.data_source_description["FORCING_DIR"],
             self.region_data_name,
@@ -196,7 +236,37 @@ class Caravan(HydroDataset):
         target_cols: Union[list, np.array] = None,
         **kwargs,
     ) -> np.array:
+        if self.region == "Global":
+            return self._read_timeseries_data_global(
+                "FLOW_DIR", gage_id_lst, t_range, target_cols
+            )
         return self._read_timeseries_data("FLOW_DIR", gage_id_lst, t_range, target_cols)
+
+    def _read_timeseries_data_global(self, dir_name, gage_id_lst, t_range, var_lst):
+        ts_dir = self.data_source_description[dir_name]
+        if gage_id_lst is None:
+            gage_id_lst = self.read_object_ids()
+        # Find matching file paths
+        file_paths = []
+        for region in self.region_data_name:
+            for file_name in gage_id_lst:
+                file_path = os.path.join(ts_dir, region, file_name) + ".nc"
+                if os.path.isfile(file_path):
+                    file_paths.append(file_path)
+        datasets = [
+            xr.open_dataset(path).assign_coords(gauge_id=name)
+            for path, name in zip(file_paths, gage_id_lst)
+        ]
+        # Concatenate the datasets along the new dimension
+        data = xr.concat(datasets, dim="gauge_id")
+        if t_range is not None:
+            data = data.sel(date=slice(t_range[0], t_range[1]))
+        if var_lst is None:
+            if dir_name == "FLOW_DIR":
+                var_lst = self.get_target_cols()
+            else:
+                var_lst = self.get_relevant_cols()
+        return data[var_lst]
 
     def read_relevant_cols(
         self,
@@ -223,6 +293,10 @@ class Caravan(HydroDataset):
         np.array
             _description_
         """
+        if self.region == "Global":
+            return self._read_timeseries_data_global(
+                "FORCING_DIR", gage_id_lst, t_range, var_lst
+            )
         return self._read_timeseries_data("FORCING_DIR", gage_id_lst, t_range, var_lst)
 
     def _read_timeseries_data(self, dir_name, gage_id_lst, t_range, var_lst):
@@ -271,6 +345,8 @@ class Caravan(HydroDataset):
             When we need to know what a factorized value represents, we need return a tuple;
             otherwise just return an array
         """
+        if self.region == "Global":
+            return self._read_constant_cols_global(var_lst, gage_id_lst, is_return_dict)
         attr_file = os.path.join(
             self.data_source_description["DATASET_DIR"],
             "attributes",
@@ -283,6 +359,31 @@ class Caravan(HydroDataset):
             data = data.loc[gage_id_lst]
         if var_lst is not None:
             data = data.loc[:, var_lst]
+        return data.to_dict("index") if is_return_dict else data.values
+
+    def _read_constant_cols_global(self, var_lst, gage_id_lst, is_return_dict):
+        attr = []
+        if var_lst is None:
+            var_lst = self.get_constant_cols()
+        if gage_id_lst is None:
+            gage_id_lst = self.read_object_ids()
+        for region in self.region_data_name:
+            attr_file = os.path.join(
+                self.data_source_description["DATASET_DIR"],
+                "attributes",
+                region,
+                "attributes_caravan_" + region + ".csv",
+            )
+            attr_indices_data = pd.read_csv(attr_file, sep=",")
+            attr_indices_data = attr_indices_data.set_index("gauge_id")
+            gage_in_this_region = np.intersect1d(
+                attr_indices_data.index.values, gage_id_lst
+            )
+            if gage_in_this_region.size > 0:
+                attr_indices_data = attr_indices_data.loc[gage_in_this_region]
+                attr_indices_data = attr_indices_data.loc[:, var_lst]
+                attr.append(attr_indices_data)
+        data = pd.concat(attr)
         return data.to_dict("index") if is_return_dict else data.values
 
     def read_basin_area(self, object_ids) -> np.array:
