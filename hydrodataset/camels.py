@@ -1,10 +1,10 @@
 """
 Author: Wenyu Ouyang
 Date: 2022-01-05 18:01:11
-LastEditTime: 2023-10-15 14:38:46
+LastEditTime: 2023-10-17 19:36:54
 LastEditors: Wenyu Ouyang
 Description: Read Camels Series ("AUStralia", "BRazil", "ChiLe", "GreatBritain", "UnitedStates") datasets
-FilePath: \hydrodataset\hydrodataset\camels.py
+FilePath: /hydrodataset/hydrodataset/camels.py
 Copyright (c) 2021-2022 Wenyu Ouyang. All rights reserved.
 """
 import json
@@ -1540,8 +1540,8 @@ class Camels(HydroDataset):
         # We use xarray dataset to cache all data
         ds_from_df = attrs_df.to_xarray()
         units_dict = {
-            "gauge_lat": "degrees",
-            "gauge_lon": "degrees",
+            "gauge_lat": "degree",
+            "gauge_lon": "degree",
             "elev_mean": "m",
             "slope_mean": "m/km",
             "area_gages2": "km^2",
@@ -1569,9 +1569,9 @@ class Camels(HydroDataset):
             "stream_elas": "dimensionless",
             "q5": "mm/day",
             "q95": "mm/day",
-            "high_q_freq": "days/year",
+            "high_q_freq": "day/year",
             "high_q_dur": "day",
-            "low_q_freq": "days/year",
+            "low_q_freq": "day/year",
             "low_q_dur": "day",
             "zero_q_freq": "percent",
             "hfd_mean": "dimensionless",

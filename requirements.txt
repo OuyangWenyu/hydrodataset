@@ -1,5 +1,6 @@
 pandas
 xarray
+netCDF4
 scipy
 async-retriever
 tqdm

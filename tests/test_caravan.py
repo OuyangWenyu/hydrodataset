@@ -1,10 +1,10 @@
 """
 Author: Wenyu Ouyang
 Date: 2023-07-18 11:45:25
-LastEditTime: 2023-10-16 11:08:24
+LastEditTime: 2023-10-17 09:38:01
 LastEditors: Wenyu Ouyang
 Description: Test for caravan dataset reading
-FilePath: \hydrodataset\tests\test_caravan.py
+FilePath: /hydrodataset/tests/test_caravan.py
 Copyright (c) 2023-2024 Wenyu Ouyang. All rights reserved.
 """
 import os
@@ -145,3 +145,11 @@ def test_read_caravan():
         flows.to_array().transpose("gauge_id", "date", "variable").shape,
         np.array([5, 7305, 1]),
     )
+
+
+def test_cache_caravan():
+    caravan = Caravan(
+        os.path.join(ROOT_DIR, "caravan"),
+        region="Global",
+    )
+    caravan.cache_xrdataset()
