@@ -3,7 +3,8 @@ channels:
   - conda-forge
   - defaults
 dependencies:
-  # dev tools 
+  # dev tools
+  - python=3.10
   - pip
   - bump2version
   - wheel
@@ -14,6 +15,7 @@ dependencies:
   - twine
   - grip
   - black
+  - flake8
   - tqdm
 
   - pytest
@@ -22,6 +24,7 @@ dependencies:
   # data tools
   - pandas
   - xarray
+  - netcdf4
   - scipy
   - pint
   - pint-pandas

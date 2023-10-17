@@ -8,6 +8,7 @@ Sphinx
 twine
 grip
 black
+flake8
 tqdm
 
 pytest
@@ -15,6 +16,7 @@ pytest-runner
 
 pandas
 xarray
+netCDF4
 scipy
 pint
 pint-pandas
