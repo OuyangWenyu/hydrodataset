@@ -752,7 +752,7 @@ class Caravan(HydroDataset):
         if t_range:
             combined_ds = combined_ds.sel(date=slice(*t_range))
 
-        # some units are not recognized by pint_xarray, hence we manually set them 
+        # some units are not recognized by pint_xarray, hence we manually set them
         unit_mapping = {"W/m2": "watt / meter ** 2", "m3/m3": "meter^3/meter^3"}
 
         for var in combined_ds.data_vars:
@@ -770,3 +770,9 @@ class Caravan(HydroDataset):
     @property
     def streamflow_unit(self):
         return "mm/d"
+
+    def read_area(self, gage_id_lst=None):
+        return self.read_attr_xrdataset(gage_id_lst, ["area"])
+
+    def read_mean_prcp(self, gage_id_lst=None):
+        return self.read_attr_xrdataset(gage_id_lst, ["p_mean"])

@@ -1,7 +1,7 @@
 """
 Author: Wenyu Ouyang
 Date: 2023-07-18 11:45:25
-LastEditTime: 2023-10-18 20:53:56
+LastEditTime: 2023-10-18 21:42:28
 LastEditors: Wenyu Ouyang
 Description: Test for caravan dataset reading
 FilePath: \hydrodataset\tests\test_caravan.py
@@ -173,3 +173,17 @@ def test_read_attr_xrdataset(caravan):
 
 def test_streamflow_unit(caravan):
     assert caravan.streamflow_unit == "mm/d"
+
+
+def test_read_area(caravan):
+    caravan_ids = caravan.read_object_ids()
+    area = caravan.read_area(caravan_ids[:3].tolist() + caravan_ids[-2:].tolist())
+    print(area)
+
+
+def test_read_prcp_mean(caravan):
+    caravan_ids = caravan.read_object_ids()
+    prcp_mean = caravan.read_mean_prcp(
+        caravan_ids[:3].tolist() + caravan_ids[-2:].tolist()
+    )
+    print(prcp_mean)
