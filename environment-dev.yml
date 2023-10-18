@@ -35,4 +35,5 @@ dependencies:
 
   - pip
   - pip:
+    - timezonefinder[numba]
     - hydroutils

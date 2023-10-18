@@ -1,10 +1,11 @@
+tqdm
 pandas
 xarray
 netCDF4
 scipy
-async-retriever
-tqdm
 pint
 pint-pandas
 pint-xarray
+timezonefinder[numba]
+async-retriever
 hydroutils

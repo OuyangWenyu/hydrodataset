@@ -1,5 +1,6 @@
 import collections
 import warnings
+from tqdm import tqdm
 import xarray as xr
 import os
 from pathlib import Path
@@ -8,6 +9,7 @@ import tarfile
 from urllib.request import urlopen
 import pandas as pd
 import numpy as np
+from timezonefinder import TimezoneFinder
 from hydroutils import hydro_file
 from hydrodataset import CACHE_DIR, HydroDataset
 
@@ -70,11 +72,13 @@ class Caravan(HydroDataset):
         flow_dir = os.path.join(dataset_dir, "timeseries", "netcdf")
         forcing_dir = flow_dir
         attr_dir = os.path.join(dataset_dir, "attributes")
+        ts_csv_dir = os.path.join(dataset_dir, "timeseries", "csv")
         download_url = "https://zenodo.org/record/7944025/files/Caravan.zip"
         return collections.OrderedDict(
             DATASET_DIR=dataset_dir,
             FLOW_DIR=flow_dir,
             FORCING_DIR=forcing_dir,
+            TS_CSV_DIR=ts_csv_dir,
             ATTR_DIR=attr_dir,
             BASINS_SHP_FILE=camels_shp_file,
             DOWNLOAD_URL=download_url,
@@ -523,7 +527,7 @@ class Caravan(HydroDataset):
 
         # Update the attributes_dict based on the units_mapping
         for key_pattern, unit in units_mapping.items():
-            for key in units_dict.keys():
+            for key in units_dict:
                 if key.startswith(key_pattern):
                     units_dict[key] = unit
 
@@ -596,8 +600,7 @@ class Caravan(HydroDataset):
                 invalid_units[provided_unit] = pint_unit
 
         converted_units = {
-            var: pint_unit_mapping[unit] if unit in pint_unit_mapping else unit
-            for var, unit in units_dict.items()
+            var: pint_unit_mapping.get(unit, unit) for var, unit in units_dict.items()
         }
         assert list(units_dict.keys()) == list(
             converted_units.keys()
@@ -615,9 +618,14 @@ class Caravan(HydroDataset):
                 ds[var_name].attrs["units"] = converted_units[var_name]
         return ds
 
-    def cache_streamflow_xrdataset(self):
-        """cache streamflow in xr dataset"""
-        for region in self.region_data_name:
+    def cache_xrdataset(self):
+        """Save all attr data in a netcdf file in the cache directory, ts data are already nc format"""
+        warnings.warn("Check you units of all variables")
+        if self.region != "Global":
+            raise ValueError("Only Global region is supported.")
+        pbar = tqdm(self.region_data_name, desc="Start Checking Data...")
+        for region in pbar:
+            pbar.set_description(f"Processing Region-{region}")
             # all files are too large to read in memory, hence we read them region by region
             site_file = os.path.join(
                 self.data_source_description["ATTR_DIR"],
@@ -625,20 +633,62 @@ class Caravan(HydroDataset):
                 "attributes_caravan_" + region + ".csv",
             )
             sites_region = pd.read_csv(site_file, sep=",")
-            data = self.read_target_cols(gage_id_lst=sites_region["gauge_id"].values)
-        return data.to_xarray()
-
-    def cache_forcing_xrdataset(self):
-        """cache forcing in xr dataset"""
-        data = self.read_relevant_cols()
-        return data.to_xarray()
-
-    def cache_xrdataset(self):
-        """Save all data in a netcdf file in the cache directory"""
-        warnings.warn("Check you units of all variables")
-        ds_streamflow = self.cache_streamflow_xrdataset()
-        ds_forcing = self.cache_forcing_xrdataset()
-        ds = xr.merge([ds_streamflow, ds_forcing])
-        ds.to_netcdf(CACHE_DIR.joinpath(f"caravan_timeseries_{self.region}.nc"))
+            gage_id_lst = sites_region["gauge_id"].values
+            # forcing dir is same as flow dir
+            ts_dir = self.data_source_description["FORCING_DIR"]
+            # Find matching file paths
+            for gage_id in tqdm(gage_id_lst, desc="Check data by Gage"):
+                file_path = os.path.join(ts_dir, region, gage_id) + ".nc"
+                # Check download data! If any error, save csv file to nc file
+                try:
+                    a_ncfile_data = xr.open_dataset(file_path).assign_coords(
+                        gauge_id=gage_id
+                    )
+                except Exception as e:
+                    # it seems there is sth. wrong with hysets_06444000.nc, hence we trans its csv to nc
+                    ts_csv_dir = self.data_source_description["TS_CSV_DIR"]
+                    csv_file_path = os.path.join(ts_csv_dir, region, gage_id) + ".csv"
+                    if not os.path.isfile(csv_file_path):
+                        raise FileNotFoundError(
+                            f"No csv file found for {gage_id} in {region}"
+                        ) from e
+                    _data = pd.read_csv(csv_file_path, sep=",", parse_dates=["date"])
+                    non_datetime_columns = _data.select_dtypes(
+                        exclude=["datetime64[ns]"]
+                    ).columns
+                    _data[non_datetime_columns] = _data[non_datetime_columns].astype(
+                        "float32"
+                    )
+                    # we assume the last nc file is ok
+                    attrs = a_ncfile_data.attrs
+                    the_ncfile_data = xr.Dataset.from_dataframe(
+                        _data.set_index(["date"])
+                    )
+                    the_ncfile_data.attrs = attrs
+                    tf = TimezoneFinder()
+                    site_meta_file = os.path.join(
+                        self.data_source_description["ATTR_DIR"],
+                        region,
+                        "attributes_other_" + region + ".csv",
+                    )
+                    df_metadata = pd.read_csv(site_meta_file, sep=",").set_index(
+                        "gauge_id"
+                    )
+                    lat = df_metadata.loc[
+                        df_metadata.index == gage_id, "gauge_lat"
+                    ].values[0]
+                    lon = df_metadata.loc[
+                        df_metadata.index == gage_id, "gauge_lon"
+                    ].values[0]
+                    the_ncfile_data.attrs["Timezone"] = tf.timezone_at(lat=lat, lng=lon)
+                    the_ncfile = os.path.join(
+                        os.path.dirname(file_path), f"{gage_id}.nc"
+                    )
+                    the_ncfile_data.to_netcdf(the_ncfile)
         ds_attr = self.cache_attributes_xrdataset()
-        ds_attr.to_netcdf(CACHE_DIR.joinpath(f"caravan_attributes_{self.region}.nc"))
+        ds_attr.to_netcdf(
+            os.path.join(
+                self.data_source_description["ATTR_DIR"],
+                "caravan_attributes.nc",
+            )
+        )
