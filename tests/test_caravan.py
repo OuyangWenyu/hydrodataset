@@ -1,24 +1,29 @@
 """
 Author: Wenyu Ouyang
 Date: 2023-07-18 11:45:25
-LastEditTime: 2023-10-17 09:38:01
+LastEditTime: 2023-10-18 17:07:51
 LastEditors: Wenyu Ouyang
 Description: Test for caravan dataset reading
-FilePath: /hydrodataset/tests/test_caravan.py
+FilePath: \hydrodataset\tests\test_caravan.py
 Copyright (c) 2023-2024 Wenyu Ouyang. All rights reserved.
 """
 import os
 import numpy as np
+import pytest
 
 from hydrodataset import ROOT_DIR
 from hydrodataset.caravan import Caravan
 
 
-def test_read_caravan_us():
-    caravan = Caravan(
+@pytest.fixture()
+def caravan():
+    return Caravan(
         os.path.join(ROOT_DIR, "caravan"),
-        region="US",
+        region="Global",
     )
+
+
+def test_read_caravan_us(caravan):
     caravan_ids = caravan.read_object_ids()
     assert len(caravan_ids) == 482
 
@@ -83,11 +88,7 @@ def all_elements_in_array(elements_list, np_array):
     return np.all(np.isin(elements_list, np_array))
 
 
-def test_read_caravan():
-    caravan = Caravan(
-        os.path.join(ROOT_DIR, "caravan"),
-        region="Global",
-    )
+def test_read_caravan(caravan):
     caravan_ids = caravan.read_object_ids()
     assert len(caravan_ids) == 6830
 
@@ -147,9 +148,24 @@ def test_read_caravan():
     )
 
 
-def test_cache_caravan():
-    caravan = Caravan(
-        os.path.join(ROOT_DIR, "caravan"),
-        region="Global",
-    )
+def test_cache_caravan(caravan):
     caravan.cache_xrdataset()
+
+
+def test_read_ts_xrdataset(caravan):
+    caravan_ids = caravan.read_object_ids()
+    ts_data = caravan.read_ts_xrdataset(
+        caravan_ids[:3].tolist() + caravan_ids[-2:].tolist(),
+        ["1990-01-01", "2009-12-31"],
+        ["streamflow"],
+    )
+    print(ts_data)
+
+
+def test_read_attr_xrdataset(caravan):
+    caravan_ids = caravan.read_object_ids()
+    attr_data = caravan.read_attr_xrdataset(
+        caravan_ids[:3].tolist() + caravan_ids[-2:].tolist(),
+        ["p_mean", "pet_mean", "aridity"],
+    )
+    print(attr_data)
