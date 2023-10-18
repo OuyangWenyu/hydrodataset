@@ -1,7 +1,7 @@
 """
 Author: Wenyu Ouyang
 Date: 2023-07-18 11:45:25
-LastEditTime: 2023-10-18 17:53:12
+LastEditTime: 2023-10-18 20:53:56
 LastEditors: Wenyu Ouyang
 Description: Test for caravan dataset reading
 FilePath: \hydrodataset\tests\test_caravan.py
@@ -157,7 +157,7 @@ def test_read_ts_xrdataset(caravan):
     ts_data = caravan.read_ts_xrdataset(
         caravan_ids[:3].tolist() + caravan_ids[-2:].tolist(),
         ["1990-01-01", "2009-12-31"],
-        ["streamflow"],
+        var_lst=None,
     )
     print(ts_data)
 
