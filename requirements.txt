@@ -2,6 +2,7 @@ tqdm
 pandas
 xarray
 netCDF4
+dask[complete]
 scipy
 pint
 pint-pandas

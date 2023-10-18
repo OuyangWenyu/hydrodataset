@@ -25,6 +25,7 @@ dependencies:
   - pandas
   - xarray
   - netcdf4
+  - dask
   - scipy
   - pint
   - pint-pandas
