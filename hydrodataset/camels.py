@@ -1,10 +1,10 @@
 """
 Author: Wenyu Ouyang
 Date: 2022-01-05 18:01:11
-LastEditTime: 2023-10-17 19:36:54
+LastEditTime: 2023-10-18 17:54:32
 LastEditors: Wenyu Ouyang
 Description: Read Camels Series ("AUStralia", "BRazil", "ChiLe", "GreatBritain", "UnitedStates") datasets
-FilePath: /hydrodataset/hydrodataset/camels.py
+FilePath: \hydrodataset\hydrodataset\camels.py
 Copyright (c) 2021-2022 Wenyu Ouyang. All rights reserved.
 """
 import json
@@ -1630,7 +1630,7 @@ class Camels(HydroDataset):
                 "streamflow": (
                     ["basin", "time"],
                     streamflow.reshape(streamflow.shape[0], streamflow.shape[1]),
-                    {"units": "foot^3/s"},
+                    {"units": self.streamflow_unit},
                 )
             },
             coords={
@@ -1714,3 +1714,7 @@ class Camels(HydroDataset):
             attr_num = map_string_vars(attr)
             return attr_num[var_lst].sel(basin=gage_id_lst)
         return attr[var_lst].sel(basin=gage_id_lst)
+
+    @property
+    def streamflow_unit(self):
+        return "foot^3/s"
