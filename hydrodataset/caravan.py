@@ -11,7 +11,7 @@ import pandas as pd
 import numpy as np
 from timezonefinder import TimezoneFinder
 from hydroutils import hydro_file
-from hydrodataset import CACHE_DIR, HydroDataset
+from hydrodataset import HydroDataset
 
 
 class Caravan(HydroDataset):
@@ -740,3 +740,7 @@ class Caravan(HydroDataset):
         combined_ds = combined_ds.assign_coords(basin=gage_id_lst)
 
         return combined_ds
+
+    @property
+    def streamflow_unit(self):
+        return "mm/d"
