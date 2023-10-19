@@ -777,7 +777,7 @@ class Caravan(HydroDataset):
 
         # Assign basin names as coordinate
         combined_ds = combined_ds.assign_coords(basin=gage_id_lst)
-
+        combined_ds = combined_ds.rename({"date": "time"})
         return combined_ds
 
     @property
@@ -789,3 +789,22 @@ class Caravan(HydroDataset):
 
     def read_mean_prcp(self, gage_id_lst=None):
         return self.read_attr_xrdataset(gage_id_lst, ["p_mean"])
+
+
+def check_coordinates(ds):
+    """We uniformly use basin and time as coordinates
+
+    Parameters
+    ----------
+    ds : xr.Dataset
+        the ds must have basin and time as coordinates
+
+    Raises
+    ------
+    ValueError
+        coords not in ds
+    """
+    required_coords = ["basin", "time"]
+    for coord in required_coords:
+        if coord not in ds.coords:
+            raise ValueError(f"Missing coordinate: {coord}")
