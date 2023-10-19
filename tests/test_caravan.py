@@ -1,10 +1,10 @@
 """
 Author: Wenyu Ouyang
 Date: 2023-07-18 11:45:25
-LastEditTime: 2023-10-18 21:42:28
+LastEditTime: 2023-10-19 10:08:35
 LastEditors: Wenyu Ouyang
 Description: Test for caravan dataset reading
-FilePath: \hydrodataset\tests\test_caravan.py
+FilePath: /hydrodataset/tests/test_caravan.py
 Copyright (c) 2023-2024 Wenyu Ouyang. All rights reserved.
 """
 import os
@@ -149,7 +149,7 @@ def test_read_caravan(caravan):
 
 
 def test_cache_caravan(caravan):
-    caravan.cache_xrdataset()
+    caravan.cache_xrdataset(checkregion=None)
 
 
 def test_read_ts_xrdataset(caravan):
