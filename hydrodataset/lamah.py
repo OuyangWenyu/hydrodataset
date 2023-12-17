@@ -443,7 +443,7 @@ class Lamah(HydroDataset):
         out = temp[:, ind_var]
         return (out, var_dict, f_dict) if is_return_dict else out
 
-    def read_basin_area(self, object_ids) -> np.array:
+    def read_area(self, object_ids) -> np.array:
         return self.read_constant_cols(object_ids, ["area_calc"], is_return_dict=False)
 
     def read_mean_prep(self, object_ids) -> np.array:

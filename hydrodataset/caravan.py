@@ -444,9 +444,6 @@ class Caravan(HydroDataset):
         data = pd.concat(attr)
         return data.to_dict("index") if is_return_dict else data.values
 
-    def read_basin_area(self, object_ids) -> np.array:
-        return self.read_constant_cols(object_ids, ["area_calc"], is_return_dict=False)
-
     def read_mean_prep(self, object_ids) -> np.array:
         return self.read_constant_cols(object_ids, ["p_mean"], is_return_dict=False)
 

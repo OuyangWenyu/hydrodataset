@@ -368,7 +368,7 @@ class Mopex(HydroDataset):
         out = temp[:, ind_var]
         return (out, var_dict, f_dict) if is_return_dict else out
 
-    def read_basin_area(self, object_ids) -> np.array:
+    def read_area(self, object_ids) -> np.array:
         return self.read_constant_cols(
             object_ids, ["Drainage_Area_km2"], is_return_dict=False
         )
