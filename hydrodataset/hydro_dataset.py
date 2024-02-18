@@ -7,10 +7,12 @@ Description: main modules for hydrodataset
 FilePath: \hydrodataset\hydrodataset\hydro_dataset.py
 Copyright (c) 2021-2022 Wenyu Ouyang. All rights reserved.
 """
-from pathlib import Path
 from abc import ABC
+from pathlib import Path
 from typing import Union
+
 import numpy as np
+
 from hydrodataset import ROOT_DIR
 
 
