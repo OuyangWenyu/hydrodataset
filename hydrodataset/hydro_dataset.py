@@ -1,16 +1,19 @@
 """
 Author: Wenyu Ouyang
 Date: 2022-09-05 23:20:24
-LastEditTime: 2023-07-27 21:44:01
+LastEditTime: 2024-02-20 19:33:43
 LastEditors: Wenyu Ouyang
 Description: main modules for hydrodataset
 FilePath: \hydrodataset\hydrodataset\hydro_dataset.py
 Copyright (c) 2021-2022 Wenyu Ouyang. All rights reserved.
 """
-from pathlib import Path
+
 from abc import ABC
+from pathlib import Path
 from typing import Union
+
 import numpy as np
+
 from hydrodataset import ROOT_DIR
 
 
@@ -63,7 +66,8 @@ class HydroDataset(ABC):
         self, object_ids=None, other_cols: dict = None, **kwargs
     ) -> dict:
         """some data which cannot be easily treated as constant vars or time-series with same length as relevant vars
-        CONVENTION: other_cols is a dict, where each item is also a dict with all params in it"""
+        CONVENTION: other_cols is a dict, where each item is also a dict with all params in it
+        """
         raise NotImplementedError
 
     def get_constant_cols(self) -> np.array:

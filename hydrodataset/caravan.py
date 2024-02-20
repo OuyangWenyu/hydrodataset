@@ -11,7 +11,7 @@ import tarfile
 from urllib.request import urlopen
 import pandas as pd
 import numpy as np
-from timezonefinder import TimezoneFinder
+from tzfpy import get_tz
 from hydroutils import hydro_file
 from hydrodataset import CACHE_DIR, HydroDataset
 
@@ -532,9 +532,9 @@ class Caravan(HydroDataset):
 
         # for attrs not from hydroatlas in caravan, we directly set pint unit
         units_dict["area"] = "km^2"
-        units_dict[
-            "area_fraction_used_for_aggregation"
-        ] = "dimensionless"  # this one is from atlas but not specified in the document
+        units_dict["area_fraction_used_for_aggregation"] = (
+            "dimensionless"  # this one is from atlas but not specified in the document
+        )
         units_dict["aridity"] = "dimensionless"
         units_dict["country"] = "dimensionless"
         units_dict["frac_snow"] = "dimensionless"
@@ -748,7 +748,7 @@ class Caravan(HydroDataset):
                         _data.set_index(["date"])
                     )
                     the_ncfile_data.attrs = attrs
-                    tf = TimezoneFinder()
+                    # tf = TimezoneFinder()
                     site_meta_file = os.path.join(
                         self.data_source_description["ATTR_DIR"],
                         region,
@@ -763,7 +763,7 @@ class Caravan(HydroDataset):
                     lon = df_metadata.loc[
                         df_metadata.index == gage_id, "gauge_lon"
                     ].values[0]
-                    the_ncfile_data.attrs["Timezone"] = tf.timezone_at(lat=lat, lng=lon)
+                    the_ncfile_data.attrs["Timezone"] = get_tz(lat=lat, lng=lon)
                     the_ncfile = os.path.join(
                         os.path.dirname(file_path), f"{gage_id}.nc"
                     )

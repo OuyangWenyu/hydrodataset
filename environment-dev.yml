@@ -30,9 +30,8 @@ dependencies:
   - pint
   - pint-pandas
   - pint-xarray
-
+  - tzfpy
   - pip
   - pip:
-    - timezonefinder[numba]
     - codetiming
     - hydroutils
