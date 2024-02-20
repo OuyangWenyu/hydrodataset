@@ -1,12 +1,13 @@
 """
 Author: Wenyu Ouyang
 Date: 2022-01-05 18:01:11
-LastEditTime: 2023-11-20 20:08:14
+LastEditTime: 2024-02-18 20:22:23
 LastEditors: Wenyu Ouyang
 Description: Read Camels Series ("AUStralia", "BRazil", "ChiLe", "GreatBritain", "UnitedStates") datasets
-FilePath: /hydrodataset/hydrodataset/camels.py
+FilePath: \hydrodataset\hydrodataset\camels.py
 Copyright (c) 2021-2022 Wenyu Ouyang. All rights reserved.
 """
+
 import json
 import warnings
 import collections
@@ -1727,7 +1728,11 @@ class Camels(HydroDataset):
     def read_attr_xrdataset(self, gage_id_lst=None, var_lst=None, **kwargs):
         if var_lst is None or len(var_lst) == 0:
             return None
-        attr = xr.open_dataset(CACHE_DIR.joinpath("camelsus_attributes.nc"))
+        try:
+            attr = xr.open_dataset(CACHE_DIR.joinpath("camelsus_attributes.nc"))
+        except FileNotFoundError:
+            attr = self.cache_attributes_xrdataset()
+            attr.to_netcdf(CACHE_DIR.joinpath("camelsus_attributes.nc"))
         if "all_number" in list(kwargs.keys()) and kwargs["all_number"]:
             attr_num = map_string_vars(attr)
             return attr_num[var_lst].sel(basin=gage_id_lst)

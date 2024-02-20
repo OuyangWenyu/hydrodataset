@@ -104,3 +104,6 @@ ENV/
 
 # IDE settings
 .vscode/
+
+# for dask
+dask-worker-space/

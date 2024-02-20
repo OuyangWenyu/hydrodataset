@@ -1,47 +1,78 @@
 """
 Author: Wenyu Ouyang
 Date: 2022-09-05 23:20:24
-LastEditTime: 2023-07-25 15:52:16
+LastEditTime: 2024-02-18 16:46:50
 LastEditors: Wenyu Ouyang
 Description: set file dir
 FilePath: \hydrodataset\hydrodataset\__init__.py
 Copyright (c) 2021-2022 Wenyu Ouyang. All rights reserved.
 """
-from pathlib import Path
+
 import os
+import yaml
+from pathlib import Path
+from hydroutils import hydro_file
 
 __author__ = """Wenyu Ouyang"""
 __email__ = "wenyuouyang@outlook.com"
 __version__ = '0.1.8'
 
-# we use a .hydrodataset dir to save the setting
-hydrodataset_setting_dir = Path.home().joinpath(".hydrodataset")
-if not hydrodataset_setting_dir.is_dir():
-    hydrodataset_setting_dir.mkdir(parents=True)
-hydrodataset_cache_dir = hydrodataset_setting_dir.joinpath("cache")
-if not hydrodataset_cache_dir.is_dir():
-    hydrodataset_cache_dir.mkdir(parents=True)
-hydrodataset_setting_file = hydrodataset_setting_dir.joinpath("settings.txt")
-if not hydrodataset_setting_file.is_file():
-    hydrodataset_setting_file.touch(exist_ok=False)
-    # default data dir is cache, user should modify it to his/her own
-    hydrodataset_setting_file.write_text(hydrodataset_cache_dir._str)
-# read first line
-hydrodataset_root_dir = Path(hydrodataset_setting_file.read_text().split("\n")[0])
-try:
-    if not os.path.isdir(hydrodataset_root_dir):
-        hydrodataset_root_dir.mkdir(parents=True)
-except PermissionError:
-    print(
-        "You cannot create this directory: "
-        + hydrodataset_root_dir._str
-        + "\nPlease change the first line in "
-        + hydrodataset_setting_file._str
-        + " to a directory you have permission and run the code agian"
+
+SETTING_FILE = os.path.join(Path.home(), "hydro_setting.yml")
+
+
+def read_setting(setting_path):
+    if not os.path.exists(setting_path):
+        raise FileNotFoundError(f"Configuration file not found: {setting_path}")
+
+    with open(setting_path, "r") as file:
+        setting = yaml.safe_load(file)
+
+    example_setting = (
+        "local_data_path:\n"
+        "  root: 'D:\\data\\waterism' # Update with your root data directory\n"
+        "  datasets-origin: 'D:\\data\\waterism\\datasets-origin'\n"
     )
+
+    if setting is None:
+        raise ValueError(
+            f"Configuration file is empty or has invalid format.\n\nExample configuration:\n{example_setting}"
+        )
+
+    # Define the expected structure
+    expected_structure = {
+        "local_data_path": ["root", "datasets-origin"],
+    }
+
+    # Validate the structure
+    try:
+        for key, subkeys in expected_structure.items():
+            if key not in setting:
+                raise KeyError(f"Missing required key in config: {key}")
+
+            if isinstance(subkeys, list):
+                for subkey in subkeys:
+                    if subkey not in setting[key]:
+                        raise KeyError(f"Missing required subkey '{subkey}' in '{key}'")
+    except KeyError as e:
+        raise ValueError(
+            f"Incorrect configuration format: {e}\n\nExample configuration:\n{example_setting}"
+        ) from e
+
+    return setting
+
+
+try:
+    SETTING = read_setting(SETTING_FILE)
+except ValueError as e:
+    print(e)
+except Exception as e:
+    print(f"Unexpected error: {e}")
+
 # set some constants for hydrodataset
-ROOT_DIR = hydrodataset_root_dir
-CACHE_DIR = hydrodataset_cache_dir
+ROOT_DIR = SETTING["local_data_path"]["datasets-origin"]
+CACHE_DIR = hydro_file.get_cache_dir()
+
 
 # set some constants for datasets
 DATASETS = ["CAMELS", "Caravan", "GRDC", "HYSETS", "LamaH", "MOPEX"]
