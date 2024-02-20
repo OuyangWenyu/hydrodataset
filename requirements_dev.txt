@@ -22,7 +22,7 @@ scipy
 pint
 pint-pandas
 pint-xarray
-timezonefinder[numba]
+tzfpy
 codetiming
 
 hydroutils
