@@ -1,7 +1,7 @@
 """
 Author: Wenyu Ouyang
 Date: 2022-09-05 23:20:24
-LastEditTime: 2024-02-18 16:46:50
+LastEditTime: 2024-03-22 10:52:33
 LastEditors: Wenyu Ouyang
 Description: set file dir
 FilePath: \hydrodataset\hydrodataset\__init__.py
@@ -71,7 +71,7 @@ except Exception as e:
 
 # set some constants for hydrodataset
 ROOT_DIR = SETTING["local_data_path"]["datasets-origin"]
-CACHE_DIR = hydro_file.get_cache_dir()
+CACHE_DIR = Path(hydro_file.get_cache_dir())
 
 
 # set some constants for datasets
