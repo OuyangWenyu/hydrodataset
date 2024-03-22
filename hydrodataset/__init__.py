@@ -15,7 +15,7 @@ from hydroutils import hydro_file
 
 __author__ = """Wenyu Ouyang"""
 __email__ = "wenyuouyang@outlook.com"
-__version__ = '0.1.9'
+__version__ = '0.1.10'
 
 
 SETTING_FILE = os.path.join(Path.home(), "hydro_setting.yml")
