@@ -1719,7 +1719,10 @@ class Camels(HydroDataset):
     ):
         if var_lst is None:
             return None
-        ts = xr.open_dataset(CACHE_DIR.joinpath("camelsus_timeseries.nc"))
+        camels_tsnc = CACHE_DIR.joinpath("camelsus_timeseries.nc")
+        if not os.path.isfile(camels_tsnc):
+            self.cache_xrdataset()
+        ts = xr.open_dataset(camels_tsnc)
         all_vars = ts.data_vars
         if any(var not in ts.variables for var in var_lst):
             raise ValueError(f"var_lst must all be in {all_vars}")
