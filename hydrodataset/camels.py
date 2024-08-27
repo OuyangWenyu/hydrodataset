@@ -1189,7 +1189,7 @@ class Camels(HydroDataset):
                 else:
                     raise NotImplementedError(CAMELS_NO_DATASET_ERROR_LOG)
                 forcing_data = pd.read_csv(
-                    os.path.join(forcing_dir, var_lst[k] + ".csv")
+                    os.path.join(forcing_dir, var_lst[k] + "AWAP.csv")    #?
                 )
                 df_date = forcing_data[["year", "month", "day"]]
                 date = pd.to_datetime(df_date).values.astype("datetime64[D]")
@@ -1410,6 +1410,16 @@ class Camels(HydroDataset):
         return (out, var_dict, f_dict) if is_return_dict else out
 
     def read_area(self, gage_id_lst) -> np.array:
+        """
+        read the catchment area
+        Parameters
+        ----------
+        gage_id_lst
+
+        Returns
+        -------
+
+        """
         if self.region == "US":
             return self.read_attr_xrdataset(gage_id_lst, ["area_gages2"])
         elif self.region == "AUS":
@@ -1445,6 +1455,9 @@ class Camels(HydroDataset):
         In addition, we need a document to explain the meaning of all dimensions.
 
         TODO: now only support CAMELS-US
+
+        TODO: add support CAMELS-AUS
+
         """
         cache_npy_file = CACHE_DIR.joinpath("camels_daymet_forcing.npy")
         json_file = CACHE_DIR.joinpath("camels_daymet_forcing.json")
@@ -1506,6 +1519,9 @@ class Camels(HydroDataset):
     def cache_attributes_xrdataset(self):
         """Convert all the attributes to a single dataframe
         TODO: now only support CAMELS-US
+
+        TODO: add support CAMELS-AUS
+
 
         Returns
         -------
@@ -1630,6 +1646,9 @@ class Camels(HydroDataset):
         """Save all basins' streamflow data in a netcdf file in the cache directory
 
         TODO: ONLY SUPPORT CAMELS-US now
+
+        TODO: add support CAMELS-AUS
+
         """
         cache_npy_file = CACHE_DIR.joinpath("camels_streamflow.npy")
         json_file = CACHE_DIR.joinpath("camels_streamflow.json")
@@ -1662,6 +1681,9 @@ class Camels(HydroDataset):
         """Save all daymet basin-forcing data in a netcdf file in the cache directory.
 
         TODO: ONLY SUPPORT CAMELS-US now
+
+        TODO: add support CAMELS-AUS
+
         """
         cache_npy_file = CACHE_DIR.joinpath("camels_daymet_forcing.npy")
         json_file = CACHE_DIR.joinpath("camels_daymet_forcing.json")
@@ -1701,7 +1723,11 @@ class Camels(HydroDataset):
         )
 
     def cache_xrdataset(self):
-        """Save all data in a netcdf file in the cache directory"""
+        """Save all data in a netcdf file in the cache directory
+
+        TODO: add support CAMELS-AUS
+
+        """
         warnings.warn("Check you units of all variables")
         ds_attr = self.cache_attributes_xrdataset()
         ds_attr.to_netcdf(CACHE_DIR.joinpath("camelsus_attributes.nc"))
@@ -1717,6 +1743,19 @@ class Camels(HydroDataset):
         var_lst: list = None,
         **kwargs,
     ):
+        """
+
+        Parameters
+        ----------
+        gage_id_lst
+        t_range
+        var_lst
+        kwargs
+
+        Returns
+        -------
+
+        """
         if var_lst is None:
             return None
         camels_tsnc = CACHE_DIR.joinpath("camelsus_timeseries.nc")
