@@ -1116,13 +1116,14 @@ class Camels(HydroDataset):
     ) -> np.array:
         """
         Read forcing data
-
+            now only for US、AUS
         Parameters
         ----------
         gage_id_lst
             station ids
         t_range
-            the time range, for example, US["1990-01-01", "2000-01-01"]
+            the time range, for example,
+            CAMELS-US, ["1990-01-01", "2000-01-01"]
             CAMELS-AUS,
                 AWAP["1911-01-01", "2017-12-31"],
                 SILO["1900-01-01", "2018-12-31"]
@@ -1133,14 +1134,15 @@ class Camels(HydroDataset):
                 AWAP["precipitation", "precipitation_var", "solarrad", "tmax", "tmin", "vprp"],
                 SILO["precipitation", "et_morton_actual", "et_morton_point", "et_morton_wet", "et_short_crop", "et_tall_crop", "evap_morton_lake", "evap_pan", "evap_syn", "mslp" ,"radiation", "rh_tmax", "rh_tmin", "tmax", "tmin","vp_deficit", "vp"]
         forcing_type
-            now only for CAMELS-US, there are three types: daymet, nldas, maurer
-            for CAMELS-AUS, there are two types: AWAP, SILO
+            the data source type
+            CAMELS-US, there are three types: daymet, nldas, maurer
+            CAMELS-AUS, there are two types: AWAP, SILO
         Returns
         -------
         np.array
             forcing data, time series
         """
-        t_range_list = hydro_time.t_range_days(t_range)
+        t_range_list = hydro_time.t_range_days(t_range)   #生成的是左闭右开区间，故["1911-01-01", "2017-12-31"]写成["1911-01-01", "2018-01-01"]生成365天。
         nt = t_range_list.shape[0]
         x = np.full([len(gage_id_lst), nt, len(var_lst)], np.nan)
         if self.region == "US":
@@ -1207,7 +1209,6 @@ class Camels(HydroDataset):
                 # chosen_data = forcing_data[gage_id_lst].values[ind1, :]
                 # x[:, ind2, k] = chosen_data.T
 
-                # try
                 # get the dir of var_lst[k]
                 if "precipitation" in var_lst[k]:
                    forcing_dir = os.path.join(self.data_source_description["CAMELS_FORCING_DIR"],"01_precipitation_timeseries")
@@ -1223,7 +1224,10 @@ class Camels(HydroDataset):
                 date = pd.to_datetime(df_date).values.astype("datetime64[D]")
                 [c, ind1, ind2] = np.intersect1d(date, t_range_list, return_indices=True)  #
                 chosen_data = np.delete(forcing_data,[0,1,2],axis=1)
-                x[:, ind2, k] = chosen_data.T  #
+                if len(ind1) >= len(ind2):
+                    x[:, ind2, k] = chosen_data.T
+                else:
+                    x[:, ind2, k] = chosen_data.T
 
         elif self.region == "BR":
             for j in tqdm(range(len(var_lst)), desc="Read forcing data of CAMELS-BR"):
@@ -1233,7 +1237,7 @@ class Camels(HydroDataset):
                     )
                     x[k, :, j] = data_obs
         elif self.region == "CL":
-            for k in tqdm(range(len(gage_id_lst)), desc="Read forcing data of CAMELS-CL"):
+            for k in tqdm(range(len(var_lst)), desc="Read forcing data of CAMELS-CL"):
                 for tmp in os.listdir(self.data_source_description["CAMELS_DIR"]):
                     if fnmatch.fnmatch(tmp, "*" + var_lst[k]):
                         tmp_ = os.path.join(
@@ -1265,6 +1269,9 @@ class Camels(HydroDataset):
                     x[k, :, j] = data_forcing
         else:
             raise NotImplementedError(CAMELS_NO_DATASET_ERROR_LOG)
+        # #仅供测试使用
+        # xr_x = xr.DataArray(x)
+        # xr_x.to_netcdf(os.path.join(self.data_source_description["CAMELS_FORCING_DIR"], forcing_type + ".nc"))
         return x
 
     def read_attr_all(self):
