@@ -1030,7 +1030,7 @@ class Camels(HydroDataset):
         return chosen_camels_mods
 
     def read_forcing_gage(self, usgs_id, var_lst, t_range_list, forcing_type="daymet"):
-        # data_source = daymet or maurer or nldas
+        # forcing_type = daymet or maurer or nldas
         logging.debug("reading %s forcing data", usgs_id)
         gage_id_df = self.sites
         huc = gage_id_df[gage_id_df["gauge_id"] == usgs_id]["huc_02"].values[0]
@@ -1125,12 +1125,15 @@ class Camels(HydroDataset):
             the time range, for example, ["1990-01-01", "2000-01-01"]
         var_lst
             forcing variable types
+            CAMELS-US, ["dayl", "prcp", "PET"]
+            CAMELS-AUS, AWAP["precipitation", "solarrad", "tmax", "tmin", "vprp"], SILO["precipitation", "et", "evap", "mslp" ,"radiation", "rh_tmax", "rh_tmin", "vp_deficit", "vp"]
         forcing_type
             now only for CAMELS-US, there are three types: daymet, nldas, maurer
+            for CAMELS-AUS, there are two types: AWAP, SILO
         Returns
         -------
         np.array
-            forcing data
+            forcing data, time series
         """
         t_range_list = hydro_time.t_range_days(t_range)
         nt = t_range_list.shape[0]
@@ -1163,7 +1166,7 @@ class Camels(HydroDataset):
                     )
                     x[k, :, :] = data
         elif self.region == "AUS":
-            for k in tqdm(range(len(var_lst)), desc="Read forcing data of CAMELS-AUS"):
+            for k in tqdm(range(len(gage_id_lst)), desc="Read forcing data of CAMELS-AUS"):
                 if "precipitation_" in var_lst[k]:
                     forcing_dir = os.path.join(
                         self.data_source_description["CAMELS_FORCING_DIR"],
@@ -1186,6 +1189,10 @@ class Camels(HydroDataset):
                         "03_Other",
                         "SILO",
                     )
+                    if forcing_type == "AWAP":
+
+                    elif forcing_type == "SILO":
+
                 else:
                     raise NotImplementedError(CAMELS_NO_DATASET_ERROR_LOG)
                 forcing_data = pd.read_csv(
@@ -1206,7 +1213,7 @@ class Camels(HydroDataset):
                     )
                     x[k, :, j] = data_obs
         elif self.region == "CL":
-            for k in tqdm(range(len(var_lst)), desc="Read forcing data of CAMELS-CL"):
+            for k in tqdm(range(len(gage_id_lst)), desc="Read forcing data of CAMELS-CL"):
                 for tmp in os.listdir(self.data_source_description["CAMELS_DIR"]):
                     if fnmatch.fnmatch(tmp, "*" + var_lst[k]):
                         tmp_ = os.path.join(
