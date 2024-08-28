@@ -1112,7 +1112,7 @@ class Camels(HydroDataset):
         gage_id_lst: list = None,
         t_range: list = None,
         var_lst: list = None,
-        forcing_type="daymet",
+        forcing_type = "daymet",
     ) -> np.array:
         """
         Read forcing data
@@ -1122,11 +1122,16 @@ class Camels(HydroDataset):
         gage_id_lst
             station ids
         t_range
-            the time range, for example, ["1990-01-01", "2000-01-01"]
+            the time range, for example, US["1990-01-01", "2000-01-01"]
+            CAMELS-AUS,
+                AWAP["1911-01-01", "2017-12-31"],
+                SILO["1900-01-01", "2018-12-31"]
         var_lst
             forcing variable types
             CAMELS-US, ["dayl", "prcp", "PET"]
-            CAMELS-AUS, AWAP["precipitation", "solarrad", "tmax", "tmin", "vprp"], SILO["precipitation", "et", "evap", "mslp" ,"radiation", "rh_tmax", "rh_tmin", "vp_deficit", "vp"]
+            CAMELS-AUS,
+                AWAP["precipitation", "precipitation_var", "solarrad", "tmax", "tmin", "vprp"],
+                SILO["precipitation", "et_morton_actual", "et_morton_point", "et_morton_wet", "et_short_crop", "et_tall_crop", "evap_morton_lake", "evap_pan", "evap_syn", "mslp" ,"radiation", "rh_tmax", "rh_tmin", "tmax", "tmin","vp_deficit", "vp"]
         forcing_type
             now only for CAMELS-US, there are three types: daymet, nldas, maurer
             for CAMELS-AUS, there are two types: AWAP, SILO
@@ -1140,7 +1145,7 @@ class Camels(HydroDataset):
         x = np.full([len(gage_id_lst), nt, len(var_lst)], np.nan)
         if self.region == "US":
             for k in tqdm(
-                range(len(gage_id_lst)), desc="Read forcing data of CAMELS-US"
+                range(len(gage_id_lst)), desc="Read forcing data of CAMELS-US"  #按测站读
             ):
                 if "PET" in var_lst:
                     pet_idx = var_lst.index("PET")
@@ -1166,45 +1171,60 @@ class Camels(HydroDataset):
                     )
                     x[k, :, :] = data
         elif self.region == "AUS":
-            for k in tqdm(range(len(gage_id_lst)), desc="Read forcing data of CAMELS-AUS"):
-                if "precipitation_" in var_lst[k]:
-                    forcing_dir = os.path.join(
-                        self.data_source_description["CAMELS_FORCING_DIR"],
-                        "01_precipitation_timeseries",
-                    )
-                elif "et_" in var_lst[k] or "evap_" in var_lst[k]:
-                    forcing_dir = os.path.join(
-                        self.data_source_description["CAMELS_FORCING_DIR"],
-                        "02_EvaporativeDemand_timeseries",
-                    )
-                elif "_AWAP" in var_lst[k]:
-                    forcing_dir = os.path.join(
-                        self.data_source_description["CAMELS_FORCING_DIR"],
-                        "03_Other",
-                        "AWAP",
-                    )
-                elif "_SILO" in var_lst[k]:
-                    forcing_dir = os.path.join(
-                        self.data_source_description["CAMELS_FORCING_DIR"],
-                        "03_Other",
-                        "SILO",
-                    )
-                    if forcing_type == "AWAP":
+            for k in tqdm(range(len(var_lst)), desc="Read forcing data of CAMELS-AUS"):  #按变量读
+                # if "precipitation_" in var_lst[k]:
+                #     forcing_dir = os.path.join(
+                #         self.data_source_description["CAMELS_FORCING_DIR"],
+                #         "01_precipitation_timeseries",
+                #     )
+                # elif "et_" in var_lst[k] or "evap_" in var_lst[k]:
+                #     forcing_dir = os.path.join(
+                #         self.data_source_description["CAMELS_FORCING_DIR"],
+                #         "02_EvaporativeDemand_timeseries",
+                #     )
+                # elif "_AWAP" in var_lst[k]:
+                #     forcing_dir = os.path.join(
+                #         self.data_source_description["CAMELS_FORCING_DIR"],
+                #         "03_Other",
+                #         "AWAP",
+                #     )
+                # elif "_SILO" in var_lst[k]:
+                #     forcing_dir = os.path.join(
+                #         self.data_source_description["CAMELS_FORCING_DIR"],
+                #         "03_Other",
+                #         "SILO",
+                #     )
+                # else:
+                #     raise NotImplementedError(CAMELS_NO_DATASET_ERROR_LOG)
+                # forcing_data = pd.read_csv(
+                #     os.path.join(forcing_dir, var_lst[k], forcing_type + ".csv")    #?
+                # )
+                # df_date = forcing_data[["year", "month", "day"]]
+                # date = pd.to_datetime(df_date).values.astype("datetime64[D]")
+                # [c, ind1, ind2] = np.intersect1d(
+                #     date, t_range_list, return_indices=True
+                # )
+                # chosen_data = forcing_data[gage_id_lst].values[ind1, :]
+                # x[:, ind2, k] = chosen_data.T
 
-                    elif forcing_type == "SILO":
-
+                # try
+                # get the dir of var_lst[k]
+                if "precipitation" in var_lst[k]:
+                   forcing_dir = os.path.join(self.data_source_description["CAMELS_FORCING_DIR"],"01_precipitation_timeseries")
+                elif "et" in var_lst[k] or "evap" in var_lst[k]:
+                    forcing_dir = os.path.join(self.data_source_description["CAMELS_FORCING_DIR"],"02_EvaporativeDemand_timeseries")
+                elif var_lst[k]:
+                    forcing_dir = os.path.join(self.data_source_description["CAMELS_FORCING_DIR"],"03_Other",forcing_type)
                 else:
                     raise NotImplementedError(CAMELS_NO_DATASET_ERROR_LOG)
-                forcing_data = pd.read_csv(
-                    os.path.join(forcing_dir, var_lst[k] + "AWAP.csv")    #?
-                )
+                # read data
+                forcing_data = pd.read_csv(os.path.join(forcing_dir, var_lst[k] + "_"+ forcing_type + ".csv"))
                 df_date = forcing_data[["year", "month", "day"]]
                 date = pd.to_datetime(df_date).values.astype("datetime64[D]")
-                [c, ind1, ind2] = np.intersect1d(
-                    date, t_range_list, return_indices=True
-                )
-                chosen_data = forcing_data[gage_id_lst].values[ind1, :]
-                x[:, ind2, k] = chosen_data.T
+                [c, ind1, ind2] = np.intersect1d(date, t_range_list, return_indices=True)  #
+                chosen_data = np.delete(forcing_data,[0,1,2],axis=1)
+                x[:, ind2, k] = chosen_data.T  #
+
         elif self.region == "BR":
             for j in tqdm(range(len(var_lst)), desc="Read forcing data of CAMELS-BR"):
                 for k in tqdm(range(len(gage_id_lst))):

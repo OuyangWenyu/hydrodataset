@@ -78,7 +78,8 @@ def test_read_relevant_cols_for_aus():
     camels = Camels(data_path="camels\\camels_aus",download=False,region="AUS")
     gage_ids = camels.read_object_ids()
     t_range = ["1911-01-01", "2017-12-31"]
-    var_lst = ["precipitation_", "et_", "_AWAP", "_SILO"]
-    x = camels.read_relevant_cols(gage_ids[:5],t_range,var_lst)
+    var_lst = ["precipitation"]
+    forcing_type = "AWAP"
+    x = camels.read_relevant_cols(gage_ids,t_range,var_lst,forcing_type)
     print(x)
 
