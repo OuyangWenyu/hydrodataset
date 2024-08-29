@@ -840,12 +840,13 @@ class Camels(HydroDataset):
         gage_id_lst
             station ids
         t_range
-            the time range, for example, ["1990-01-01", "2000-01-01"]
+            the time range, for example,
+            CAMELS-US, ["1990-01-01", "2000-01-01"]
+            CAMELS-AUS, ["1951-01-01", "2014-12-31"]
         target_cols
             the default is None, but we neea at least one default target.
             For CAMELS-US, it is ["usgsFlow"];
-            for CAMELS-AUS, it's ["streamflow_mmd"]
-            for CAMELS-AUS, it's ["streamflow_m3s"]
+            for CAMELS-AUS, it's ["streamflow_MLd","streamflow_MLd_inclInfilled","streamflow_mmd","streamflow_QualityCodes"]
         kwargs
             some other params if needed
 
@@ -883,26 +884,21 @@ class Camels(HydroDataset):
                     data_obs = self.read_camels_streamflow(gage_id_lst[k], t_range)
                 # For CAMELS-US, only ["usgsFlow"]
                 y[k, :, 0] = data_obs
-
-        elif self.region == "AUS":   #todo:read streamflow data of aus
+        elif self.region == "AUS":
             for k in tqdm(
                 range(len(target_cols)), desc="Read streamflow data of CAMELS-AUS"
             ):
-                flow_data = pd.read_csv(
-                    os.path.join(
-                        self.data_source_description["CAMELS_FLOW_DIR"],
-                        target_cols[k] + ".csv",  #
-                    )
-                )
+                flow_data = pd.read_csv(os.path.join(self.data_source_description["CAMELS_FLOW_DIR"],target_cols[k] + ".csv"))
                 df_date = flow_data[["year", "month", "day"]]
                 date = pd.to_datetime(df_date).values.astype("datetime64[D]")
-                [c, ind1, ind2] = np.intersect1d(
-                    date, t_range_list, return_indices=True
-                )
-                chosen_data = flow_data[gage_id_lst].values[ind1, :]
+                [c, ind1, ind2] = np.intersect1d(date, t_range_list, return_indices=True)
+                # chosen_data = flow_data[gage_id_lst].values[ind1, :]
+                chosen_data = np.delete(flow_data, [0,1,2], axis=1)  #gage_id_lst的问题，是默认读所以的站，还是可以挑选站点。
                 chosen_data[chosen_data < 0] = np.nan
-                y[:, ind2, k] = chosen_data.T
-
+                if len(ind1) >= len(ind2):
+                    y[:, ind2, k] = chosen_data.T
+                else:
+                    y[:, ind1, k] = chosen_data.T
         elif self.region == "BR":
             for j in tqdm(
                 range(len(target_cols)), desc="Read streamflow data of CAMELS-BR"
@@ -970,6 +966,9 @@ class Camels(HydroDataset):
         elif self.region != "US":
             # other units are m3/s -> ft3/s
             y = y * 35.314666721489
+        # #仅供测试使用
+        # xr_y = xr.DataArray(y)
+        # xr_y.to_netcdf(os.path.join(self.data_source_description["CAMELS_FLOW_DIR"], "streamflow.nc"))
         return y
 
     def read_camels_us_model_output_data(
@@ -1253,7 +1252,7 @@ class Camels(HydroDataset):
                 if len(ind1) >= len(ind2):
                     x[:, ind2, k] = chosen_data.T
                 else:
-                    x[:, ind2, k] = chosen_data.T
+                    x[:, ind1, k] = chosen_data.T
         elif self.region == "BR":
             for j in tqdm(range(len(var_lst)), desc="Read forcing data of CAMELS-BR"):
                 for k in tqdm(range(len(gage_id_lst))):
@@ -1569,7 +1568,7 @@ class Camels(HydroDataset):
         """
         cache_npy_file = CACHE_DIR.joinpath("camels_streamflow.npy")
         json_file = CACHE_DIR.joinpath("camels_streamflow.json")
-        variables = self.get_target_cols()
+        variables = self.get_target_cols()  #
         basins = self.sites["gauge_id"].values
         t_range = ["1980-01-01", "2015-01-01"]
         times = [
