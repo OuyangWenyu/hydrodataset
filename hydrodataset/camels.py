@@ -115,8 +115,9 @@ class Camels(HydroDataset):
             self.download_data_source()
         self.sites = self.read_site_info()
 
-        self.forcing_type_list = self.read_forcing_type_list()
-        self.time_range = self.read_time_range()
+        # self.basicinfo = self.read_basic_info()
+        # self.forcing_type = self.read_forcing_type_list()
+        # self.time_range = self.read_time_range()
 
     def get_name(self):
         return "CAMELS_" + self.region
@@ -450,6 +451,26 @@ class Camels(HydroDataset):
             warnings.warn("We only provide downloading methods for CAMELS-US now")
         hydro_file.zip_extract(camels_config["CAMELS_DIR"])
 
+    #todo:
+    # def read_basic_info():
+    #     """
+    #     Read the basic information of dataset
+    #     Returns
+    #     -------
+    #
+    #     """
+    #     basic_info_path = self.data_source_dir + "camels_" + self.region.lower() + "_basicinfo.txt"
+    #     if not os.path.exists(basic_info_path):
+    #         raise FileNotFoundError(f"Basic information file not found: {basic_info_path}")
+    #     with open(basic_info_path, "r") as file:
+    #         basic_info = file  #
+    #
+    # def basic_info():
+    #     AWAP = {time_range:["1911-01-01", "2017-12-31"], variable_type: ["precipitation", "precipitation_var", "solarrad", "tmax", "tmin", "vprp"]}
+    #     SILO = {time_range: ["1900-01-01", "2018-12-31"], variable_type: ["precipitation", "et_morton_actual", "et_morton_point", "et_morton_wet", "et_short_crop", "et_tall_crop", "evap_morton_lake", "evap_pan", "evap_syn", "mslp" ,"radiation", "rh_tmax", "rh_tmin", "tmax", "tmin","vp_deficit", "vp"]}
+    #     forcing_type = {"AWAP": AWAP, "SILO": SILO}
+    #     basic_info = {"regon":}
+
     def read_site_info(self) -> pd.DataFrame:
         """
         Read the basic information of gages in a CAMELS dataset
@@ -546,7 +567,7 @@ class Camels(HydroDataset):
                     continue
                 # todo: 添加forcing_type判断
                 variable_types = ["precipitation", "precipitation_var", "solarrad", "tmax", "tmin", "vprp"]
-                variable_types = ["precipitation", "et_morton_actual", "et_morton_point", "et_morton_wet", "et_short_crop", "et_tall_crop", "evap_morton_lake", "evap_pan", "evap_syn", "mslp" ,"radiation", "rh_tmax", "rh_tmin", "tmax", "tmin","vp_deficit", "vp"]
+                #variable_types = ["precipitation", "et_morton_actual", "et_morton_point", "et_morton_wet", "et_short_crop", "et_tall_crop", "evap_morton_lake", "evap_pan", "evap_syn", "mslp" ,"radiation", "rh_tmax", "rh_tmin", "tmax", "tmin","vp_deficit", "vp"]
             return np.array(variable_types)
         elif self.region == "BR":
             return np.array(
@@ -809,7 +830,7 @@ class Camels(HydroDataset):
         **kwargs,
     ) -> np.array:
         """
-        read target values; for CAMELS, they are streamflows
+        read target values; for CAMELS, they are streamflows   #
 
         default target_cols is an one-value list
         Notice: the unit of target outputs in different regions are not totally same
@@ -862,14 +883,15 @@ class Camels(HydroDataset):
                     data_obs = self.read_camels_streamflow(gage_id_lst[k], t_range)
                 # For CAMELS-US, only ["usgsFlow"]
                 y[k, :, 0] = data_obs
-        elif self.region == "AUS":
+
+        elif self.region == "AUS":   #todo:read streamflow data of aus
             for k in tqdm(
                 range(len(target_cols)), desc="Read streamflow data of CAMELS-AUS"
             ):
                 flow_data = pd.read_csv(
                     os.path.join(
                         self.data_source_description["CAMELS_FLOW_DIR"],
-                        target_cols[k] + ".csv",
+                        target_cols[k] + ".csv",  #
                     )
                 )
                 df_date = flow_data[["year", "month", "day"]]
@@ -880,6 +902,7 @@ class Camels(HydroDataset):
                 chosen_data = flow_data[gage_id_lst].values[ind1, :]
                 chosen_data[chosen_data < 0] = np.nan
                 y[:, ind2, k] = chosen_data.T
+
         elif self.region == "BR":
             for j in tqdm(
                 range(len(target_cols)), desc="Read streamflow data of CAMELS-BR"
@@ -1231,7 +1254,6 @@ class Camels(HydroDataset):
                     x[:, ind2, k] = chosen_data.T
                 else:
                     x[:, ind2, k] = chosen_data.T
-
         elif self.region == "BR":
             for j in tqdm(range(len(var_lst)), desc="Read forcing data of CAMELS-BR"):
                 for k in tqdm(range(len(gage_id_lst))):
@@ -1278,6 +1300,16 @@ class Camels(HydroDataset):
         return x
 
     def read_attr_all(self):
+        """
+        read attributes data of all region, except aus and cl
+
+        Returns
+        -------
+        out
+        var_lst
+        var_dict
+        f_dict
+        """
         data_folder = self.data_source_description["CAMELS_ATTR_DIR"]
         key_lst = self.data_source_description["CAMELS_ATTR_KEY_LST"]
         f_dict = {}
@@ -1328,7 +1360,7 @@ class Camels(HydroDataset):
 
     def read_attr_all_in_one_file(self):
         """
-        Read all attr data in CAMELS_AUS or CAMELS_CL
+        Read attributes data in CAMELS_AUS or CAMELS_CL
 
         Returns
         -------
@@ -1338,7 +1370,7 @@ class Camels(HydroDataset):
         if self.region == "AUS":
             attr_all_file = os.path.join(
                 self.data_source_description["CAMELS_DIR"],
-                "CAMELS_AUS_Attributes-Indices_MasterTable.csv",
+                "CAMELS_AUS_Attributes-Indices_MasterTable.csv",  #似乎没有这个文件
             )
             all_attr = pd.read_csv(attr_all_file, sep=",")
         elif self.region == "CL":
@@ -1381,6 +1413,12 @@ class Camels(HydroDataset):
         return out, var_lst, None, f_dict
 
     def read_attr_all_yr(self):
+        """
+
+        Returns
+        -------
+
+        """
         var_lst = self.get_constant_cols().tolist()
         gage_id_lst = self.read_object_ids()
         # for factorized data, we need factorize all gages' data to keep the factorized number same all the time
@@ -1415,7 +1453,7 @@ class Camels(HydroDataset):
         self, gage_id_lst=None, var_lst=None, is_return_dict=False
     ) -> Union[tuple, np.array]:
         """
-        Read Attributes data
+        Read Attributes data  #
 
         Parameters
         ----------
@@ -1483,10 +1521,7 @@ class Camels(HydroDataset):
         else:
             raise NotImplementedError(CAMELS_NO_DATASET_ERROR_LOG)
 
-    def cache_forcing_np_json(
-        self,
-        forcing_type = "daymet",
-    ):
+    def cache_forcing_np_json(self):
         """
         Save all daymet basin-forcing data in a numpy array file in the cache directory.
 
@@ -1499,8 +1534,8 @@ class Camels(HydroDataset):
         TODO: add support CAMELS-AUS
 
         """
-        cache_npy_file = CACHE_DIR.joinpath("camels-" + self.region + "_" + forcing_type + ".npy")
-        json_file = CACHE_DIR.joinpath("camels-" + self.region + "_" + forcing_type + ".json")   #
+        cache_npy_file = CACHE_DIR.joinpath("camels-" + self.region + "_" + self.forcing_type + ".npy")
+        json_file = CACHE_DIR.joinpath("camels-" + self.region + "_" + self.forcing_type + ".json")   #
         variables = self.get_relevant_cols()  #todo:bug
         basins = self.sites["gauge_id"].values
         t_range_forcing_type = ["1980-01-01", "2015-01-01"]  #todo:
