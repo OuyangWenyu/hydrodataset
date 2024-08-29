@@ -115,6 +115,9 @@ class Camels(HydroDataset):
             self.download_data_source()
         self.sites = self.read_site_info()
 
+        self.forcing_type_list = self.read_forcing_type_list()
+        self.time_range = self.read_time_range()
+
     def get_name(self):
         return "CAMELS_" + self.region
 
@@ -522,12 +525,12 @@ class Camels(HydroDataset):
 
     def get_relevant_cols(self) -> np.array:
         """
-        all readable forcing types
+        all readable variable types
 
         Returns
         -------
         np.array
-            forcing types
+            variable types
         """
         if self.region == "US":
             # PET is from model_output file in CAMELS-US
@@ -535,16 +538,16 @@ class Camels(HydroDataset):
                 ["dayl", "prcp", "srad", "swe", "tmax", "tmin", "vp", "PET"]
             )
         elif self.region == "AUS":
-            forcing_types = []
+            variable_types = []
             for root, dirs, files in os.walk(
                 self.data_source_description["CAMELS_FORCING_DIR"]
             ):
                 if root == self.data_source_description["CAMELS_FORCING_DIR"]:
                     continue
-                forcing_types.extend(
-                    file[:-4] for file in files if file != "ClimaticIndices.csv"
-                )
-            return np.array(forcing_types)
+                # todo: 添加forcing_type判断
+                variable_types = ["precipitation", "precipitation_var", "solarrad", "tmax", "tmin", "vprp"]
+                variable_types = ["precipitation", "et_morton_actual", "et_morton_point", "et_morton_wet", "et_short_crop", "et_tall_crop", "evap_morton_lake", "evap_pan", "evap_syn", "mslp" ,"radiation", "rh_tmax", "rh_tmin", "tmax", "tmin","vp_deficit", "vp"]
+            return np.array(variable_types)
         elif self.region == "BR":
             return np.array(
                 [
@@ -1134,7 +1137,7 @@ class Camels(HydroDataset):
                 AWAP["precipitation", "precipitation_var", "solarrad", "tmax", "tmin", "vprp"],
                 SILO["precipitation", "et_morton_actual", "et_morton_point", "et_morton_wet", "et_short_crop", "et_tall_crop", "evap_morton_lake", "evap_pan", "evap_syn", "mslp" ,"radiation", "rh_tmax", "rh_tmin", "tmax", "tmin","vp_deficit", "vp"]
         forcing_type
-            the data source type
+            the forcing data source type
             CAMELS-US, there are three types: daymet, nldas, maurer
             CAMELS-AUS, there are two types: AWAP, SILO
         Returns
@@ -1480,7 +1483,10 @@ class Camels(HydroDataset):
         else:
             raise NotImplementedError(CAMELS_NO_DATASET_ERROR_LOG)
 
-    def cache_forcing_np_json(self):
+    def cache_forcing_np_json(
+        self,
+        forcing_type = "daymet",
+    ):
         """
         Save all daymet basin-forcing data in a numpy array file in the cache directory.
 
@@ -1493,11 +1499,11 @@ class Camels(HydroDataset):
         TODO: add support CAMELS-AUS
 
         """
-        cache_npy_file = CACHE_DIR.joinpath("camels_daymet_forcing.npy")
-        json_file = CACHE_DIR.joinpath("camels_daymet_forcing.json")
-        variables = self.get_relevant_cols()
+        cache_npy_file = CACHE_DIR.joinpath("camels-" + self.region + "_" + forcing_type + ".npy")
+        json_file = CACHE_DIR.joinpath("camels-" + self.region + "_" + forcing_type + ".json")   #
+        variables = self.get_relevant_cols()  #todo:bug
         basins = self.sites["gauge_id"].values
-        daymet_t_range = ["1980-01-01", "2015-01-01"]
+        t_range_forcing_type = ["1980-01-01", "2015-01-01"]  #todo:
         times = [
             hydro_time.t2str(tmp)
             for tmp in hydro_time.t_range_days(daymet_t_range).tolist()
@@ -1512,10 +1518,11 @@ class Camels(HydroDataset):
         )
         with open(json_file, "w") as FP:
             json.dump(data_info, FP, indent=4)
-        data = self.read_relevant_cols(
+        data = self.read_relevant_cols(    #
             gage_id_lst=basins.tolist(),
-            t_range=daymet_t_range,
+            t_range=t_range_forcing_type,
             var_lst=variables.tolist(),
+            forcing_type = forcing_type,
         )
         np.save(cache_npy_file, data)
 
