@@ -72,3 +72,20 @@ def test_read_mean_prcp():
     gage_ids = camels.read_object_ids()
     mean_prcp = camels.read_mean_prcp(gage_ids[:5])
     print(mean_prcp)
+
+
+def test_read_relevant_cols_for_aus():
+    camels = Camels(data_path="camels\\camels_aus",download=False,region="AUS")
+    gage_ids = camels.read_object_ids()
+    t_range = ["1911-01-01", "2018-01-01"]
+    var_lst = ["precipitation", "precipitation_var", "solarrad", "tmax", "tmin", "vprp"]
+    forcing_type = "AWAP"
+    x = camels.read_relevant_cols(gage_ids,t_range,var_lst,forcing_type)
+
+
+def test_read_target_cols_for_aus():
+    camels = Camels(data_path="camels\\camels_aus", download=False, region="AUS")
+    gage_ids = camels.read_object_ids()
+    t_range = ["1951-01-01", "2015-01-01"]
+    target_list = ["streamflow_MLd","streamflow_MLd_inclInfilled","streamflow_mmd"]
+    y = camels.read_target_cols(gage_ids,t_range,target_list)
