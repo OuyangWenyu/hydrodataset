@@ -119,6 +119,9 @@ class Camels(HydroDataset):
         # self.forcing_type = self.read_forcing_type_list()
         # self.time_range = self.read_time_range()
 
+        self.basci_info = self.basic_info_aus()
+        self.forcing_type = list(self.basci_info["forcing_type"].keys())
+
     def get_name(self):
         return "CAMELS_" + self.region
 
@@ -465,11 +468,12 @@ class Camels(HydroDataset):
     #     with open(basic_info_path, "r") as file:
     #         basic_info = file  #
     #
-    # def basic_info():
-    #     AWAP = {time_range:["1911-01-01", "2017-12-31"], variable_type: ["precipitation", "precipitation_var", "solarrad", "tmax", "tmin", "vprp"]}
-    #     SILO = {time_range: ["1900-01-01", "2018-12-31"], variable_type: ["precipitation", "et_morton_actual", "et_morton_point", "et_morton_wet", "et_short_crop", "et_tall_crop", "evap_morton_lake", "evap_pan", "evap_syn", "mslp" ,"radiation", "rh_tmax", "rh_tmin", "tmax", "tmin","vp_deficit", "vp"]}
-    #     forcing_type = {"AWAP": AWAP, "SILO": SILO}
-    #     basic_info = {"regon":}
+    def basic_info_aus(self):
+        AWAP = {"time_range":["1911-01-01", "2017-12-31"], "variable_type": ["precipitation", "precipitation_var", "solarrad", "tmax", "tmin", "vprp"]}
+        SILO = {"time_range": ["1900-01-01", "2018-12-31"], "variable_type": ["precipitation", "et_morton_actual", "et_morton_point", "et_morton_wet", "et_short_crop", "et_tall_crop", "evap_morton_lake", "evap_pan", "evap_syn", "mslp" ,"radiation", "rh_tmax", "rh_tmin", "tmax", "tmin","vp_deficit", "vp"]}
+        forcing_type = {"AWAP": AWAP, "SILO": SILO}
+        basic_info = {"region": "AUS", "forcing_type": forcing_type}
+        return basic_info
 
     def read_site_info(self) -> pd.DataFrame:
         """
@@ -846,7 +850,7 @@ class Camels(HydroDataset):
         target_cols
             the default is None, but we neea at least one default target.
             For CAMELS-US, it is ["usgsFlow"];
-            for CAMELS-AUS, it's ["streamflow_MLd","streamflow_MLd_inclInfilled","streamflow_mmd","streamflow_QualityCodes"]
+            for CAMELS-AUS, it's ["streamflow_MLd","streamflow_MLd_inclInfilled","streamflow_mmd"]
         kwargs
             some other params if needed
 
@@ -892,8 +896,8 @@ class Camels(HydroDataset):
                 df_date = flow_data[["year", "month", "day"]]
                 date = pd.to_datetime(df_date).values.astype("datetime64[D]")
                 [c, ind1, ind2] = np.intersect1d(date, t_range_list, return_indices=True)
-                # chosen_data = flow_data[gage_id_lst].values[ind1, :]
-                chosen_data = np.delete(flow_data, [0,1,2], axis=1)  #gage_id_lst的问题，是默认读所以的站，还是可以挑选站点。
+                chosen_data = flow_data[gage_id_lst].values[ind2, :]
+                # chosen_data = np.delete(flow_data, [0,1,2], axis=1)  #gage_id_lst的问题，是默认读所有的站，还是可以挑选站点。
                 chosen_data[chosen_data < 0] = np.nan
                 if len(ind1) >= len(ind2):
                     y[:, ind2, k] = chosen_data.T
@@ -1369,7 +1373,7 @@ class Camels(HydroDataset):
         if self.region == "AUS":
             attr_all_file = os.path.join(
                 self.data_source_description["CAMELS_DIR"],
-                "CAMELS_AUS_Attributes-Indices_MasterTable.csv",  #似乎没有这个文件
+                "CAMELS_AUS_Attributes-Indices_MasterTable.csv",
             )
             all_attr = pd.read_csv(attr_all_file, sep=",")
         elif self.region == "CL":
@@ -1565,8 +1569,10 @@ class Camels(HydroDataset):
         Save all basins' streamflow data in a numpy array file in the cache directory
 
         TODO: now only support CAMELS-US
+
+        todo: add support CAMELS-AUS
         """
-        cache_npy_file = CACHE_DIR.joinpath("camels_streamflow.npy")
+        cache_npy_file = CACHE_DIR.joinpath("camels_streamflow.npy")  #todo:
         json_file = CACHE_DIR.joinpath("camels_streamflow.json")
         variables = self.get_target_cols()  #
         basins = self.sites["gauge_id"].values
@@ -1819,7 +1825,7 @@ class Camels(HydroDataset):
         **kwargs,
     ):
         """
-
+        read time series
         Parameters
         ----------
         gage_id_lst
