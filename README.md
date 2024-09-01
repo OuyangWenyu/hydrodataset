@@ -45,7 +45,7 @@ pip install hydrodataset
 
 ### 1. Download datasets
 
-There are many datasets similar to CAMELS(-US), including CAMELS-AUS (Australia), CAMELS-BR (Brazil), CAMELS-CL (Chile), CAMELS-GB (Great Britain), LamaH-CE, HYSETS. Recently, a new dataset named Caravan is released, which is a global dataset.
+There are many datasets similar to CAMELS(-US), including CAMELS-AUS (Australia), CAMELS-BR (Brazil), CAMELS-CH (Switzerland), CAMELS-CL (Chile), CAMELS-GB (Great Britain), LamaH-CE, HYSETS. Recently, a new dataset named Caravan is released, which is a global dataset.
 
 Now we only support auto-downloading for CAMELS-US (later for others), but I highly recommend you download them manually, as the downloading is not stable sometimes because of unstable web connections to the servers of these datasets in different places in the world.
 
@@ -53,6 +53,7 @@ the download links:
 
 - [CAMELS-AUS (Australia)](https://doi.pangaea.de/10.1594/PANGAEA.921850)
 - [CAMELS-BR (Brazil)](https://zenodo.org/record/3964745#.YNsjKOgzbIU)
+- [CAMELS-CH (Switzerland)](https://zenodo.org/records/7784633)
 - [CAMELS-CL (Chile)](https://doi.pangaea.de/10.1594/PANGAEA.894885)
 - [CAMELS-GB (Great Britain)](https://doi.org/10.5285/8344e4f3-d2ea-44f5-8afa-86d2987543a9)
 - [CAMELS-US (United States)](https://gdex.ucar.edu/dataset/camels.html)
@@ -86,6 +87,8 @@ camels/
 │  ├─ 13_CAMELS_BR_temperature_max_cpc.zip
 │  ├─ 14_CAMELS_BR_catchment_boundaries.zip
 │  ├─ 15_CAMELS_BR_gauges_location_shapefile.zip
+├─ camels_ch/
+│  ├─ camels_ch.zip
 ├─ camels_cl/
 │  ├─ 10_CAMELScl_tmean_cr2met.zip
 │  ├─ 11_CAMELScl_pet_8d_modis.zip
@@ -136,10 +139,10 @@ First, run the following Python code:
 import hydrodataset
 ```
 
-then in your home directory, you will find the directory for hydrodataset: 
+then in your home directory, you will find the directory for hydrodataset:
 
 - Windows: C:\\Users\\xxx\\.hydrodataset (xxx is your username))
-- Ubuntu: /home/xxx/.hydrodataset 
+- Ubuntu: /home/xxx/.hydrodataset
 
 In .hydrodataset directory, there is a settings.txt file and only one line is in it. This line means the root directory of hydrodataset, and its 1st sub-directory is camels (shown in the previous directory tree).
 
@@ -179,12 +182,12 @@ core language (Python) for watershed hydrological modeling.
 
 Now the dataset zoo list includes:
 
-| **Number** | **Dataset** | **Description**                                         |
-| ---------- | ----------- | ------------------------------------------------------- |
-| 1          | **CAMELS**  | CAMELS series datasets including CAMELS-AUS/BR/CL/GB/US |
-| 2          | **LamaH**   | LamaH-CE dataset for Central Europe                     |
-| 3          | **HYSETS**  | HYSETS dataset for North America                        |
-| 4          | **Caravan** | Caravan dataset for global                              |
+| **Number** | **Dataset** | **Description**                                            |
+| ---------- | ----------- |------------------------------------------------------------|
+| 1          | **CAMELS**  | CAMELS series datasets including CAMELS-AUS/BR/CH/CL/GB/US |
+| 2          | **LamaH**   | LamaH-CE dataset for Central Europe                        |
+| 3          | **HYSETS**  | HYSETS dataset for North America                           |
+| 4          | **Caravan** | Caravan dataset for global                                 |
 
 For units, we use [pint](https://github.com/hgrecco/pint), and [pint-xarray](https://github.com/xarray-contrib/pint-xarray) to handle them.
 
