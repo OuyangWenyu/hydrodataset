@@ -45,7 +45,7 @@ pip install hydrodataset
 
 ### 1. Download datasets
 
-There are many datasets similar to CAMELS(-US), including CAMELS-AUS (Australia), CAMELS-BR (Brazil), CAMELS-CH (Switzerland), CAMELS-CL (Chile), CAMELS-DE (Germany), CAMELS-GB (Great Britain), CAMELS-SE (Sweden), LamaH-CE, HYSETS. Recently, a new dataset named Caravan is released, which is a global dataset.
+There are many datasets similar to CAMELS(-US), including CAMELS-AUS (Australia), CAMELS-BR (Brazil), CAMELS-CH (Switzerland), CAMELS-CL (Chile), CAMELS-DE (Germany), CAMELS-DK (Denmark), CAMELS-GB (Great Britain), CAMELS-SE (Sweden), LamaH-CE, HYSETS. Recently, a new dataset named Caravan is released, which is a global dataset.
 
 Now we only support auto-downloading for CAMELS-US (later for others), but I highly recommend you download them manually, as the downloading is not stable sometimes because of unstable web connections to the servers of these datasets in different places in the world.
 
@@ -56,6 +56,7 @@ the download links:
 - [CAMELS-CH (Switzerland)](https://zenodo.org/records/10354485)
 - [CAMELS-CL (Chile)](https://doi.pangaea.de/10.1594/PANGAEA.894885)
 - [CAMELS-DE (Germany)](https://zenodo.org/records/12733968)
+- [CAMELS-DK (Denmark)](https://doi.org/10.22008/FK2/AZXSYP)
 - [CAMELS-GB (Great Britain)](https://doi.org/10.5285/8344e4f3-d2ea-44f5-8afa-86d2987543a9)
 - [CAMELS-SE (Sweden)](https://snd.se/sv/catalogue/dataset/2023-173/1)
 - [CAMELS-US (United States)](https://gdex.ucar.edu/dataset/camels.html)
@@ -109,6 +110,10 @@ camels/
 │  ├─ CAMELScl_catchment_boundaries.zip
 ├─ camels_de/
 │  ├─ camels_de.zip
+├─ camels_dk/
+│  ├─ Attributes
+│  ├─ Dynamics
+│  ├─ Shapefile
 ├─ camels_gb/
 │  ├─ 8344e4f3-d2ea-44f5-8afa-86d2987543a9.zip
 ├─ camels_se/
@@ -137,6 +142,7 @@ hysets/
 ├─ HYSETS_watershed_properties.txt
 caravan/
 ├─ Caravan.zip
+├─ Caravan_extension_CH.zip
 ```
 
 ### 2. Run the code
@@ -190,12 +196,12 @@ core language (Python) for watershed hydrological modeling.
 
 Now the dataset zoo list includes:
 
-| **Number** | **Dataset** | **Description**                                                  |
-| ---------- | ----------- |------------------------------------------------------------------|
-| 1          | **CAMELS**  | CAMELS series datasets including CAMELS-AUS/BR/CH/CL/DE/GB/SE/US |
-| 2          | **LamaH**   | LamaH-CE dataset for Central Europe                              |
-| 3          | **HYSETS**  | HYSETS dataset for North America                                 |
-| 4          | **Caravan** | Caravan dataset for global                                       |
+| **Number** | **Dataset** | **Description**                                                     |
+| ---------- | ----------- |---------------------------------------------------------------------|
+| 1          | **CAMELS**  | CAMELS series datasets including CAMELS-AUS/BR/CH/CL/DE/DK/GB/SE/US |
+| 2          | **LamaH**   | LamaH-CE dataset for Central Europe                                 |
+| 3          | **HYSETS**  | HYSETS dataset for North America                                    |
+| 4          | **Caravan** | Caravan dataset for global                                          |
 
 For units, we use [pint](https://github.com/hgrecco/pint), and [pint-xarray](https://github.com/xarray-contrib/pint-xarray) to handle them.
 
