@@ -1,7 +1,7 @@
 """
 Author: Wenyu Ouyang
 Date: 2022-01-05 18:01:11
-LastEditTime: 2024-02-18 20:22:23
+LastEditTime: 2024-09-10 19:15:33
 LastEditors: Wenyu Ouyang
 Description: Read Camels Series ("AUStralia", "BRazil", "ChiLe", "GreatBritain", "UnitedStates") datasets
 FilePath: \hydrodataset\hydrodataset\camels.py
@@ -501,7 +501,7 @@ class Camels(HydroDataset):
             raise NotImplementedError(CAMELS_NO_DATASET_ERROR_LOG)
         return data
 
-    def get_constant_cols(self) -> np.array:
+    def get_constant_cols(self) -> np.ndarray:
         """
         all readable attrs in CAMELS
 
@@ -548,7 +548,7 @@ class Camels(HydroDataset):
             var_lst.extend(var_lst_temp)
         return np.array(var_lst)
 
-    def get_relevant_cols(self) -> np.array:
+    def get_relevant_cols(self) -> np.ndarray:
         """
         all readable variable types
 
@@ -607,7 +607,7 @@ class Camels(HydroDataset):
         else:
             raise NotImplementedError(CAMELS_NO_DATASET_ERROR_LOG)
 
-    def get_target_cols(self) -> np.array:
+    def get_target_cols(self) -> np.ndarray:
         """
         For CAMELS, the target vars are streamflows
 
@@ -617,7 +617,7 @@ class Camels(HydroDataset):
             streamflow types
         """
         if self.region == "US":
-            return np.array(["usgsFlow"])
+            return np.array(["usgsFlow", "ET"])
         elif self.region == "AUS":
             # QualityCodes are not streamflow data.
             # MLd means "1 Megaliters Per Day"; 1 MLd = 0.011574074074074 cubic-meters-per-second
@@ -649,7 +649,7 @@ class Camels(HydroDataset):
         else:
             raise NotImplementedError(CAMELS_NO_DATASET_ERROR_LOG)
 
-    def read_object_ids(self, **kwargs) -> np.array:
+    def read_object_ids(self, **kwargs) -> np.ndarray:
         """
         read station ids
 
@@ -832,7 +832,7 @@ class Camels(HydroDataset):
         t_range: list = None,
         target_cols: Union[list, np.array] = None,
         **kwargs,
-    ) -> np.array:
+    ) -> np.ndarray:
         """
         read target values; for CAMELS, they are streamflows   #
 
@@ -870,24 +870,17 @@ class Camels(HydroDataset):
             for k in tqdm(
                 range(len(gage_id_lst)), desc="Read streamflow data of CAMELS-US"
             ):
-                dt150101 = hydro_time.t2str("2015-01-01")
-                if t_range_list[-1] > dt150101 and t_range_list[0] < dt150101:
-                    # latest streamflow data in CAMELS is 2014/12/31
-                    data_obs_after_2015 = self.read_camels_streamflow(
-                        gage_id_lst[k], ["2015-01-01", t_range[1]]
-                    )
-                    data_obs_before_2015 = self.read_usgs_gage(
-                        gage_id_lst[k], [t_range[0], "2015-01-01"]
-                    )
-                    data_obs = np.concatenate(
-                        (data_obs_before_2015, data_obs_after_2015)
-                    )
-                elif t_range_list[-1] <= dt150101:
-                    data_obs = self.read_usgs_gage(gage_id_lst[k], t_range)
-                else:
-                    data_obs = self.read_camels_streamflow(gage_id_lst[k], t_range)
-                # For CAMELS-US, only ["usgsFlow"]
-                y[k, :, 0] = data_obs
+                for j in range(len(target_cols)):
+                    if target_cols[j] == "ET":
+                        data_et = self.read_camels_us_model_output_data(
+                            gage_id_lst[k : k + 1], t_range, ["ET"]
+                        )
+                        y[k, :, j : j + 1] = data_et
+                    else:
+                        data_obs = self._read_augmented_camels_streamflow(
+                            gage_id_lst, t_range, t_range_list, k
+                        )
+                        y[k, :, j] = data_obs
         elif self.region == "AUS":
             for k in tqdm(
                 range(len(target_cols)), desc="Read streamflow data of CAMELS-AUS"
@@ -974,6 +967,22 @@ class Camels(HydroDataset):
         # xr_y = xr.DataArray(y)
         # xr_y.to_netcdf(os.path.join(self.data_source_description["CAMELS_FLOW_DIR"], "streamflow.nc"))
         return y
+
+    def _read_augmented_camels_streamflow(self, gage_id_lst, t_range, t_range_list, k):
+        dt150101 = hydro_time.t2str("2015-01-01")
+        if t_range_list[-1] > dt150101 and t_range_list[0] < dt150101:
+            # latest streamflow data in CAMELS is 2014/12/31
+            data_obs_after_2015 = self.read_camels_streamflow(
+                gage_id_lst[k], ["2015-01-01", t_range[1]]
+            )
+            data_obs_before_2015 = self.read_usgs_gage(
+                gage_id_lst[k], [t_range[0], "2015-01-01"]
+            )
+            return np.concatenate((data_obs_before_2015, data_obs_after_2015))
+        elif t_range_list[-1] <= dt150101:
+            return self.read_usgs_gage(gage_id_lst[k], t_range)
+        else:
+            return self.read_camels_streamflow(gage_id_lst[k], t_range)
 
     def read_camels_us_model_output_data(
         self,
@@ -1142,7 +1151,7 @@ class Camels(HydroDataset):
         t_range: list = None,
         var_lst: list = None,
         forcing_type = "daymet",
-    ) -> np.array:
+    ) -> np.ndarray:
         """
         Read forcing data
             now only for US、AUS
@@ -1454,7 +1463,7 @@ class Camels(HydroDataset):
 
     def read_constant_cols(
         self, gage_id_lst=None, var_lst=None, is_return_dict=False
-    ) -> Union[tuple, np.array]:
+    ) -> np.ndarray:
         """
         Read Attributes data  #
 
@@ -1487,7 +1496,8 @@ class Camels(HydroDataset):
         out = temp[:, ind_var]
         return (out, var_dict, f_dict) if is_return_dict else out
 
-    def read_area(self, gage_id_lst) -> np.array:
+    def read_area(self, gage_id_lst) -> np.ndarray:
+
         """
         read the catchment area
         Parameters
@@ -1509,7 +1519,7 @@ class Camels(HydroDataset):
         else:
             raise NotImplementedError(CAMELS_NO_DATASET_ERROR_LOG)
 
-    def read_mean_prcp(self, gage_id_lst) -> np.array:
+    def read_mean_prcp(self, gage_id_lst) -> np.ndarray:
         if self.region in ["US", "AUS", "BR", "GB"]:
             if self.region == "US":
                 return self.read_attr_xrdataset(gage_id_lst, ["p_mean"])
@@ -1748,9 +1758,14 @@ class Camels(HydroDataset):
             {
                 "streamflow": (
                     ["basin", "time"],
-                    streamflow.reshape(streamflow.shape[0], streamflow.shape[1]),
+                    streamflow[:, :, 0],
                     {"units": self.streamflow_unit},
-                )
+                ),
+                "ET": (
+                    ["basin", "time"],
+                    streamflow[:, :, 1],
+                    {"units": "mm/day"},
+                ),
             },
             coords={
                 "basin": basins,

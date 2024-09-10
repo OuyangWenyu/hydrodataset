@@ -1,7 +1,7 @@
 """
 Author: Wenyu Ouyang
 Date: 2022-09-05 23:20:24
-LastEditTime: 2024-02-20 19:33:43
+LastEditTime: 2024-09-10 18:26:45
 LastEditors: Wenyu Ouyang
 Description: main modules for hydrodataset
 FilePath: \hydrodataset\hydrodataset\hydro_dataset.py
@@ -42,23 +42,28 @@ class HydroDataset(ABC):
     def download_data_source(self):
         raise NotImplementedError
 
-    def read_object_ids(self, object_params=None) -> np.array:
+    def read_object_ids(self) -> np.ndarray:
         raise NotImplementedError
 
     def read_target_cols(
-        self, object_ids=None, t_range_list=None, target_cols=None, **kwargs
-    ) -> np.array:
+        self, gage_id_lst=None, t_range=None, target_cols=None, **kwargs
+    ) -> np.ndarray:
         raise NotImplementedError
 
     def read_relevant_cols(
-        self, object_ids=None, t_range_list: list = None, relevant_cols=None, **kwargs
-    ) -> Union[np.array, list]:
+        self,
+        gage_id_lst=None,
+        t_range: list = None,
+        var_lst=None,
+        forcing_type="",
+        **kwargs
+    ) -> np.ndarray:
         """3d data (site_num * time_length * var_num), time-series data"""
         raise NotImplementedError
 
     def read_constant_cols(
-        self, object_ids=None, constant_cols=None, **kwargs
-    ) -> np.array:
+        self, gage_id_lst=None, var_lst=None, **kwargs
+    ) -> np.ndarray:
         """2d data (site_num * var_num), non-time-series data"""
         raise NotImplementedError
 
@@ -70,15 +75,15 @@ class HydroDataset(ABC):
         """
         raise NotImplementedError
 
-    def get_constant_cols(self) -> np.array:
+    def get_constant_cols(self) -> np.ndarray:
         """the constant cols in this data_source"""
         raise NotImplementedError
 
-    def get_relevant_cols(self) -> np.array:
+    def get_relevant_cols(self) -> np.ndarray:
         """the relevant cols in this data_source"""
         raise NotImplementedError
 
-    def get_target_cols(self) -> np.array:
+    def get_target_cols(self) -> np.ndarray:
         """the target cols in this data_source"""
         raise NotImplementedError
 
@@ -104,10 +109,10 @@ class HydroDataset(ABC):
         """read attribute pandas feather"""
         raise NotImplementedError
 
-    def read_area(self, gage_id_lst=None):
+    def read_area(self, gage_id_lst):
         """read area of each basin/unit"""
         raise NotImplementedError
 
-    def read_mean_prcp(self, gage_id_lst=None):
+    def read_mean_prcp(self, gage_id_lst):
         """read mean precipitation of each basin/unit"""
         raise NotImplementedError
