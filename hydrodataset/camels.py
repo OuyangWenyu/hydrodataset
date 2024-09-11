@@ -1180,7 +1180,7 @@ class Camels(HydroDataset):
         np.array
             forcing data, time series
         """
-        t_range_list = hydro_time.t_range_days(t_range)   #生成的是左闭右开区间，故["1911-01-01", "2017-12-31"]写成["1911-01-01", "2018-01-01"]生成365天。
+        t_range_list = hydro_time.t_range_days(t_range)
         nt = t_range_list.shape[0]
         x = np.full([len(gage_id_lst), nt, len(var_lst)], np.nan)
         if self.region == "US":
@@ -1497,7 +1497,6 @@ class Camels(HydroDataset):
         return (out, var_dict, f_dict) if is_return_dict else out
 
     def read_area(self, gage_id_lst) -> np.ndarray:
-
         """
         read the catchment area
         Parameters
