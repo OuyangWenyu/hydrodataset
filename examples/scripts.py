@@ -1,12 +1,13 @@
 """
 Author: Wenyu Ouyang
 Date: 2022-09-06 23:42:46
-LastEditTime: 2023-07-16 16:25:14
+LastEditTime: 2024-09-12 14:53:47
 LastEditors: Wenyu Ouyang
 Description: examples for using hydrodataset
 FilePath: \hydrodataset\examples\scripts.py
 Copyright (c) 2021-2022 Wenyu Ouyang. All rights reserved.
 """
+
 import os
 import numpy as np
 
@@ -24,6 +25,7 @@ cl_region = "CL"
 gb_region = "GB"
 us_region = "US"
 
+# ------------------------------ US --------------------------------
 camels_us = Camels(camels_us_path, download=False, region=us_region)
 gage_ids = camels_us.read_object_ids()
 flows = camels_us.read_target_cols(
@@ -67,7 +69,7 @@ np.testing.assert_array_equal(
     attr_types[:3], np.array(["gauge_lat", "gauge_lon", "elev_mean"])
 )
 
-
+# ------------------------------ AUS --------------------------------
 camels_aus = Camels(camels_aus_path, download=False, region=aus_region)
 gage_ids = camels_aus.read_object_ids()
 assert gage_ids.size == 222
@@ -89,6 +91,10 @@ np.testing.assert_array_equal(
 forcings = camels_aus.read_relevant_cols(
     gage_ids[:5],
     ["1990-01-01", "2010-01-01"],
+    # For the AUS region, there are two forcing types,
+    # but we didn't specify the forcing type in forcing_type argument,
+    # because it is more convenient to use the forcing_name directly.
+    # As one can see, all the forcing names have a postfix
     var_lst=["precipitation_AWAP", "et_morton_actual_SILO", "tmin_SILO"],
 )
 np.testing.assert_array_equal(forcings.shape, np.array([5, 7305, 3]))
@@ -146,7 +152,7 @@ np.testing.assert_array_equal(
     attr_types[:3], np.array(["station_name", "drainage_division", "river_region"])
 )
 
-
+# ------------------------------ BR --------------------------------
 camels_br = Camels(camels_br_path, download=False, region=br_region)
 gage_ids = camels_br.read_object_ids()
 assert gage_ids.size == 897
@@ -216,7 +222,7 @@ np.testing.assert_array_equal(
     attr_types[:3], np.array(["p_mean", "pet_mean", "et_mean"])
 )
 
-
+# ------------------------------ CL --------------------------------
 camels_cl = Camels(camels_cl_path, download=False, region=cl_region)
 gage_ids = camels_cl.read_object_ids()
 assert gage_ids.size == 516
@@ -275,7 +281,7 @@ np.testing.assert_array_equal(
     attr_types[:3], np.array(["gauge_name", "gauge_lat", "gauge_lon"])
 )
 
-
+# ------------------------------ GB --------------------------------
 camels_gb = Camels(camels_gb_path, download=False, region=gb_region)
 gage_ids = camels_gb.read_object_ids()
 assert gage_ids.size == 671
