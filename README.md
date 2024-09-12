@@ -1,7 +1,7 @@
 <!--
  * @Author: Wenyu Ouyang
  * @Date: 2021-12-05 22:13:21
- * @LastEditTime: 2023-07-26 13:35:41
+ * @LastEditTime: 2024-09-12 14:37:18
  * @LastEditors: Wenyu Ouyang
  * @Description: README for hydrodataset
  * @FilePath: \hydrodataset\README.md
@@ -45,7 +45,7 @@ pip install hydrodataset
 
 ### 1. Download datasets
 
-There are many datasets similar to CAMELS(-US), including CAMELS-AUS (Australia), CAMELS-BR (Brazil), CAMELS-CL (Chile), CAMELS-GB (Great Britain), LamaH-CE, HYSETS. Recently, a new dataset named Caravan is released, which is a global dataset.
+There are many datasets similar to CAMELS(-US), including CAMELS-AUS (Australia), CAMELS-BR (Brazil), CAMELS-CH (Switzerland), CAMELS-CL (Chile), CAMELS-DE (Germany), CAMELS-DK (Denmark), CAMELS-GB (Great Britain), CAMELS-SE (Sweden), LamaH-CE, HYSETS. Recently, a new dataset named Caravan is released, which is a global dataset.
 
 Now we only support auto-downloading for CAMELS-US (later for others), but I highly recommend you download them manually, as the downloading is not stable sometimes because of unstable web connections to the servers of these datasets in different places in the world.
 
@@ -53,8 +53,12 @@ the download links:
 
 - [CAMELS-AUS (Australia)](https://doi.pangaea.de/10.1594/PANGAEA.921850)
 - [CAMELS-BR (Brazil)](https://zenodo.org/record/3964745#.YNsjKOgzbIU)
+- [CAMELS-CH (Switzerland)](https://zenodo.org/records/10354485)
 - [CAMELS-CL (Chile)](https://doi.pangaea.de/10.1594/PANGAEA.894885)
+- [CAMELS-DE (Germany)](https://zenodo.org/records/12733968)
+- [CAMELS-DK (Denmark)](https://doi.org/10.22008/FK2/AZXSYP)
 - [CAMELS-GB (Great Britain)](https://doi.org/10.5285/8344e4f3-d2ea-44f5-8afa-86d2987543a9)
+- [CAMELS-SE (Sweden)](https://snd.se/sv/catalogue/dataset/2023-173/1)
 - [CAMELS-US (United States)](https://gdex.ucar.edu/dataset/camels.html)
 - [LamaH-CE (Central Europe)](https://doi.org/10.5281/zenodo.4525244)
 - [HYSETS (North America)](https://osf.io/rpc3w/#!)
@@ -86,6 +90,8 @@ camels/
 │  ├─ 13_CAMELS_BR_temperature_max_cpc.zip
 │  ├─ 14_CAMELS_BR_catchment_boundaries.zip
 │  ├─ 15_CAMELS_BR_gauges_location_shapefile.zip
+├─ camels_ch/
+│  ├─ camels_ch.zip
 ├─ camels_cl/
 │  ├─ 10_CAMELScl_tmean_cr2met.zip
 │  ├─ 11_CAMELScl_pet_8d_modis.zip
@@ -102,8 +108,18 @@ camels/
 │  ├─ 8_CAMELScl_tmin_cr2met.zip
 │  ├─ 9_CAMELScl_tmax_cr2met.zip
 │  ├─ CAMELScl_catchment_boundaries.zip
+├─ camels_de/
+│  ├─ camels_de.zip
+├─ camels_dk/
+│  ├─ Attributes
+│  ├─ Dynamics
+│  ├─ Shapefile
 ├─ camels_gb/
 │  ├─ 8344e4f3-d2ea-44f5-8afa-86d2987543a9.zip
+├─ camels_se/
+│  ├─ catchment properties.zip
+│  ├─ catchment time series.zip
+│  ├─ catchment_GIS_shapefiles.zip
 ├─ camels_us/
 │  ├─ basin_set_full_res.zip
 │  ├─ basin_timeseries_v1p2_metForcing_obsFlow.zip
@@ -126,6 +142,7 @@ hysets/
 ├─ HYSETS_watershed_properties.txt
 caravan/
 ├─ Caravan.zip
+├─ Caravan_extension_CH.zip
 ```
 
 ### 2. Run the code
@@ -136,16 +153,18 @@ First, run the following Python code:
 import hydrodataset
 ```
 
-then in your home directory, you will find the directory for hydrodataset: 
+then in your home directory, you will find the directory for hydrodataset:
 
 - Windows: C:\\Users\\xxx\\.hydrodataset (xxx is your username))
-- Ubuntu: /home/xxx/.hydrodataset 
+- Ubuntu: /home/xxx/.hydrodataset
 
 In .hydrodataset directory, there is a settings.txt file and only one line is in it. This line means the root directory of hydrodataset, and its 1st sub-directory is camels (shown in the previous directory tree).
 
 Now modify this line to your root directory, for example, I put camels/ to D:\\data\\  , so this line should be D:\\data\\
 
-Then, you can use functions in hydrodataset, examples could be seen here: https://github.com/OuyangWenyu/hydrodataset/blob/main/examples/scripts.py
+Then, you can use functions in hydrodataset, examples could be seen **here: https://github.com/OuyangWenyu/hydrodataset/blob/main/examples/scripts.py**
+
+**NOTE: Please don't modify the interface of the functions in hydrodataset, as it may cause some errors, unless one can entirely refactor the code.**
 
 These functions are about reading attributes/forcing/streamflow data.
 
@@ -179,16 +198,20 @@ core language (Python) for watershed hydrological modeling.
 
 Now the dataset zoo list includes:
 
-| **Number** | **Dataset** | **Description**                                         |
-| ---------- | ----------- | ------------------------------------------------------- |
-| 1          | **CAMELS**  | CAMELS series datasets including CAMELS-AUS/BR/CL/GB/US |
-| 2          | **LamaH**   | LamaH-CE dataset for Central Europe                     |
-| 3          | **HYSETS**  | HYSETS dataset for North America                        |
-| 4          | **Caravan** | Caravan dataset for global                              |
+| **Number** | **Dataset** | **Description**                                                     |
+| ---------- | ----------- | ------------------------------------------------------------------- |
+| 1          | **CAMELS**  | CAMELS series datasets including CAMELS-AUS/BR/CH/CL/DE/DK/GB/SE/US |
+| 2          | **LamaH**   | LamaH-CE dataset for Central Europe                                 |
+| 3          | **HYSETS**  | HYSETS dataset for North America                                    |
+| 4          | **Caravan** | Caravan dataset for global                                          |
+
+For CAMELS-CH/DE/DK/SE, we didn't finish reading functions yet, but we will finish them soon.
+
+We highly recommend you to use [xarray](http://xarray.pydata.org/en/stable/) to read the data, as it is a powerful tool for handling multi-dimensional data. Then, you can see the units of all variables in the xarray dataset. For US, we provide full support for reading attributes, forcing, and streamflow data with such a cache-reading support, so that you can read them quickly after the first time you read them.
+
+For others, we only provide support for reading without cache-reading support, so it may take some time to read them. We will finish cache-reading support for them soon.
 
 For units, we use [pint](https://github.com/hgrecco/pint), and [pint-xarray](https://github.com/xarray-contrib/pint-xarray) to handle them.
-
-We highly recommend you to use [xarray](http://xarray.pydata.org/en/stable/) to read the data, as it is a powerful tool for handling multi-dimensional data. Then, you can see the units of all variables in the xarray dataset.
 
 ## Credits
 
