@@ -1,7 +1,7 @@
 """
 Author: Wenyu Ouyang
 Date: 2022-09-06 23:42:46
-LastEditTime: 2024-09-12 14:53:47
+LastEditTime: 2024-09-14 13:27:17
 LastEditors: Wenyu Ouyang
 Description: examples for using hydrodataset
 FilePath: \hydrodataset\examples\scripts.py
@@ -26,6 +26,7 @@ gb_region = "GB"
 us_region = "US"
 
 # ------------------------------ US --------------------------------
+# if files is not zipped, set download=True to unzip the files
 camels_us = Camels(camels_us_path, download=False, region=us_region)
 gage_ids = camels_us.read_object_ids()
 flows = camels_us.read_target_cols(
@@ -67,6 +68,24 @@ np.testing.assert_array_equal(
 attr_types = camels_us.get_constant_cols()
 np.testing.assert_array_equal(
     attr_types[:3], np.array(["gauge_lat", "gauge_lon", "elev_mean"])
+)
+
+# we highly recommend to cache the xrdataset for faster access
+camels_us.cache_xrdataset()
+forcings = camels_us.read_ts_xrdataset(
+    gage_id_lst=gage_ids[:5],
+    t_range=["2013-01-01", "2014-01-01"],
+    var_lst=["prcp", "srad", "tmax"],
+)
+flows = camels_us.read_ts_xrdataset(
+    gage_id_lst=gage_ids[:5],
+    t_range=["2013-01-01", "2014-01-01"],
+    # NOTE: the variable name is "streamflow" instead of "usgsFlow" after caching
+    var_lst=["streamflow"],
+)
+attrs = camels_us.read_attr_xrdataset(
+    gage_id_lst=gage_ids[:5],
+    var_lst=["soil_conductivity", "elev_mean", "geol_1st_class"],
 )
 
 # ------------------------------ AUS --------------------------------
