@@ -1,7 +1,7 @@
 <!--
  * @Author: Wenyu Ouyang
  * @Date: 2021-12-05 22:13:21
- * @LastEditTime: 2024-09-12 14:37:18
+ * @LastEditTime: 2024-10-15 14:32:16
  * @LastEditors: Wenyu Ouyang
  * @Description: README for hydrodataset
  * @FilePath: \hydrodataset\README.md
@@ -155,12 +155,33 @@ import hydrodataset
 
 then in your home directory, you will find the directory for hydrodataset:
 
-- Windows: C:\\Users\\xxx\\.hydrodataset (xxx is your username))
-- Ubuntu: /home/xxx/.hydrodataset
+- Windows: C:\\Users\\xxx\\hydro_setting.yml (xxx is your username))
+- Ubuntu: /home/xxx/hydro_setting.yml
 
-In .hydrodataset directory, there is a settings.txt file and only one line is in it. This line means the root directory of hydrodataset, and its 1st sub-directory is camels (shown in the previous directory tree).
+The hydro_setting.yml file is a config file including some specific path for your datasets and some credentials for your database, such as minio and postgres.
 
-Now modify this line to your root directory, for example, I put camels/ to D:\\data\\  , so this line should be D:\\data\\
+**NOTE: For this repository, we only need the "datasets-origin" of "local_data_path", so just fill in the path for "datasets-origin" in the "local_data_path" section, and leave other fields empty.**
+
+```YAML
+minio:
+  server_url: ''
+  client_endpoint: ''
+  access_key: ''
+  secret: ''
+
+local_data_path:
+  root: ''
+  datasets-origin: 'D:\data\waterism\datasets-origin' # set your path here
+  datasets-interim: ''
+  basins-origin: ''
+  basins-interim: ''
+postgres:
+  server_url: ''
+  port: 0
+  username: ''
+  password: ''
+  database: ''
+```
 
 Then, you can use functions in hydrodataset, examples could be seen **here: https://github.com/OuyangWenyu/hydrodataset/blob/main/examples/scripts.py**
 
