@@ -1,7 +1,7 @@
 """
 Author: Wenyu Ouyang
 Date: 2022-09-05 23:20:24
-LastEditTime: 2024-09-10 19:21:25
+LastEditTime: 2024-11-04 20:15:11
 LastEditors: Wenyu Ouyang
 Description: Tests for `hydrodataset` package
 FilePath: \hydrodataset\tests\test_camels.py
@@ -279,3 +279,64 @@ def test_read_camels_us_model_output_data_no_data():
         result = camels.read_camels_us_model_output_data(gage_id_lst, t_range, var_lst)
         assert result.shape == (1, 3653, 2)
         assert np.all(np.isnan(result))
+
+
+def test_read_mean_prcp_us():
+    camels = Camels()
+    camels.region = "US"
+    camels.read_attr_xrdataset = MagicMock(return_value=np.array([1.0, 2.0, 3.0]))
+
+    gage_id_lst = ["01013500", "01013501", "01013502"]
+    result = camels.read_mean_prcp(gage_id_lst)
+    assert np.array_equal(result, np.array([1.0, 2.0, 3.0]))
+
+
+def test_read_mean_prcp_aus():
+    camels = Camels()
+    camels.region = "AUS"
+    camels.read_constant_cols = MagicMock(return_value=np.array([1.0, 2.0, 3.0]))
+
+    gage_id_lst = ["12345678", "12345679", "12345680"]
+    result = camels.read_mean_prcp(gage_id_lst)
+    assert np.array_equal(result, np.array([1.0, 2.0, 3.0]))
+
+
+def test_read_mean_prcp_br():
+    camels = Camels()
+    camels.region = "BR"
+    camels.read_constant_cols = MagicMock(return_value=np.array([1.0, 2.0, 3.0]))
+
+    gage_id_lst = ["12345678", "12345679", "12345680"]
+    result = camels.read_mean_prcp(gage_id_lst)
+    assert np.array_equal(result, np.array([1.0, 2.0, 3.0]))
+
+
+def test_read_mean_prcp_gb():
+    camels = Camels()
+    camels.region = "GB"
+    camels.read_constant_cols = MagicMock(return_value=np.array([1.0, 2.0, 3.0]))
+
+    gage_id_lst = ["12345678", "12345679", "12345680"]
+    result = camels.read_mean_prcp(gage_id_lst)
+    assert np.array_equal(result, np.array([1.0, 2.0, 3.0]))
+
+
+def test_read_mean_prcp_cl():
+    camels = Camels()
+    camels.region = "CL"
+    camels.read_constant_cols = MagicMock(return_value=np.array([1.0, 2.0, 3.0]))
+
+    gage_id_lst = ["12345678", "12345679", "12345680"]
+    result = camels.read_mean_prcp(gage_id_lst)
+    assert np.array_equal(result, np.array([1.0, 2.0, 3.0]))
+
+
+def test_read_mean_prcp_invalid_region():
+    camels = Camels()
+    camels.region = "INVALID"
+
+    gage_id_lst = ["12345678", "12345679", "12345680"]
+    try:
+        camels.read_mean_prcp(gage_id_lst)
+    except NotImplementedError as e:
+        assert str(e) == CAMELS_NO_DATASET_ERROR_LOG

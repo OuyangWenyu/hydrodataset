@@ -1430,7 +1430,7 @@ class Camels(HydroDataset):
         else:
             raise NotImplementedError(CAMELS_NO_DATASET_ERROR_LOG)
 
-    def read_mean_prcp(self, gage_id_lst) -> np.ndarray:
+    def read_mean_prcp(self, gage_id_lst, unit="mm/d"):
         if self.region in ["US", "AUS", "BR", "GB"]:
             if self.region == "US":
                 return self.read_attr_xrdataset(gage_id_lst, ["p_mean"])
