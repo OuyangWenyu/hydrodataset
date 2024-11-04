@@ -7,6 +7,7 @@ Description: Test for caravan dataset reading
 FilePath: /hydrodataset/tests/test_caravan.py
 Copyright (c) 2023-2024 Wenyu Ouyang. All rights reserved.
 """
+
 import os
 import numpy as np
 import pytest
@@ -182,6 +183,7 @@ def test_read_area(caravan):
 
 
 def test_read_prcp_mean(caravan):
+    # be careful for the unit!
     caravan_ids = caravan.read_object_ids()
     prcp_mean = caravan.read_mean_prcp(
         caravan_ids[:3].tolist() + caravan_ids[-2:].tolist()

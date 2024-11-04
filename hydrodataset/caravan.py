@@ -846,7 +846,7 @@ class Caravan(HydroDataset):
     def read_area(self, gage_id_lst=None):
         return self.read_attr_xrdataset(gage_id_lst, ["area"])
 
-    def read_mean_prcp(self, gage_id_lst=None):
+    def read_mean_prcp(self, gage_id_lst=None, unit="mm/d"):
         return self.read_attr_xrdataset(gage_id_lst, ["p_mean"])
 
 
