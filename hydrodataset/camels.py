@@ -1,7 +1,7 @@
 """
 Author: Wenyu Ouyang
 Date: 2022-01-05 18:01:11
-LastEditTime: 2024-09-10 19:15:33
+LastEditTime: 2024-11-11 17:26:42
 LastEditors: Wenyu Ouyang
 Description: Read Camels Series ("AUStralia", "BRazil", "ChiLe", "GreatBritain", "UnitedStates") datasets
 FilePath: \hydrodataset\hydrodataset\camels.py
@@ -595,7 +595,9 @@ class Camels(HydroDataset):
                 if root == self.data_source_description["CAMELS_FORCING_DIR"]:
                     continue
                 forcing_types.extend(
-                    file[:-4] for file in files if file not in ["ClimaticIndices.csv", "desktop.ini"]
+                    file[:-4]
+                    for file in files
+                    if file not in ["ClimaticIndices.csv", "desktop.ini"]
                 )
             return np.array(forcing_types)
         elif self.region == "BR":
@@ -1295,7 +1297,9 @@ class Camels(HydroDataset):
                 chosen_data = forcing_data[gage_id_lst].values[ind1, :]
                 x[:, ind2, k] = chosen_data.T
         elif self.region == "AUS_v2":
-            for k in tqdm(range(len(var_lst)), desc="Read forcing data of CAMELS-AUS-V2"):
+            for k in tqdm(
+                range(len(var_lst)), desc="Read forcing data of CAMELS-AUS-V2"
+            ):
                 if "precipitation_" in var_lst[k]:
                     forcing_dir = os.path.join(
                         self.data_source_description["CAMELS_FORCING_DIR"],
@@ -1559,13 +1563,37 @@ class Camels(HydroDataset):
         else:
             raise NotImplementedError(CAMELS_NO_DATASET_ERROR_LOG)
 
-    def read_mean_prcp(self, gage_id_lst, unit="mm/d") -> np.ndarray:
+    def read_mean_prcp(self, gage_id_lst, unit="mm/d") -> xr.Dataset:
+        """Read mean precipitation data
+
+        Parameters
+        ----------
+        gage_id_lst : list
+            station ids
+        unit : str, optional
+            the unit of mean_prcp, by default "mm/d"
+
+        Returns
+        -------
+        xr.Dataset
+            TODO: now only support CAMELS-US
+
+        Raises
+        ------
+        NotImplementedError
+            some regions are not supported
+        ValueError
+            unit must be one of ['mm/d', 'mm/day', 'mm/h', 'mm/hour', 'mm/3h', 'mm/3hour', 'mm/8d', 'mm/8day']
+        """
         if self.region in ["US", "AUS", "AUS_v2", "BR", "GB"]:
             if self.region == "US":
                 data = self.read_attr_xrdataset(gage_id_lst, ["p_mean"])
-            data = self.read_constant_cols(
-                gage_id_lst, ["p_mean"], is_return_dict=False,
-            )
+            else:
+                data = self.read_constant_cols(
+                    gage_id_lst,
+                    ["p_mean"],
+                    is_return_dict=False,
+                )
         elif self.region == "CL":
             # there are different p_mean values for different forcings, here we chose p_mean_cr2met now
             data = self.read_constant_cols(
@@ -1579,9 +1607,11 @@ class Camels(HydroDataset):
             converted_data = data / 24
         elif unit in ["mm/3h", "mm/3hour"]:
             converted_data = data / 8
+        elif unit in ["mm/8d", "mm/8day"]:
+            converted_data = data * 8
         else:
             raise ValueError(
-                "unit must be one of ['mm/d', 'mm/day', 'mm/h', 'mm/hour', 'mm/3h', 'mm/3hour']"
+                "unit must be one of ['mm/d', 'mm/day', 'mm/h', 'mm/hour', 'mm/3h', 'mm/3hour', 'mm/8d', 'mm/8day']"
             )
         return converted_data
 

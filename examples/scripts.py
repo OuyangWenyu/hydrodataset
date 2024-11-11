@@ -1,7 +1,7 @@
 """
 Author: Wenyu Ouyang
 Date: 2022-09-06 23:42:46
-LastEditTime: 2024-09-14 13:27:17
+LastEditTime: 2024-11-11 16:44:31
 LastEditors: Wenyu Ouyang
 Description: examples for using hydrodataset
 FilePath: \hydrodataset\examples\scripts.py
@@ -18,7 +18,7 @@ camels_br_path = os.path.join("camels", "camels_br")
 camels_cl_path = os.path.join("camels", "camels_cl")
 camels_gb_path = os.path.join("camels", "camels_gb")
 camels_us_path = os.path.join("camels", "camels_us")
-camels_aus_v2_path=os.path.join("camels","camels_aus_v2")
+camels_aus_v2_path = os.path.join("camels", "camels_aus_v2")
 
 aus_v2_region = "AUS_v2"
 aus_region = "AUS"
@@ -174,7 +174,7 @@ np.testing.assert_array_equal(
 )
 
 # # ---------------------------- AUS-V2 -------------------------------
-camels_aus_v2=Camels(camels_aus_v2_path, download=False, region=aus_v2_region)
+camels_aus_v2 = Camels(camels_aus_v2_path, download=False, region=aus_v2_region)
 gage_ids = camels_aus_v2.read_object_ids()
 assert gage_ids.size == 561
 attrs = camels_aus_v2.read_constant_cols(
