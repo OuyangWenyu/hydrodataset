@@ -139,6 +139,8 @@ class Camels(HydroDataset):
             return self._set_data_source_camelscl_describe(camels_db)
         elif self.region == "GB":
             return self._set_data_source_camelsgb_describe(camels_db)
+        elif self.region == "AUS_v2":
+            return self._set_data_source_camelsausv2_describe(camels_db)
         else:
             raise NotImplementedError(CAMELS_NO_DATASET_ERROR_LOG)
 
@@ -329,6 +331,36 @@ class Camels(HydroDataset):
             CAMELS_BASINS_SHP_FILE=camels_shp_file,
         )
 
+    def _set_data_source_camelsausv2_describe(self, camels_db):
+        # id and name
+        gauge_id_file = camels_db.joinpath(
+            "01_id_name_metadata",
+            "01_id_name_metadata",
+            "id_name_metadata.csv",
+        )
+        # shp file of basins
+        camels_shp_file = camels_db.joinpath(
+            "02_location_boundary_area",
+            "02_location_boundary_area",
+            "shp",
+            "CAMELS_AUS_v2_BasinOutlets_adopted.shp",
+        )
+        # config of flow data
+        flow_dir = camels_db.joinpath("03_streamflow", "03_streamflow")
+        # attr
+        attr_dir = camels_db.joinpath("04_attributes", "04_attributes")
+        # forcing
+        forcing_dir = camels_db.joinpath("05_hydrometeorology", "05_hydrometeorology")
+
+        return collections.OrderedDict(
+            CAMELS_DIR=camels_db,
+            CAMELS_FLOW_DIR=flow_dir,
+            CAMELS_FORCING_DIR=forcing_dir,
+            CAMELS_ATTR_DIR=attr_dir,
+            CAMELS_GAUGE_FILE=gauge_id_file,
+            CAMELS_BASINS_SHP_FILE=camels_shp_file,
+        )
+
     def _set_data_source_camelsaus_describe(self, camels_db):
         # id and name
         gauge_id_file = camels_db.joinpath(
@@ -463,6 +495,8 @@ class Camels(HydroDataset):
             )
         elif self.region == "AUS":
             data = pd.read_csv(camels_file, sep=",", dtype={"station_id": str})
+        elif self.region == "AUS_v2":
+            data = pd.read_csv(camels_file, sep=",", dtype={"station_id": str})
         elif self.region == "BR":
             data = pd.read_csv(camels_file, sep="\s+", dtype={"gauge_id": str})
         elif self.region == "CL":
@@ -493,6 +527,14 @@ class Camels(HydroDataset):
             camels_aus_attr_indices_data = pd.read_csv(attr_all_file, sep=",")
             # exclude station id
             return camels_aus_attr_indices_data.columns.values[1:]
+        elif self.region == "AUS_v2":
+            attr_all_file = os.path.join(
+                self.data_source_description["CAMELS_DIR"],
+                "CAMELS_AUS_Attributes&Indices_MasterTable.csv",
+            )
+            camels_aus_v2_attr_indices_data = pd.read_csv(attr_all_file, sep=",")
+            # exclude station id
+            return camels_aus_v2_attr_indices_data.columns.values[1:]
         elif self.region == "BR":
             return self._get_constant_cols_some(
                 data_folder, "camels_br_", ".txt", "\s+"
@@ -543,6 +585,17 @@ class Camels(HydroDataset):
                     continue
                 forcing_types.extend(
                     file[:-4] for file in files if file != "ClimaticIndices.csv"
+                )
+            return np.array(forcing_types)
+        elif self.region == "AUS_v2":
+            forcing_types = []
+            for root, dirs, files in os.walk(
+                self.data_source_description["CAMELS_FORCING_DIR"]
+            ):
+                if root == self.data_source_description["CAMELS_FORCING_DIR"]:
+                    continue
+                forcing_types.extend(
+                    file[:-4] for file in files if file not in ["ClimaticIndices.csv", "desktop.ini"]
                 )
             return np.array(forcing_types)
         elif self.region == "BR":
@@ -602,6 +655,18 @@ class Camels(HydroDataset):
                     "streamflow_QualityCodes",
                 ]
             )
+        elif self.region == "AUS_v2":
+            # QualityCodes are not streamflow data.
+            # MLd means "1 Megaliters Per Day"; 1 MLd = 0.011574074074074 cubic-meters-per-second
+            # mmd means "mm/day"
+            return np.array(
+                [
+                    "streamflow_MLd",
+                    "streamflow_MLd_inclInfilled",
+                    "streamflow_mmd",
+                    "streamflow_QualityCodes",
+                ]
+            )
         elif self.region == "BR":
             return np.array(
                 [
@@ -637,7 +702,7 @@ class Camels(HydroDataset):
         """
         if self.region in ["BR", "GB", "US"]:
             return self.sites["gauge_id"].values
-        elif self.region == "AUS":
+        elif self.region in ["AUS", "AUS_v2"]:
             return self.sites["station_id"].values
         elif self.region == "CL":
             station_ids = self.sites.columns.values
@@ -870,6 +935,30 @@ class Camels(HydroDataset):
                 chosen_data = flow_data[gage_id_lst].values[ind1, :]
                 chosen_data[chosen_data < 0] = np.nan
                 y[:, ind2, k] = chosen_data.T
+                # ML/d-->m3/s
+                if target_cols[k] == "streamflow_MLd":
+                    y = y / 84.6
+        elif self.region == "AUS_v2":
+            for k in tqdm(
+                range(len(target_cols)), desc="Read streamflow data of CAMELS-AUS-V2"
+            ):
+                flow_data = pd.read_csv(
+                    os.path.join(
+                        self.data_source_description["CAMELS_FLOW_DIR"],
+                        target_cols[k] + ".csv",
+                    )
+                )
+                df_date = flow_data[["year", "month", "day"]]
+                date = pd.to_datetime(df_date).values.astype("datetime64[D]")
+                [c, ind1, ind2] = np.intersect1d(
+                    date, t_range_list, return_indices=True
+                )
+                chosen_data = flow_data[gage_id_lst].values[ind1, :]
+                chosen_data[chosen_data < 0] = np.nan
+                y[:, ind2, k] = chosen_data.T
+                # ML/d-->m3/s
+                if target_cols[k] == "streamflow_MLd":
+                    y = y / 84.6
         elif self.region == "BR":
             for j in tqdm(
                 range(len(target_cols)), desc="Read streamflow data of CAMELS-BR"
@@ -931,10 +1020,8 @@ class Camels(HydroDataset):
         else:
             raise NotImplementedError(CAMELS_NO_DATASET_ERROR_LOG)
         # Keep unit of streamflow unified: we use ft3/s here
-        # unit of flow in AUS is MegaLiter/day -> ft3/s
-        if self.region == "AUS":
-            y = y / 86.4 * 35.314666721489
-        elif self.region != "US":
+        # unit of flow in AUS is MegaLiter/day -> m3/s
+        if self.region != "US":
             # other units are m3/s -> ft3/s
             y = y * 35.314666721489
         return y
@@ -1207,6 +1294,42 @@ class Camels(HydroDataset):
                 )
                 chosen_data = forcing_data[gage_id_lst].values[ind1, :]
                 x[:, ind2, k] = chosen_data.T
+        elif self.region == "AUS_v2":
+            for k in tqdm(range(len(var_lst)), desc="Read forcing data of CAMELS-AUS-V2"):
+                if "precipitation_" in var_lst[k]:
+                    forcing_dir = os.path.join(
+                        self.data_source_description["CAMELS_FORCING_DIR"],
+                        "01_precipitation_timeseries",
+                    )
+                elif "et_" in var_lst[k] or "evap_" in var_lst[k]:
+                    forcing_dir = os.path.join(
+                        self.data_source_description["CAMELS_FORCING_DIR"],
+                        "02_EvaporativeDemand_timeseries",
+                    )
+                elif "_AGCD" in var_lst[k]:
+                    forcing_dir = os.path.join(
+                        self.data_source_description["CAMELS_FORCING_DIR"],
+                        "03_Other",
+                        "AGCD",
+                    )
+                elif "_SILO" in var_lst[k]:
+                    forcing_dir = os.path.join(
+                        self.data_source_description["CAMELS_FORCING_DIR"],
+                        "03_Other",
+                        "SILO",
+                    )
+                else:
+                    raise NotImplementedError(CAMELS_NO_DATASET_ERROR_LOG)
+                forcing_data = pd.read_csv(
+                    os.path.join(forcing_dir, var_lst[k] + ".csv")
+                )
+                df_date = forcing_data[["year", "month", "day"]]
+                date = pd.to_datetime(df_date).values.astype("datetime64[D]")
+                [c, ind1, ind2] = np.intersect1d(
+                    date, t_range_list, return_indices=True
+                )
+                chosen_data = forcing_data[gage_id_lst].values[ind1, :]
+                x[:, ind2, k] = chosen_data.T
         elif self.region == "BR":
             for j in tqdm(range(len(var_lst)), desc="Read forcing data of CAMELS-BR"):
                 for k in tqdm(range(len(gage_id_lst))):
@@ -1313,6 +1436,12 @@ class Camels(HydroDataset):
                 "CAMELS_AUS_Attributes-Indices_MasterTable.csv",
             )
             all_attr = pd.read_csv(attr_all_file, sep=",")
+        elif self.region == "AUS_v2":
+            attr_all_file = os.path.join(
+                self.data_source_description["CAMELS_DIR"],
+                "CAMELS_AUS_Attributes&Indices_MasterTable.csv",
+            )
+            all_attr = pd.read_csv(attr_all_file, sep=",")
         elif self.region == "CL":
             attr_all_file = os.path.join(
                 self.data_source_description["CAMELS_ATTR_DIR"],
@@ -1406,7 +1535,7 @@ class Camels(HydroDataset):
         """
         if self.region in ["BR", "GB", "US"]:
             attr_all, var_lst_all, var_dict, f_dict = self.read_attr_all()
-        elif self.region in ["AUS", "CL"]:
+        elif self.region in ["AUS", "AUS_v2", "CL"]:
             attr_all, var_lst_all, var_dict, f_dict = self.read_attr_all_in_one_file()
         else:
             raise NotImplementedError(CAMELS_NO_DATASET_ERROR_LOG)
@@ -1421,7 +1550,7 @@ class Camels(HydroDataset):
     def read_area(self, gage_id_lst) -> np.ndarray:
         if self.region == "US":
             return self.read_attr_xrdataset(gage_id_lst, ["area_gages2"])
-        elif self.region == "AUS":
+        elif self.region in ["AUS", "AUS_v2"]:
             return self.read_constant_cols(
                 gage_id_lst, ["catchment_area"], is_return_dict=False
             )
@@ -1430,20 +1559,31 @@ class Camels(HydroDataset):
         else:
             raise NotImplementedError(CAMELS_NO_DATASET_ERROR_LOG)
 
-    def read_mean_prcp(self, gage_id_lst) -> np.ndarray:
-        if self.region in ["US", "AUS", "BR", "GB"]:
+    def read_mean_prcp(self, gage_id_lst, unit="mm/d") -> np.ndarray:
+        if self.region in ["US", "AUS", "AUS_v2", "BR", "GB"]:
             if self.region == "US":
-                return self.read_attr_xrdataset(gage_id_lst, ["p_mean"])
-            return self.read_constant_cols(
-                gage_id_lst, ["p_mean"], is_return_dict=False
+                data = self.read_attr_xrdataset(gage_id_lst, ["p_mean"])
+            data = self.read_constant_cols(
+                gage_id_lst, ["p_mean"], is_return_dict=False,
             )
         elif self.region == "CL":
             # there are different p_mean values for different forcings, here we chose p_mean_cr2met now
-            return self.read_constant_cols(
+            data = self.read_constant_cols(
                 gage_id_lst, ["p_mean_cr2met"], is_return_dict=False
             )
         else:
             raise NotImplementedError(CAMELS_NO_DATASET_ERROR_LOG)
+        if unit in ["mm/d", "mm/day"]:
+            converted_data = data
+        elif unit in ["mm/h", "mm/hour"]:
+            converted_data = data / 24
+        elif unit in ["mm/3h", "mm/3hour"]:
+            converted_data = data / 8
+        else:
+            raise ValueError(
+                "unit must be one of ['mm/d', 'mm/day', 'mm/h', 'mm/hour', 'mm/3h', 'mm/3hour']"
+            )
+        return converted_data
 
     def cache_forcing_np_json(self):
         """
