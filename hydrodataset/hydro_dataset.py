@@ -1,7 +1,7 @@
 """
 Author: Wenyu Ouyang
 Date: 2022-09-05 23:20:24
-LastEditTime: 2024-09-10 18:26:45
+LastEditTime: 2024-11-04 20:06:05
 LastEditors: Wenyu Ouyang
 Description: main modules for hydrodataset
 FilePath: \hydrodataset\hydrodataset\hydro_dataset.py
@@ -113,6 +113,20 @@ class HydroDataset(ABC):
         """read area of each basin/unit"""
         raise NotImplementedError
 
-    def read_mean_prcp(self, gage_id_lst):
-        """read mean precipitation of each basin/unit"""
+    def read_mean_prcp(self, gage_id_lst, unit="mm/d"):
+        """read mean precipitation of each basin
+        default unit is mm/d, but one can chose other units and we will convert the unit to the specified unit
+
+        Parameters
+        ----------
+        gage_id_lst : list, optional
+            the list of gage ids, by default None
+        unit : str, optional
+            the unit of precipitation, by default "mm/d"
+
+        Returns
+        -------
+        xr.Dataset
+            the mean precipitation of each basin
+        """
         raise NotImplementedError
