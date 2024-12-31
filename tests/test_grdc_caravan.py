@@ -1,7 +1,7 @@
 """
 Author: Wenyu Ouyang
 Date: 2023-07-18 11:45:25
-LastEditTime: 2024-12-31 10:17:25
+LastEditTime: 2024-12-31 13:23:07
 LastEditors: Wenyu Ouyang
 Description: Test for caravan dataset reading
 FilePath: \hydrodataset\tests\test_grdc_caravan.py
@@ -86,7 +86,8 @@ def test_read_grdc_caravan(grdc_caravan):
 
 
 def test_cache_grdc_caravan(grdc_caravan):
-    grdc_caravan.cache_xrdataset(checkregion=None)
+    grdc_caravan.cache_attributes_xrdataset()
+    grdc_caravan.cache_timeseries_xrdataset(checkregion=None)
 
 
 def test_read_ts_xrdataset(grdc_caravan):
