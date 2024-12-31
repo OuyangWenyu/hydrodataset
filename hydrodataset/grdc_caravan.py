@@ -1,7 +1,7 @@
 """
 Author: Wenyu Ouyang
 Date: 2024-12-30 18:44:19
-LastEditTime: 2024-12-30 20:26:06
+LastEditTime: 2024-12-31 10:06:23
 LastEditors: Wenyu Ouyang
 Description: For GRDC-Caravan dataset
 FilePath: \hydrodataset\hydrodataset\grdc_caravan.py
@@ -11,7 +11,8 @@ Copyright (c) 2023-2024 Wenyu Ouyang. All rights reserved.
 import collections
 import os
 import tarfile
-from hydroutils import hydro_file
+import warnings
+import tqdm
 from hydrodataset.caravan import Caravan
 
 
@@ -49,13 +50,16 @@ class GrdcCaravan(Caravan):
         """
         the_dict = super().set_data_source_describe()
         # Here we use nc files
-        the_dict["DOWNLOAD_URL"] = (
-            "https://zenodo.org/record/14006282/files/caravan-grdc-extension-nc.tar.gz?download=1"
-        )
+        the_dict["DOWNLOAD_URL"] = [
+            "https://zenodo.org/records/14006282/files/caravan-grdc-extension-csv.tar.gz",
+            "https://zenodo.org/records/14006282/files/caravan-grdc-extension-nc.tar.gz",
+            "https://zenodo.org/records/14006282/files/grdc-caravan_data_description.pdf",
+        ]
         return the_dict
 
     def _base_dir(self):
-        return os.path.join(self.data_source_dir, "GRDC-Caravan")
+        # we use csv directory to read the data
+        return os.path.join(self.data_source_dir, "GRDC-Caravan-extension-nc")
 
     def download_data_source(self) -> None:
         """
@@ -67,14 +71,24 @@ class GrdcCaravan(Caravan):
         """
         self.data_source_dir.mkdir(exist_ok=True)
         print(
-            "We only support manual downloading now. "
-            + "As NetCDF version is enough, we just download each tar.gz file from the following links:"
-            + "https://zenodo.org/records/14006282/files/caravan-grdc-extension-csv.tar.gz?download=1"
+            "We only support manual downloading now. Please download two tar.gz files and one pdf file from the download links below:"
+            + "https://zenodo.org/records/14006282/files/caravan-grdc-extension-csv.tar.gz\n"
+            + "https://zenodo.org/records/14006282/files/caravan-grdc-extension-nc.tar.gz \n"
+            + "https://zenodo.org/records/14006282/files/grdc-caravan_data_description.pdf"
         )
-        file_name = self.data_source_description["DOWNLOAD_URL"].split("/")[-1]
-        try:
-            with tarfile.open(file_name, "r:gz") as tar:
-                # unzip the file
-                tar.extractall()
-        except tarfile.ReadError:
-            Warning("Please manually unzip the file.")
+        for zipfile in self.data_source_description["DOWNLOAD_URL"][:-1]:
+            file_name = os.path.join(self.data_source_dir, zipfile.split("/")[-1])
+            try:
+                with tarfile.open(file_name, "r:gz") as tar:
+                    # Create a tqdm progress bar, assuming the total number of files equals the number of members in the tar archive (this may not be accurate).
+                    with tqdm.tqdm(
+                        total=len(tar.getmembers()), desc="Extracting"
+                    ) as pbar:
+                        for member in tar.getmembers():
+                            # We are not actually extracting each file to update the progress bar, because that would be too slow. Instead, we simulate progress updates (which does not reflect actual progress).
+                            tar.extract(
+                                member, path=self.data_source_dir
+                            )  # extract the file
+                            pbar.update(1)  # update the progress bar
+            except tarfile.ReadError:
+                warnings.warn("Please manually unzip the file.")

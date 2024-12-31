@@ -1,7 +1,7 @@
 """
 Author: Wenyu Ouyang
 Date: 2023-07-18 11:45:25
-LastEditTime: 2024-12-30 20:58:19
+LastEditTime: 2024-12-31 10:17:25
 LastEditors: Wenyu Ouyang
 Description: Test for caravan dataset reading
 FilePath: \hydrodataset\tests\test_grdc_caravan.py
@@ -18,70 +18,7 @@ from hydrodataset.grdc_caravan import GrdcCaravan
 
 @pytest.fixture()
 def grdc_caravan():
-    return GrdcCaravan(
-        os.path.join(ROOT_DIR, "GRDC-Caravan"), download=True
-    )
-
-
-def test_read_grdc_caravan(grdc_caravan):
-    caravan_ids = grdc_caravan.read_object_ids()
-    assert len(caravan_ids) == 482
-
-    streamflow_types = grdc_caravan.get_target_cols()
-    np.testing.assert_array_equal(streamflow_types, np.array(["streamflow"]))
-    focing_types = grdc_caravan.get_relevant_cols()
-    np.testing.assert_array_equal(
-        focing_types[:3],
-        np.array(
-            [
-                "snow_depth_water_equivalent_mean",
-                "surface_net_solar_radiation_mean",
-                "surface_net_thermal_radiation_mean",
-            ]
-        ),
-    )
-    attr_types = grdc_caravan.get_constant_cols()
-    np.testing.assert_array_equal(
-        attr_types[:3],
-        np.array(["p_mean", "pet_mean", "aridity"]),
-    )
-
-    attrs = grdc_caravan.read_constant_cols(
-        caravan_ids[:5],
-        var_lst=["p_mean", "pet_mean", "aridity"],
-    )
-    np.testing.assert_almost_equal(
-        attrs,
-        np.array(
-            [
-                [3.20371278, 14.54395441, 4.53971857],
-                [3.2891471, 12.98397837, 3.94752134],
-                [3.2756958, 12.1030139, 3.69479177],
-                [3.40199329, 10.64317544, 3.12851159],
-                [3.66423575, 10.99960641, 3.00188284],
-            ]
-        ),
-    )
-    forcings = grdc_caravan.read_relevant_cols(
-        caravan_ids[:5],
-        ["1990-01-01", "2009-12-31"],
-        var_lst=[
-            "snow_depth_water_equivalent_mean",
-            "surface_net_solar_radiation_mean",
-            "surface_net_thermal_radiation_mean",
-        ],
-    )
-    np.testing.assert_array_equal(
-        forcings.to_array().transpose("gauge_id", "date", "variable").shape,
-        np.array([5, 7305, 3]),
-    )
-    flows = grdc_caravan.read_target_cols(
-        caravan_ids[:5], ["1990-01-01", "2009-12-31"], target_cols=["streamflow"]
-    )
-    np.testing.assert_array_equal(
-        flows.to_array().transpose("gauge_id", "date", "variable").shape,
-        np.array([5, 7305, 1]),
-    )
+    return GrdcCaravan(os.path.join(ROOT_DIR, "GRDC-Caravan"), download=False)
 
 
 def all_elements_in_array(elements_list, np_array):
@@ -90,7 +27,7 @@ def all_elements_in_array(elements_list, np_array):
 
 def test_read_grdc_caravan(grdc_caravan):
     caravan_ids = grdc_caravan.read_object_ids()
-    assert len(caravan_ids) == 6830
+    assert len(caravan_ids) == 5357
 
     streamflow_types = grdc_caravan.get_target_cols()
     np.testing.assert_array_equal(streamflow_types, np.array(["streamflow"]))
@@ -118,11 +55,11 @@ def test_read_grdc_caravan(grdc_caravan):
         attrs,
         np.array(
             [
-                [3.20371278, 14.54395441, 4.53971857],
-                [3.2891471, 12.98397837, 3.94752134],
-                [3.2756958, 12.1030139, 3.69479177],
-                [3.00678349, 3.6481265, 1.2132987],
-                [2.75425491, 3.64257786, 1.3225275],
+                [1.21353567, 7.50012016, 6.18038709],
+                [1.23786902, 7.52147532, 6.07614793],
+                [1.10887647, 7.50398445, 6.76719606],
+                [3.91461539, 5.78396797, 1.47753161],
+                [4.6179657, 1.45969522, 0.31609053],
             ]
         ),
     )
