@@ -19,7 +19,7 @@ from hydrodataset import CACHE_DIR, HydroDataset
 class Caravan(HydroDataset):
     def __init__(self, data_path, download=False, region="Global"):
         """
-        Initialization for LamaH-CE dataset
+        Initialization for Caravan dataset
 
         Parameters
         ----------
@@ -33,7 +33,18 @@ class Caravan(HydroDataset):
         super().__init__(data_path)
         self.data_source_description = self.set_data_source_describe()
         self.region = region
-        region_name_dict = {
+        region_name_dict = self.region_name_dict
+        if region == "Global":
+            self.region_data_name = list(region_name_dict.values())
+        else:
+            self.region_data_name = region_name_dict[region]
+        if download:
+            self.download_data_source()
+        self.sites = self.read_site_info()
+
+    @property
+    def region_name_dict(self):
+        return {
             "US": "camels",
             "AUS": "camelsaus",
             "BR": "camelsbr",
@@ -42,13 +53,6 @@ class Caravan(HydroDataset):
             "NA": "hysets",
             "CE": "lamah",
         }
-        if region == "Global":
-            self.region_data_name = list(region_name_dict.values())
-        else:
-            self.region_data_name = region_name_dict[region]
-        if download:
-            self.download_data_source()
-        self.sites = self.read_site_info()
 
     def get_name(self):
         return "Caravan_" + self.region
@@ -60,9 +64,9 @@ class Caravan(HydroDataset):
         Returns
         -------
         collections.OrderedDict
-            the description for LamaH-CE
+            the description for Caravan
         """
-        dataset_dir = os.path.join(self.data_source_dir, "Caravan", "Caravan")
+        dataset_dir = self._base_dir()
 
         # We use A_basins_total_upstrm
         # shp file of basins
@@ -85,6 +89,9 @@ class Caravan(HydroDataset):
             BASINS_SHP_FILE=camels_shp_file,
             DOWNLOAD_URL=download_url,
         )
+
+    def _base_dir(self):
+        return os.path.join(self.data_source_dir, "Caravan", "Caravan")
 
     def download_data_source(self) -> None:
         """
