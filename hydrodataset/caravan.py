@@ -28,7 +28,7 @@ class Caravan(HydroDataset):
         download
             if true, download
         region
-            the region can be US, AUS, BR, CL, GB, CE, NA (North America, same as HYSETS)
+            the region can be US, AUS, BR, CL, GB, CE, NA (North America, meaning HYSETS)
         """
         super().__init__(data_path)
         self.data_source_description = self.set_data_source_describe()
@@ -193,7 +193,7 @@ class Caravan(HydroDataset):
 
     def get_relevant_cols(self) -> np.array:
         """
-        all readable forcing types
+        all readable forcing types, also including streamflow
 
         Returns
         -------
@@ -229,7 +229,7 @@ class Caravan(HydroDataset):
             data = xr.open_dataset(file_path)
         else:
             raise FileNotFoundError("No files found in the directory.")
-        return list(data.data_vars)
+        return np.array(list(data.data_vars))
 
     def get_target_cols(self) -> np.array:
         """
@@ -355,8 +355,8 @@ class Caravan(HydroDataset):
         return data[var_lst]
 
     def read_constant_cols(
-        self, gage_id_lst=None, var_lst=None, is_return_dict=False
-    ) -> Union[tuple, np.ndarray]:
+        self, gage_id_lst=None, var_lst=None, is_return_dict=False, **kwargs
+    ):
         """
         Read Attributes data
 
@@ -465,8 +465,10 @@ class Caravan(HydroDataset):
         data = self.read_constant_cols()
         basin_ids = self.read_object_ids()
         var_names = self.get_constant_cols()
-        # for all attrs reading in Global mode, all attrs are sorted
-        assert all(x <= y for x, y in zip(var_names, var_names[1:]))
+        assert all(x <= y for x, y in zip(basin_ids, basin_ids[1:]))
+        if self.region == "Global":
+            # for all attrs reading in Global mode, all attrs are sorted
+            assert all(x <= y for x, y in zip(var_names, var_names[1:]))
         ds = xr.Dataset(
             {var: (["basin"], data[:, i]) for i, var in enumerate(var_names)},
             coords={"basin": basin_ids},
@@ -624,9 +626,13 @@ class Caravan(HydroDataset):
         for var_name in converted_units:
             if var_name in ds.data_vars:
                 ds[var_name].attrs["units"] = converted_units[var_name]
-        return ds
+        cache_attr_file = os.path.join(
+            CACHE_DIR,
+            f"caravan_{self.region}_attributes.nc",
+        )
+        ds.to_netcdf(cache_attr_file)
 
-    def cache_xrdataset(self, checkregion="hysets"):
+    def cache_xrdataset(self, **kwargs):
         """
         Save all attr data in a netcdf file in the cache directory,
         ts data are already nc format
@@ -636,26 +642,21 @@ class Caravan(HydroDataset):
         checkregion : str, optional
             as my experience, the dameged file is in hysets, by default "hysets"
         """
+        checkregion = kwargs.get("checkregion", "hysets")
         warnings.warn("Check you units of all variables")
-        if self.region != "Global":
-            raise ValueError("Only Global region is supported.")
-        cache_attr_file = os.path.join(
-            CACHE_DIR,
-            "caravan_attributes.nc",
-        )
-        if not os.path.isfile(cache_attr_file):
-            ds_attr = self.cache_attributes_xrdataset()
-            ds_attr.to_netcdf(cache_attr_file)
+        self.cache_attributes_xrdataset()
+        self.cache_timeseries_xrdataset(checkregion)
 
+    def cache_timeseries_xrdataset(self, checkregion, **kwargs):
         if checkregion is not None:
             regions = self.region_data_name if checkregion == "all" else [checkregion]
             self._check_data(regions)
 
-        for region in self.region_data_name:
-            region_ts_file = CACHE_DIR.joinpath(f"caravan{region}_timeseries.nc")
-            if os.path.isfile(region_ts_file):
-                continue
-
+        if isinstance(self.region_data_name, str):
+            region_data_name = [self.region_data_name]
+        else:
+            region_data_name = self.region_data_name
+        for region in region_data_name:
             # all files are too large to read in memory, hence we read them region by region
             site_file = os.path.join(
                 self.data_source_description["ATTR_DIR"],
@@ -664,7 +665,7 @@ class Caravan(HydroDataset):
             )
             sites_region = pd.read_csv(site_file, sep=",")
             gage_id_lst = sites_region["gauge_id"].values
-
+            batchsize = kwargs.get("batchsize", 100)
             # forcing dir is same as flow dir
             ts_dir = self.data_source_description["FORCING_DIR"]
 
@@ -675,41 +676,35 @@ class Caravan(HydroDataset):
                 if os.path.isfile(file_path):
                     file_paths.append(file_path)
 
-            if len(file_paths) > 1000:
-                # hysets is too large; split them into some parts
-                split_num = 5
-                file_path_lsts = np.array_split(file_paths, split_num)
-                gage_id_lsts = np.array_split(gage_id_lst, split_num)
-                for i in range(len(file_path_lsts)):
-                    save_file = CACHE_DIR.joinpath(f"caravan{region}_timeseries_{i}.nc")
-                    if os.path.isfile(save_file):
-                        continue
-                    datasets_i = [
-                        xr.open_dataset(path, chunks={}).assign_coords(gauge_id=name)
-                        for path, name in zip(file_path_lsts[i], gage_id_lsts[i])
-                    ]
-                    # Concatenate the datasets along the new dimension
-                    combined_ds_i = xr.concat(datasets_i, dim="gauge_id")
-                    region_ts_file_i = CACHE_DIR.joinpath(
-                        f"caravan{region}_timeseries_{i}.nc"
-                    )
-                    combined_ds_i.to_netcdf(
-                        region_ts_file_i,
-                        mode="w",
-                        format="NETCDF4",
-                    )
-            else:
+            def data_generator(basins, batch_size):
+                for i in range(0, len(basins), batch_size):
+                    yield basins[i : i + batch_size]
+
+            for basin_batch in data_generator(gage_id_lst, batchsize):
+                # we make sure the basin ids are sorted
+                assert all(x <= y for x, y in zip(basin_batch, basin_batch[1:]))
                 datasets = [
                     xr.open_dataset(path, chunks={}).assign_coords(gauge_id=name)
-                    for path, name in zip(file_paths, gage_id_lst)
+                    for path, name in zip(file_paths, basin_batch)
                 ]
                 # Concatenate the datasets along the new dimension
                 combined_ds = xr.concat(datasets, dim="gauge_id")
+
+                # Save the dataset to a NetCDF file for the current batch and time unit
+                prefix_ = "" if region is None else region + "_"
+                batch_file_path = os.path.join(
+                    CACHE_DIR,
+                    f"caravan_{prefix_}timeseries_batch_{basin_batch[0]}_{basin_batch[-1]}.nc",
+                )
                 combined_ds.to_netcdf(
-                    region_ts_file,
+                    batch_file_path,
                     mode="w",
                     format="NETCDF4",
                 )
+
+                # Release memory by deleting the dataset
+                del datasets
+                del combined_ds
 
     def _check_data(self, regions):
         pbar = tqdm(regions, desc="Start Checking Data...")
@@ -779,7 +774,7 @@ class Caravan(HydroDataset):
         # Define the path to the attributes file
         file_path = os.path.join(
             CACHE_DIR,
-            "caravan_attributes.nc",
+            f"caravan_{self.region}_attributes.nc",
         )
 
         # Open the dataset
@@ -796,7 +791,9 @@ class Caravan(HydroDataset):
 
     def read_ts_xrdataset(self, gage_id_lst, t_range, var_lst, **kwargs):
         file_paths = sorted(
-            glob.glob(os.path.join(CACHE_DIR, "*caravan*timeseries*.nc"))
+            glob.glob(
+                os.path.join(CACHE_DIR, f"*caravan_{self.region}_*timeseries*.nc")
+            )
         )
 
         # Open the dataset in a lazy manner using dask
