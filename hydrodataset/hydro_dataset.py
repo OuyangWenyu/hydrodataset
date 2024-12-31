@@ -1,7 +1,7 @@
 """
 Author: Wenyu Ouyang
 Date: 2022-09-05 23:20:24
-LastEditTime: 2024-11-04 20:06:05
+LastEditTime: 2024-12-31 10:12:20
 LastEditors: Wenyu Ouyang
 Description: main modules for hydrodataset
 FilePath: \hydrodataset\hydrodataset\hydro_dataset.py
@@ -51,12 +51,7 @@ class HydroDataset(ABC):
         raise NotImplementedError
 
     def read_relevant_cols(
-        self,
-        gage_id_lst=None,
-        t_range: list = None,
-        var_lst=None,
-        forcing_type="",
-        **kwargs
+        self, gage_id_lst=None, t_range=None, var_lst=None, forcing_type=None, **kwargs
     ) -> np.ndarray:
         """3d data (site_num * time_length * var_num), time-series data"""
         raise NotImplementedError

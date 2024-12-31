@@ -302,8 +302,9 @@ class Caravan(HydroDataset):
         gage_id_lst: list = None,
         t_range: list = None,
         var_lst: list = None,
-        forcing_type="daymet",
-    ) -> np.array:
+        forcing_type="era5land",
+        **kwargs,
+    ) -> np.ndarray:
         """_summary_
 
         Parameters
@@ -319,7 +320,7 @@ class Caravan(HydroDataset):
 
         Returns
         -------
-        np.array
+        np.ndarray
             _description_
         """
         if self.region == "Global":
@@ -355,7 +356,7 @@ class Caravan(HydroDataset):
 
     def read_constant_cols(
         self, gage_id_lst=None, var_lst=None, is_return_dict=False
-    ) -> Union[tuple, np.array]:
+    ) -> Union[tuple, np.ndarray]:
         """
         Read Attributes data
 
@@ -371,7 +372,8 @@ class Caravan(HydroDataset):
         -------
         Union[tuple, np.array]
             if attr var type is str, return factorized data.
-            When we need to know what a factorized value represents, we need return a tuple;
+            When we need to know what a factorized value represents,
+            we need return a tuple;
             otherwise just return an array
         """
         if self.region == "Global":
@@ -646,10 +648,7 @@ class Caravan(HydroDataset):
             ds_attr.to_netcdf(cache_attr_file)
 
         if checkregion is not None:
-            if checkregion == "all":
-                regions = self.region_data_name
-            else:
-                regions = [checkregion]
+            regions = self.region_data_name if checkregion == "all" else [checkregion]
             self._check_data(regions)
 
         for region in self.region_data_name:
