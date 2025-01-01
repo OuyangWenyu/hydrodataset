@@ -804,22 +804,6 @@ class Caravan(HydroDataset):
             concat_dim="gauge_id",
             parallel=parallel,
         )
-
-        def extract_unit(variable_name, units_string):
-            """Construct a pattern based on the variable name to find the unit"""
-            # If the variable is 'streamflow', directly use it for unit extraction
-            if variable_name == "streamflow":
-                main_name = "streamflow"
-            # If the variable starts with 'dewpoint_temperature_2m', use the main name 'temperature_2m' for unit extraction
-            elif variable_name.startswith("dewpoint_temperature_2m"):
-                main_name = "temperature_2m"
-            else:
-                main_name = "_".join(variable_name.split("_")[:-1])
-
-            pattern = main_name + r":.*?\[(.*?)\]"
-            match = re.search(pattern, units_string)
-            return match[1].strip() if match else "unknown"
-
         # If relevant columns are specified, select them
         if var_lst:
             combined_ds = combined_ds[var_lst]
@@ -833,7 +817,7 @@ class Caravan(HydroDataset):
 
         for var in combined_ds.data_vars:
             if "units" not in combined_ds[var].attrs:
-                unit = extract_unit(var, combined_ds.attrs["Units"])
+                unit = _extract_unit(var, combined_ds.attrs["Units"])
                 # If the extracted unit is in the mapping dictionary, replace it
                 unit = unit_mapping.get(unit, unit)
                 combined_ds[var].attrs["units"] = unit
@@ -870,3 +854,25 @@ def check_coordinates(ds):
     for coord in required_coords:
         if coord not in ds.coords:
             raise ValueError(f"Missing coordinate: {coord}")
+
+
+def _extract_unit(variable_name, units_string):
+    """Construct a pattern based on the variable name to find the unit"""
+    # If the variable is 'streamflow', directly use it for unit extraction
+    if variable_name == "streamflow":
+        main_name = "streamflow"
+    # If the variable starts with '*_temperature_2m', use 'temperature_2m' for unit extraction
+    elif variable_name.startswith(
+        "dewpoint_temperature_2m"
+    ) or variable_name.startswith("temperature_2m"):
+        main_name = "temperature_2m"
+    else:
+        main_name = "_".join(variable_name.split("_")[:-1])
+
+    pattern = main_name + r":.*?\[(.*?)\]"
+    match = re.search(pattern, units_string)
+    the_unit = match[1].strip() if match else "unknown"
+    if the_unit == "unknown" and main_name == "streamflow":
+        # it is unknown in GRDC-Caravan, so we manually set it
+        the_unit = "mm"
+    return the_unit

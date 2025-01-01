@@ -1,10 +1,10 @@
 """
 Author: Wenyu Ouyang
 Date: 2023-07-18 11:45:25
-LastEditTime: 2023-10-19 10:08:35
+LastEditTime: 2025-01-01 15:01:45
 LastEditors: Wenyu Ouyang
 Description: Test for caravan dataset reading
-FilePath: /hydrodataset/tests/test_caravan.py
+FilePath: \hydrodataset\tests\test_caravan.py
 Copyright (c) 2023-2024 Wenyu Ouyang. All rights reserved.
 """
 
@@ -13,7 +13,7 @@ import numpy as np
 import pytest
 
 from hydrodataset import ROOT_DIR
-from hydrodataset.caravan import Caravan
+from hydrodataset.caravan import Caravan, _extract_unit
 
 
 @pytest.fixture()
@@ -189,3 +189,41 @@ def test_read_prcp_mean(caravan):
         caravan_ids[:3].tolist() + caravan_ids[-2:].tolist()
     )
     print(prcp_mean)
+
+
+def test_extract_unit():
+    units_string = """
+    snow_depth_water_equivalent: ERA5-Land Snow-Water-Equivalent [mm]
+    surface_net_solar_radiation: Surface net solar radiation [W/m2]
+    surface_net_thermal_radiation: Surface net thermal radiation [W/m2]
+    surface_pressure: Surface pressure [kPa]
+    temperature_2m: 2m air temperature [°C]
+    u_component_of_wind_10m: U-component of wind at 10m [m/s]
+    v_component_of_wind_10m: V-component of wind at 10m [m/s]
+    volumetric_soil_water_layer_1: ERA5-Land volumetric soil water layer 1 (0-7cm) [m3/m3]
+    volumetric_soil_water_layer_2: ERA5-Land volumetric soil water layer 2 (7-28cm) [m3/m3]
+    volumetric_soil_water_layer_3: ERA5-Land volumetric soil water layer 3 (28-100cm) [m3/m3]
+    volumetric_soil_water_layer_4: ERA5-Land volumetric soil water layer 4 (100-289cm) [m3/m3]
+    total_precipitation: Total precipitation [mm]
+    potential_evaporation: ERA5-Land Potential Evapotranspiration [mm]
+    """
+
+    # Test for streamflow
+    assert _extract_unit("streamflow", units_string) == "mm"
+
+    # Test for dewpoint_temperature_2m
+    assert _extract_unit("dewpoint_temperature_2m", units_string) == "°C"
+
+    # Test for temperature_2m
+    assert _extract_unit("temperature_2m_mean", units_string) == "°C"
+
+    # Test for unknown variable
+    assert _extract_unit("unknown_variable", units_string) == "unknown"
+
+    # Test for variable with no unit
+    units_string_no_unit = """
+    temperature_2m: [K]
+    dewpoint_temperature_2m: [K]
+    variable_no_unit:
+    """
+    assert _extract_unit("variable_no_unit", units_string_no_unit) == "unknown"
