@@ -652,9 +652,12 @@ class Caravan(HydroDataset):
         for var_name in converted_units:
             if var_name in ds.data_vars:
                 ds[var_name].attrs["units"] = converted_units[var_name]
+        region_name = self.region_data_name
+        if isinstance(region_name, list):
+            region_name = "_".join(region_name)
         cache_attr_file = os.path.join(
             CACHE_DIR,
-            f"caravan_{self.region}_attributes.nc",
+            f"caravan_{region_name}_attributes.nc",
         )
         ds.to_netcdf(cache_attr_file)
 
@@ -798,9 +801,12 @@ class Caravan(HydroDataset):
 
     def read_attr_xrdataset(self, gage_id_lst=None, var_lst=None, **kwargs):
         # Define the path to the attributes file
+        region_name = self.region_data_name
+        if isinstance(region_name, list):
+            region_name = "_".join(region_name)
         file_path = os.path.join(
             CACHE_DIR,
-            f"caravan_{self.region}_attributes.nc",
+            f"caravan_{region_name}_attributes.nc",
         )
 
         # Open the dataset
@@ -816,9 +822,12 @@ class Caravan(HydroDataset):
         return ds
 
     def read_ts_xrdataset(self, gage_id_lst, t_range, var_lst, **kwargs):
+        region_name = self.region_data_name
+        if isinstance(region_name, list):
+            region_name = "_".join(region_name)
         file_paths = sorted(
             glob.glob(
-                os.path.join(CACHE_DIR, f"*caravan_{self.region}_*timeseries*.nc")
+                os.path.join(CACHE_DIR, f"*caravan_{region_name}_*timeseries*.nc")
             )
         )
 
