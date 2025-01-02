@@ -40,6 +40,13 @@ class Caravan(HydroDataset):
             self.region_data_name = region_name_dict[region]
         if download:
             self.download_data_source()
+        try:
+            self.is_data_ready()
+        except FileNotFoundError as e:
+            warnings.warn(e)
+            print(
+                "Please download and unzip the dataset first: just set download=True if you have manually downloaded zip files when you first initialize caravan."
+            )
         self.sites = self.read_site_info()
 
     @property
@@ -118,6 +125,25 @@ class Caravan(HydroDataset):
             hydro_file.zip_extract(dataset_config["DATASET_DIR"])
         except tarfile.ReadError:
             Warning("Please manually unzip the file.")
+
+    def is_data_ready(self):
+        """Check if the data is ready to be read"""
+        if not os.path.exists(self.data_source_description["DATASET_DIR"]):
+            raise FileNotFoundError(
+                f"Dataset is not found in {self.data_source_description['DATASET_DIR']}"
+            )
+        if not os.path.exists(self.data_source_description["FLOW_DIR"]):
+            raise FileNotFoundError(
+                f"Flow data is not found in {self.data_source_description['FLOW_DIR']}"
+            )
+        if not os.path.exists(self.data_source_description["FORCING_DIR"]):
+            raise FileNotFoundError(
+                f"Forcing data is not found in {self.data_source_description['FORCING_DIR']}"
+            )
+        if not os.path.exists(self.data_source_description["ATTR_DIR"]):
+            raise FileNotFoundError(
+                f"Attributes data is not found in {self.data_source_description['ATTR_DIR']}"
+            )
 
     def read_site_info(self) -> pd.DataFrame:
         """

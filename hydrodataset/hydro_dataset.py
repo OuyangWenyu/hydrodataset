@@ -1,10 +1,10 @@
 """
 Author: Wenyu Ouyang
 Date: 2022-09-05 23:20:24
-LastEditTime: 2024-12-31 10:12:20
+LastEditTime: 2025-01-02 10:04:16
 LastEditors: Wenyu Ouyang
 Description: main modules for hydrodataset
-FilePath: \hydrodataset\hydrodataset\hydro_dataset.py
+FilePath: /hydrodataset/hydrodataset/hydro_dataset.py
 Copyright (c) 2021-2022 Wenyu Ouyang. All rights reserved.
 """
 
@@ -40,6 +40,9 @@ class HydroDataset(ABC):
         raise NotImplementedError
 
     def download_data_source(self):
+        raise NotImplementedError
+
+    def is_data_ready(self):
         raise NotImplementedError
 
     def read_object_ids(self) -> np.ndarray:
