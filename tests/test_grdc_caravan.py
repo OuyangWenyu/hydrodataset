@@ -1,10 +1,10 @@
 """
 Author: Wenyu Ouyang
 Date: 2023-07-18 11:45:25
-LastEditTime: 2024-12-31 13:23:07
+LastEditTime: 2025-01-02 10:08:45
 LastEditors: Wenyu Ouyang
 Description: Test for caravan dataset reading
-FilePath: \hydrodataset\tests\test_grdc_caravan.py
+FilePath: /hydrodataset/tests/test_grdc_caravan.py
 Copyright (c) 2023-2024 Wenyu Ouyang. All rights reserved.
 """
 
@@ -18,7 +18,7 @@ from hydrodataset.grdc_caravan import GrdcCaravan
 
 @pytest.fixture()
 def grdc_caravan():
-    return GrdcCaravan(os.path.join(ROOT_DIR, "GRDC-Caravan"), download=False)
+    return GrdcCaravan(os.path.join(ROOT_DIR, "GRDC-Caravan"), download=True)
 
 
 def all_elements_in_array(elements_list, np_array):
