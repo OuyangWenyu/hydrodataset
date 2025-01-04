@@ -1,10 +1,10 @@
 """
 Author: Wenyu Ouyang
 Date: 2023-07-18 11:45:25
-LastEditTime: 2025-01-02 11:40:01
+LastEditTime: 2025-01-03 21:39:43
 LastEditors: Wenyu Ouyang
 Description: Test for caravan dataset reading
-FilePath: /hydrodataset/tests/test_grdc_caravan.py
+FilePath: \hydrodataset\tests\test_grdc_caravan.py
 Copyright (c) 2023-2024 Wenyu Ouyang. All rights reserved.
 """
 
@@ -86,18 +86,25 @@ def test_read_grdc_caravan(grdc_caravan):
 
 
 def test_cache_grdc_caravan(grdc_caravan):
-    grdc_caravan.cache_attributes_xrdataset()
+    # grdc_caravan.cache_attributes_xrdataset()
     grdc_caravan.cache_timeseries_xrdataset(checkregion=None)
 
 
 def test_read_ts_xrdataset(grdc_caravan):
-    caravan_ids = grdc_caravan.read_object_ids()
     ts_data = grdc_caravan.read_ts_xrdataset(
-        caravan_ids[:3].tolist() + caravan_ids[-2:].tolist(),
-        ["1990-01-01", "2009-12-31"],
-        var_lst=None,
+        ["GRDC_1197507"],
+        ["1950-01-01", "2023-05-18"],
+        var_lst=["streamflow"],
     )
-    print(ts_data)
+    ts_data_1 = grdc_caravan.read_target_cols(
+        ["GRDC_1197507"],
+        ["1950-01-01", "2023-05-18"],
+        target_cols=["streamflow"],
+    )
+    np.testing.assert_array_equal(
+        ts_data.to_array().transpose("basin", "time", "variable").to_numpy(),
+        ts_data_1.to_array().transpose("gauge_id", "date", "variable").to_numpy(),
+    )
 
 
 def test_read_attr_xrdataset(grdc_caravan):
