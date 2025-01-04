@@ -313,7 +313,7 @@ class Caravan(HydroDataset):
             for path, name in zip(file_paths, gage_id_lst)
         ]
         # Concatenate the datasets along the new dimension
-        data = xr.concat(datasets, dim="gauge_id")
+        data = xr.concat(datasets, dim="gauge_id").sortby("gauge_id")
         if t_range is not None:
             data = data.sel(date=slice(t_range[0], t_range[1]))
         if var_lst is None:
@@ -370,7 +370,7 @@ class Caravan(HydroDataset):
             for path, name in zip(file_paths, gage_id_lst)
         ]
         # Concatenate the datasets along the new dimension
-        data = xr.concat(datasets, dim="gauge_id")
+        data = xr.concat(datasets, dim="gauge_id").sortby("gauge_id")
         if t_range is not None:
             data = data.sel(date=slice(t_range[0], t_range[1]))
         if var_lst is None:
@@ -713,11 +713,11 @@ class Caravan(HydroDataset):
                 # we make sure the basin ids are sorted
                 assert all(x <= y for x, y in zip(basin_batch, basin_batch[1:]))
                 datasets = [
-                    xr.open_dataset(path, chunks={}).assign_coords(gauge_id=name)
+                    xr.open_dataset(path).assign_coords(gauge_id=name)
                     for path, name in zip(file_paths, basin_batch)
                 ]
                 # Concatenate the datasets along the new dimension
-                combined_ds = xr.concat(datasets, dim="gauge_id")
+                combined_ds = xr.concat(datasets, dim="gauge_id").sortby("gauge_id")
 
                 # Save the dataset to a NetCDF file for the current batch and time unit
                 prefix_ = "" if region is None else region + "_"
