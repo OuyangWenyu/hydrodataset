@@ -31,13 +31,13 @@ class Caravan(HydroDataset):
             the region can be US, AUS, BR, CL, GB, CE, NA (North America, meaning HYSETS)
         """
         super().__init__(data_path)
-        self.data_source_description = self.set_data_source_describe()
         self.region = region
         region_name_dict = self.region_name_dict
         if region == "Global":
             self.region_data_name = list(region_name_dict.values())
         else:
             self.region_data_name = region_name_dict[region]
+        self.data_source_description = self.set_data_source_describe()
         if download:
             self.download_data_source()
         try:
@@ -77,10 +77,16 @@ class Caravan(HydroDataset):
 
         # We use A_basins_total_upstrm
         # shp file of basins
-        camels_shp_file = os.path.join(
-            dataset_dir,
-            "shapefiles",
-        )
+        # TODO: Caravan Global is not fully tested yet
+        shp_dir = os.path.join(dataset_dir, "shapefiles", self.region_data_name)
+        # read the shp in this dir
+        shp_files = [f for f in os.listdir(shp_dir) if f.endswith(".shp")]
+
+        if len(shp_files) != 1:
+            raise ValueError(
+                f"Expected one shapefile in {shp_dir}, found {len(shp_files)}"
+            )
+        shp_file_path = os.path.join(shp_dir, shp_files[0])
         # config of flow data
         flow_dir = os.path.join(dataset_dir, "timeseries", "netcdf")
         forcing_dir = flow_dir
@@ -93,7 +99,7 @@ class Caravan(HydroDataset):
             FORCING_DIR=forcing_dir,
             TS_CSV_DIR=ts_csv_dir,
             ATTR_DIR=attr_dir,
-            BASINS_SHP_FILE=camels_shp_file,
+            BASINS_SHP_FILE=shp_file_path,
             DOWNLOAD_URL=download_url,
         )
 
