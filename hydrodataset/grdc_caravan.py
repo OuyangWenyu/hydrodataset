@@ -1,7 +1,7 @@
 """
 Author: Wenyu Ouyang
 Date: 2024-12-30 18:44:19
-LastEditTime: 2024-12-31 10:06:23
+LastEditTime: 2025-01-06 08:23:02
 LastEditors: Wenyu Ouyang
 Description: For GRDC-Caravan dataset
 FilePath: \hydrodataset\hydrodataset\grdc_caravan.py
@@ -55,6 +55,12 @@ class GrdcCaravan(Caravan):
             "https://zenodo.org/records/14006282/files/caravan-grdc-extension-nc.tar.gz",
             "https://zenodo.org/records/14006282/files/grdc-caravan_data_description.pdf",
         ]
+        the_dict["TS_CSV_DIR"] = os.path.join(
+            self.data_source_dir,
+            "GRDC-Caravan-extension-csv",
+            "timeseries",
+            "csv",
+        )
         return the_dict
 
     def _base_dir(self):

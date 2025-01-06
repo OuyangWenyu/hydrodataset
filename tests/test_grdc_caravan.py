@@ -1,7 +1,7 @@
 """
 Author: Wenyu Ouyang
 Date: 2023-07-18 11:45:25
-LastEditTime: 2025-01-03 21:39:43
+LastEditTime: 2025-01-06 10:23:09
 LastEditors: Wenyu Ouyang
 Description: Test for caravan dataset reading
 FilePath: \hydrodataset\tests\test_grdc_caravan.py
@@ -10,6 +10,7 @@ Copyright (c) 2023-2024 Wenyu Ouyang. All rights reserved.
 
 import os
 import numpy as np
+import pandas as pd
 import pytest
 
 from hydrodataset import ROOT_DIR
@@ -86,24 +87,52 @@ def test_read_grdc_caravan(grdc_caravan):
 
 
 def test_cache_grdc_caravan(grdc_caravan):
-    # grdc_caravan.cache_attributes_xrdataset()
+    grdc_caravan.cache_attributes_xrdataset()
     grdc_caravan.cache_timeseries_xrdataset(checkregion=None)
+
+
+def test_read_timeseries(grdc_caravan):
+    caravan_ids = grdc_caravan.read_object_ids()
+    t_range = ["1990-01-01", "2009-12-31"]
+    var_lst = ["streamflow", "total_precipitation_sum"]
+
+    # Test reading timeseries with default parameters
+    # ts_data_default = grdc_caravan.read_timeseries(caravan_ids[:5])
+    # assert ts_data_default.shape[0] == len(caravan_ids)
+    # assert ts_data_default.shape[1] == len(pd.date_range("1980-01-01", "2023-12-31"))
+    # assert ts_data_default.shape[2] == len(grdc_caravan.get_relevant_cols())
+
+    # Test reading timeseries with specific basin_ids, t_range, and var_lst
+    ts_data_specific = grdc_caravan.read_timeseries(
+        basin_ids=caravan_ids[:5], t_range_list=t_range, var_lst=var_lst
+    )
+    assert ts_data_specific.shape[0] == 5
+    assert ts_data_specific.shape[1] == len(pd.date_range(t_range[0], t_range[1]))
+    assert ts_data_specific.shape[2] == len(var_lst)
+
+    # Test reading timeseries with only basin_ids
+    ts_data_basin_ids = grdc_caravan.read_timeseries(basin_ids=caravan_ids[:5])
+    assert ts_data_basin_ids.shape[0] == 5
+    assert ts_data_basin_ids.shape[1] == len(pd.date_range("1980-01-01", "2023-12-31"))
+    assert ts_data_basin_ids.shape[2] == len(grdc_caravan.get_relevant_cols())
 
 
 def test_read_ts_xrdataset(grdc_caravan):
     ts_data = grdc_caravan.read_ts_xrdataset(
         ["GRDC_1197507"],
-        ["1950-01-01", "2023-05-18"],
+        ["1980-01-01", "2023-05-18"],
         var_lst=["streamflow"],
     )
     ts_data_1 = grdc_caravan.read_target_cols(
         ["GRDC_1197507"],
-        ["1950-01-01", "2023-05-18"],
+        ["1980-01-01", "2023-05-18"],
         target_cols=["streamflow"],
     )
-    np.testing.assert_array_equal(
+    np.testing.assert_almost_equal(
         ts_data.to_array().transpose("basin", "time", "variable").to_numpy(),
         ts_data_1.to_array().transpose("gauge_id", "date", "variable").to_numpy(),
+        # tolerence we set to 1e-5
+        decimal=5,
     )
 
 

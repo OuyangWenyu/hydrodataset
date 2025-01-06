@@ -676,6 +676,86 @@ class Caravan(HydroDataset):
         self.cache_attributes_xrdataset()
         self.cache_timeseries_xrdataset(checkregion)
 
+    def read_timeseries(self, basin_ids=None, t_range_list: list = None, var_lst=None):
+        """
+        Read time-series data from csv files
+
+        Parameters
+        ----------
+        basin_ids
+            station ids
+        t_range
+            time range
+        var_lst
+            relevant columns
+
+        Returns
+        -------
+        np.array
+            time-series data
+        """
+        if basin_ids is None:
+            basin_ids = self.read_object_ids()
+        if var_lst is None:
+            var_lst = self.get_relevant_cols()
+        if t_range_list is None:
+            t_range_list = ["1980-01-01", "2023-12-31"]
+        ts_dir = self.data_source_description["TS_CSV_DIR"]
+        region = self.region_data_name
+        t_range = pd.date_range(start=t_range_list[0], end=t_range_list[-1], freq="1D")
+        nt = len(t_range)
+        x = np.full([len(basin_ids), nt, len(var_lst)], np.nan)
+
+        for k in tqdm(range(len(basin_ids)), desc="Reading timeseries data"):
+            ts_file = os.path.join(
+                ts_dir,
+                region,
+                basin_ids[k] + ".csv",
+            )
+            ts_data = pd.read_csv(ts_file, engine="c")
+            date = pd.to_datetime(ts_data["date"]).values
+            [_, ind1, ind2] = np.intersect1d(date, t_range, return_indices=True)
+            for j in range(len(var_lst)):
+                x[k, ind2, j] = ts_data[var_lst[j]][ind1].values
+        return x
+
+    def _get_unit_json(self, onebasinid, region_name):
+        ancfile4unit = os.path.join(
+            self.data_source_description["FLOW_DIR"],
+            region_name,
+            f"{onebasinid}.nc",
+        )
+        anc4unit = xr.open_dataset(ancfile4unit)
+        data_string = anc4unit.Units
+
+        # Convert string to dictionary
+        result_dict = {}
+        lines = data_string.strip().split("\n")
+        for line in lines:
+            key, value = line.split(": ")
+            unit = value.split("[")[-1].strip("]")
+
+            # Convert to mm/day if the unit is mm
+            if unit == "mm":
+                unit = "mm/day"
+
+            result_dict[key] = unit
+        dataset_variable_names = list(anc4unit.data_vars.keys())
+        default_unit = "dimensionless"
+        # Update result_dict for matching variables
+        for var in dataset_variable_names:
+            matched = False
+            for key, unit in result_dict.items():
+                if key in var:  # Check if the key is a substring of the variable name
+                    result_dict[var] = unit
+                    matched = True
+                    break
+            if not matched:  # If no match is found, assign the default unit
+                result_dict[var] = default_unit
+        # streamflow's unit is same as prcp, we directly set it to mm/day
+        result_dict["streamflow"] = "mm/day"
+        return result_dict
+
     def cache_timeseries_xrdataset(self, checkregion, **kwargs):
         if checkregion is not None:
             regions = self.region_data_name if checkregion == "all" else [checkregion]
@@ -695,15 +775,16 @@ class Caravan(HydroDataset):
             sites_region = pd.read_csv(site_file, sep=",")
             gage_id_lst = sites_region["gauge_id"].values
             batchsize = kwargs.get("batchsize", 100)
-            # forcing dir is same as flow dir
-            ts_dir = self.data_source_description["FORCING_DIR"]
-
-            # Find matching file paths
-            file_paths = []
-            for file_name in gage_id_lst:
-                file_path = os.path.join(ts_dir, region, file_name) + ".nc"
-                if os.path.isfile(file_path):
-                    file_paths.append(file_path)
+            t_range = kwargs.get("t_range", None)
+            if t_range is None:
+                t_range = ["1980-01-01", "2023-12-31"]
+            times = (
+                pd.date_range(start=t_range[0], end=t_range[-1], freq="1D")
+                .strftime("%Y-%m-%d %H:%M:%S")
+                .tolist()
+            )
+            variables = self.get_relevant_cols()
+            units_info = self._get_unit_json(gage_id_lst[0], region)
 
             def data_generator(basins, batch_size):
                 for i in range(0, len(basins), batch_size):
@@ -712,12 +793,24 @@ class Caravan(HydroDataset):
             for basin_batch in data_generator(gage_id_lst, batchsize):
                 # we make sure the basin ids are sorted
                 assert all(x <= y for x, y in zip(basin_batch, basin_batch[1:]))
-                datasets = [
-                    xr.open_dataset(path).assign_coords(gauge_id=name)
-                    for path, name in zip(file_paths, basin_batch)
-                ]
-                # Concatenate the datasets along the new dimension
-                combined_ds = xr.concat(datasets, dim="gauge_id").sortby("gauge_id")
+                data = self.read_timeseries(
+                    basin_ids=basin_batch,
+                    t_range_list=t_range,
+                )
+                dataset = xr.Dataset(
+                    data_vars={
+                        variables[i]: (
+                            ["basin", "time"],
+                            data[:, :, i],
+                            {"units": units_info[variables[i]]},
+                        )
+                        for i in range(len(variables))
+                    },
+                    coords={
+                        "basin": basin_batch,
+                        "time": pd.to_datetime(times),
+                    },
+                )
 
                 # Save the dataset to a NetCDF file for the current batch and time unit
                 prefix_ = "" if region is None else region + "_"
@@ -725,15 +818,11 @@ class Caravan(HydroDataset):
                     CACHE_DIR,
                     f"caravan_{prefix_}timeseries_batch_{basin_batch[0]}_{basin_batch[-1]}.nc",
                 )
-                combined_ds.to_netcdf(
-                    batch_file_path,
-                    mode="w",
-                    format="NETCDF4",
-                )
+                dataset.to_netcdf(batch_file_path)
 
                 # Release memory by deleting the dataset
-                del datasets
-                del combined_ds
+                del dataset
+                del data
 
     def _check_data(self, regions):
         pbar = tqdm(regions, desc="Start Checking Data...")
@@ -836,16 +925,16 @@ class Caravan(HydroDataset):
         combined_ds = xr.open_mfdataset(
             file_paths,
             combine="nested",
-            concat_dim="gauge_id",
+            concat_dim="basin",
             parallel=parallel,
         )
         # If relevant columns are specified, select them
         if var_lst:
             combined_ds = combined_ds[var_lst]
         if t_range:
-            combined_ds = combined_ds.sel(date=slice(*t_range))
+            combined_ds = combined_ds.sel(time=slice(*t_range))
         if gage_id_lst:
-            combined_ds = combined_ds.sel(gauge_id=gage_id_lst)
+            combined_ds = combined_ds.sel(basin=gage_id_lst)
 
         # some units are not recognized by pint_xarray, hence we manually set them
         unit_mapping = {"W/m2": "watt / meter ** 2", "m3/m3": "meter^3/meter^3"}
@@ -857,8 +946,6 @@ class Caravan(HydroDataset):
                 unit = unit_mapping.get(unit, unit)
                 combined_ds[var].attrs["units"] = unit
 
-        combined_ds = combined_ds.rename({"date": "time"})
-        combined_ds = combined_ds.rename({"gauge_id": "basin"})
         return combined_ds
 
     @property
