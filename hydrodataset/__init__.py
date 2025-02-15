@@ -83,5 +83,6 @@ MOPEX_REGIONS = ["CA"]
 REGIONS = CAMELS_REGIONS + LAMAH_REGIONS + MOPEX_REGIONS
 from .hydro_dataset import *
 from .camels import *
+from .camels_ch import *
 from .multi_datasets import *
 from .lamah import *

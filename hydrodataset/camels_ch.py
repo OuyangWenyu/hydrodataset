@@ -108,7 +108,7 @@ class CamelsCh(Camels):
             basic info of gages
         """
         camels_file = self.data_source_description["CAMELS_GAUGE_FILE"]
-        return pd.read_csv(camels_file,sep=",",dtype={"gauge_id": str})
+        return pd.read_csv(camels_file,sep=",",header=1,dtype={"gauge_id": str},skiprows=0)
 
     def get_constant_cols(self) -> np.ndarray:
         """
@@ -135,13 +135,13 @@ class CamelsCh(Camels):
         """
         return np.array(
             [
-                "waterlevel",
-                "precipitation",
-                "temperature_min",
-                "temperature_mean",
-                "temperature_max",
-                "rel_sun_dur",
-                "swe",
+                "waterlevel(m)",
+                "precipitation(mm/d)",
+                "temperature_min(degC)",
+                "temperature_mean(degC)",
+                "temperature_max(degC)",
+                "rel_sun_dur(%)",
+                "swe(mm)",
             ]
         )
 
@@ -156,6 +156,22 @@ class CamelsCh(Camels):
         """
         return np.array(["discharge_vol", "discharge_spec"])
 
+    def read_object_ids(self, **kwargs) -> np.ndarray:
+        """
+        read station ids
+
+        Parameters
+        ----------
+        **kwargs
+            optional params if needed
+
+        Returns
+        -------
+        np.array
+            gage/station ids
+        """
+        return self.sites["gauge_id"].values
+
     def read_ch_gage_flow_forcing(self, gage_id, t_range, var_type):
         """
         Read gage's streamflow or forcing from CAMELS-CH
@@ -167,8 +183,8 @@ class CamelsCh(Camels):
         t_range
             the time range, for example, ["1981-01-01","2020-12-31"]
         var_type
-            flow type: "discharge_vol", "discharge_spec"
-            forcing type: "waterlevel", "precipitation", "temperature_min", "temperature_mean", "temperature_max", "rel_sun_dur", "swe"
+            flow type: "discharge_vol(m3/s)", "discharge_spec(mm/d)"
+            forcing type: "waterlevel(m)", "precipitation(mm/d)", "temperature_min(degC)", "temperature_mean(degC)", "temperature_max(degC)", "rel_sun_dur(%)", "swe(mm)"
 
         Returns
         -------
@@ -182,7 +198,7 @@ class CamelsCh(Camels):
         )
         data_temp = pd.read_csv(gage_file, sep=",")
         obs = data_temp[var_type].values
-        if var_type in ["discharge_spec", "discharge_vol"]:
+        if var_type in ["discharge_vol(m3/s)", "discharge_spec(mm/d)"]:
             obs[obs < 0] = np.nan
         date = pd.to_datetime(data_temp["date"]).values.astype("datetime64[D]")
         return time_intersect_dynamic_data(obs, date, t_range)
@@ -208,7 +224,7 @@ class CamelsCh(Camels):
             the time range, for example, ["1981-01-01","2020-12-31"]
         target_cols
             the default is None, but we need at least one default target.
-            For CAMELS-CH, it's ["discharge_vol"]
+            For CAMELS-CH, it's ["discharge_vol(m3/s)"]
         kwargs
             some other params if needed
 
@@ -255,7 +271,7 @@ class CamelsCh(Camels):
         t_range
             the time range, for example, ["1981-01-01","2020-12-31"]
         var_lst
-            forcing variable types
+            forcing variable type: "waterlevel(m)", "precipitation(mm/d)", "temperature_min(degC)", "temperature_mean(degC)", "temperature_max(degC)", "rel_sun_dur(%)", "swe(mm)"
         forcing_type
             support for CAMELS-CH, there are two types: observation, simulation
         Returns
@@ -268,15 +284,19 @@ class CamelsCh(Camels):
         x = np.full([len(gage_id_lst), nt, len(var_lst)], np.nan)
         for j in tqdm(range(len(var_lst)), desc="Read forcing data of CAMELS-CH"):
             for k in tqdm(range(len(gage_id_lst))):
-                data_forcing = self.read_gb_gage_flow_forcing(
+                data_forcing = self.read_ch_gage_flow_forcing(
                     gage_id_lst[k], t_range, var_lst[j]
                 )
                 x[k, :, j] = data_forcing
         return x
 
     def read_attr_all(self):
+        """
+         Read Attributes data
+
+        """
         data_folder = self.data_source_description["CAMELS_ATTR_DIR"]
-        key_lst = self.data_source_description["CAMELS_ATTR_KEY_LST"]
+        key_lst = self.data_source_description["CAMELS_ATTR_KEY_LIST"]
         f_dict = {}
         var_dict = {}
         var_lst = []
@@ -289,7 +309,7 @@ class CamelsCh(Camels):
                 data_file = os.path.join(data_folder, camels_str + key + "_attributes_obs.csv")
             else:
                 data_file = os.path.join(data_folder, camels_str + key + "_attributes.csv")
-            data_temp = pd.read_csv(data_file, sep=sep_)
+            data_temp = pd.read_csv(data_file, sep=sep_,header=1,skiprows=0)
             var_lst_temp = list(data_temp.columns[1:])
             var_dict[key] = var_lst_temp
             var_lst.extend(var_lst_temp)
@@ -330,7 +350,7 @@ class CamelsCh(Camels):
             When we need to know what a factorized value represents, we need return a tuple;
             otherwise just return an array
         """
-        attr_all, var_lst_all, var_dict, f_dict = self.read_attr_all_in_one_file()
+        attr_all, var_lst_all, var_dict, f_dict = self.read_attr_all()
         ind_var = [var_lst_all.index(var) for var in var_lst]
         id_lst_all = self.read_object_ids()
         # Notice the sequence of station ids ! Some id_lst_all are not sorted, so don't use np.intersect1d
@@ -340,10 +360,7 @@ class CamelsCh(Camels):
         return (out, var_dict, f_dict) if is_return_dict else out
 
     def read_area(self, gage_id_lst) -> np.ndarray:
-        """
-        todo: 这里有问题，按这个读不出来面积。面积在流域分水线的shp文件属性表里面
-        """
-        return self.read_constant_cols(gage_id_lst, ["Shape_Area"], is_return_dict=False)
+        return self.read_constant_cols(gage_id_lst, ["area"], is_return_dict=False)
 
     def read_mean_prcp(self, gage_id_lst, unit="mm/d") -> xr.Dataset:
         """Read mean precipitation data
@@ -362,7 +379,7 @@ class CamelsCh(Camels):
         """
         data = self.read_constant_cols(
             gage_id_lst,
-            ["precipitation"],
+            ["p_mean"],
             is_return_dict=False,
         )
         if unit in ["mm/d", "mm/day"]:

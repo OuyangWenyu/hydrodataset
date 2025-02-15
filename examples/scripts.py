@@ -12,6 +12,7 @@ import os
 import numpy as np
 
 from hydrodataset import Camels
+from hydrodataset import CamelsCh
 
 camels_aus_path = os.path.join("camels", "camels_aus")
 camels_br_path = os.path.join("camels", "camels_br")
@@ -19,6 +20,7 @@ camels_cl_path = os.path.join("camels", "camels_cl")
 camels_gb_path = os.path.join("camels", "camels_gb")
 camels_us_path = os.path.join("camels", "camels_us")
 camels_aus_v2_path = os.path.join("camels", "camels_aus_v2")
+camels_ch_path = os.path.join("camels", "camels_ch")
 
 aus_v2_region = "AUS_v2"
 aus_region = "AUS"
@@ -26,6 +28,7 @@ br_region = "BR"
 cl_region = "CL"
 gb_region = "GB"
 us_region = "US"
+ch_region = "CH"
 
 # ------------------------------ US --------------------------------
 # if files is not zipped, set download=True to unzip the files
@@ -384,3 +387,31 @@ attr_types = camels_gb.get_constant_cols()
 np.testing.assert_array_equal(
     attr_types[:3], np.array(["p_mean", "pet_mean", "aridity"])
 )
+
+
+
+camelsch = CamelsCh()
+gage_ids = camelsch.read_object_ids()
+assert gage_ids.size == 331
+attrs = camelsch.read_constant_cols(
+    gage_ids[:5],["area","p_mean","crop_perc"]
+)
+print(attrs)
+forcings = camelsch.read_relevant_cols(
+        gage_ids[:5],
+        ["1981-01-01","2020-12-31"],
+        var_lst=["waterlevel(m)", "precipitation(mm/d)", "temperature_min(degC)", "temperature_mean(degC)", "temperature_max(degC)", "rel_sun_dur(%)", "swe(mm)"]
+    )
+print(forcings)
+streamflow = camelsch.read_target_cols(
+        gage_ids[:5],
+        ["1981-01-01","2020-12-31"],
+        target_cols=["discharge_vol(m3/s)", "discharge_spec(mm/d)"],
+    )
+print(streamflow)
+attrs_types = camelsch.read_constant_cols()
+print(attrs_types)
+forcing_types = camelsch.read_relevant_cols()
+print(forcing_types)
+streamflow_types = camelsch.read_target_cols()
+print(streamflow_types)
