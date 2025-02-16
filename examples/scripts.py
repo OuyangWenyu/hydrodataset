@@ -14,6 +14,7 @@ import numpy as np
 from hydrodataset import Camels
 from hydrodataset import CamelsCh
 from hydrodataset import CamelsDe
+from hydrodataset import CamelsDk
 
 camels_aus_path = os.path.join("camels", "camels_aus")
 camels_br_path = os.path.join("camels", "camels_br")
@@ -22,7 +23,8 @@ camels_gb_path = os.path.join("camels", "camels_gb")
 camels_us_path = os.path.join("camels", "camels_us")
 camels_aus_v2_path = os.path.join("camels", "camels_aus_v2")
 camels_ch_path = os.path.join("camels", "camels_ch")
-camels_ch_path = os.path.join("camels", "camels_de")
+camels_de_path = os.path.join("camels", "camels_de")
+camels_dk_path = os.path.join("camels", "camels_dk")
 
 aus_v2_region = "AUS_v2"
 aus_region = "AUS"
@@ -32,6 +34,7 @@ gb_region = "GB"
 us_region = "US"
 ch_region = "CH"
 de_region = "DE"
+dk_region = "DK"
 
 # ------------------------------ US --------------------------------
 # if files is not zipped, set download=True to unzip the files
@@ -448,4 +451,32 @@ print(attrs_types)
 forcing_types = camelsde.get_relevant_cols()
 print(forcing_types)
 streamflow_types = camelsde.get_target_cols()
+print(streamflow_types)
+
+
+
+camelsdk = CamelsDk()
+gage_ids = camelsdk.read_object_ids()
+assert gage_ids.size == 3333
+attrs = camelsdk.read_constant_cols(
+    gage_ids[:5], ["catch_area", "p_mean", "slope_median"]
+)
+print(attrs)
+forcings = camelsdk.read_relevant_cols(
+    gage_ids[:5],
+    ["1989-01-02", "2023-12-31"],
+    var_lst = ["precipitation","temperature","pet","DKM_dtp","DKM_eta","DKM_wcr","DKM_sdr","DKM_sre","DKM_gwh","Qdkm","DKM_irr","Abstraction"]
+)
+print(forcings)
+streamflow = camelsdk.read_target_cols(
+    gage_ids[:5],
+    ["1989-01-02", "2023-12-31"],
+    target_cols = ["Qobs"],
+)
+print(streamflow)
+attrs_types = camelsdk.get_constant_cols()
+print(attrs_types)
+forcing_types = camelsdk.get_relevant_cols()
+print(forcing_types)
+streamflow_types = camelsdk.get_target_cols()
 print(streamflow_types)
