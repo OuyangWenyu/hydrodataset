@@ -13,6 +13,7 @@ import numpy as np
 
 from hydrodataset import Camels
 from hydrodataset import CamelsCh
+from hydrodataset import CamelsDe
 
 camels_aus_path = os.path.join("camels", "camels_aus")
 camels_br_path = os.path.join("camels", "camels_br")
@@ -21,6 +22,7 @@ camels_gb_path = os.path.join("camels", "camels_gb")
 camels_us_path = os.path.join("camels", "camels_us")
 camels_aus_v2_path = os.path.join("camels", "camels_aus_v2")
 camels_ch_path = os.path.join("camels", "camels_ch")
+camels_ch_path = os.path.join("camels", "camels_de")
 
 aus_v2_region = "AUS_v2"
 aus_region = "AUS"
@@ -29,6 +31,7 @@ cl_region = "CL"
 gb_region = "GB"
 us_region = "US"
 ch_region = "CH"
+de_region = "DE"
 
 # ------------------------------ US --------------------------------
 # if files is not zipped, set download=True to unzip the files
@@ -409,9 +412,40 @@ streamflow = camelsch.read_target_cols(
         target_cols=["discharge_vol(m3/s)", "discharge_spec(mm/d)"],
     )
 print(streamflow)
-attrs_types = camelsch.read_constant_cols()
+attrs_types = camelsch.get_constant_cols()
 print(attrs_types)
-forcing_types = camelsch.read_relevant_cols()
+forcing_types = camelsch.get_relevant_cols()
 print(forcing_types)
-streamflow_types = camelsch.read_target_cols()
+streamflow_types = camelsch.get_target_cols()
+print(streamflow_types)
+
+
+
+
+
+camelsde = CamelsDe()
+gage_ids = camelsde.read_object_ids()
+assert gage_ids.size == 1555
+attrs = camelsde.read_constant_cols(
+    gage_ids[:5], ["area", "p_mean", "dams_num"]
+)
+print(attrs)
+forcings = camelsde.read_relevant_cols(
+    gage_ids[:5],
+    ["1951-01-01", "2020-12-31"],
+    var_lst = ["water_level", "precipitation_mean", "precipitation_min", "precipitation_median", "precipitation_max",
+           "precipitation_stdev", "humidity_mean", "humidity_min", "humidity_median"]
+)
+print(forcings)
+streamflow = camelsde.read_target_cols(
+    gage_ids[:5],
+    ["1951-01-01", "2020-12-31"],
+    target_cols = ["discharge_vol", "discharge_spec"],
+)
+print(streamflow)
+attrs_types = camelsde.get_constant_cols()
+print(attrs_types)
+forcing_types = camelsde.get_relevant_cols()
+print(forcing_types)
+streamflow_types = camelsde.get_target_cols()
 print(streamflow_types)

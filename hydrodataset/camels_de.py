@@ -16,15 +16,15 @@ CAMELS_NO_DATASET_ERROR_LOG = (
     + str(CAMELS_REGIONS)
 )
 
-class CamelsCh(Camels):
+class CamelsDe(Camels):
     def __init__(
         self,
-        data_path = os.path.join("camels","camels_ch"),
+        data_path = os.path.join("camels","camels_de"),
         download = False,
-        region: str = "CH",
+        region: str = "DE",
     ):
         """
-        Initialization for CAMELS-CH dataset
+        Initialization for CAMELS-DE dataset
 
         Parameters
         ----------
@@ -32,11 +32,11 @@ class CamelsCh(Camels):
             where we put the dataset.
             we already set the ROOT directory for hydrodataset,
             so here just set it as a relative path,
-            by default "camels/camels_ch"
+            by default "camels/camels_de"
         download
             if true, download, by default False
         region
-            the default is CAMELS-CH
+            the default is CAMELS-DE
         """
         super().__init__(data_path,download,region)
 
@@ -47,44 +47,40 @@ class CamelsCh(Camels):
         Returns
         -------
         collections.OrderedDict
-            the description for a CAMELS-CH dataset
+            the description for a CAMELS-DE dataset
         """
         camels_db = self.data_source_dir
 
-        if self.region == "CH":
-            return self._set_data_source_camelsch_describe(camels_db)
+        if self.region == "DE":
+            return self._set_data_source_camelsde_describe(camels_db)
         else:
             raise NotImplementedError(CAMELS_NO_DATASET_ERROR_LOG)
 
-    def _set_data_source_camelsch_describe(self, camels_db):
+    def _set_data_source_camelsde_describe(self, camels_db):
         # shp file of basins
         camels_shp_file = camels_db.joinpath(
-            "catchment_delineations",
-            "CAMELS_CH_sub_catchments.shp",
+            "CAMELS_DE_catchment_boundaries",
+            "catchments",
+            "CAMELS_DE_catchments.shp",
         )
         # flow and forcing data are in a same file
         flow_dir = camels_db.joinpath(
             "timeseries",
-            "observation_based",
         )
         forcing_dir = flow_dir
-        forcing_types = ["observation", "simulation"]
+        forcing_types = ["observation", "simulated"]
         # attr
-        attr_dir = camels_db.joinpath(
-            "static_attributes"
-        )
+        attr_dir = camels_db.joinpath()
         attr_key_lst = [
-            "climate",
-            "geology",
-            "glacier",
+            "climatic",
             "humaninfluence",
             "hydrogeology",
-            "hydrology",
+            "hydrologic",
             "landcover",
             "soil",
-            "topographic"
+            "topographic",
         ]
-        gauge_id_file = attr_dir.joinpath("CAMELS_CH_hydrology_attributes_obs.csv")
+        gauge_id_file = attr_dir.joinpath("CAMELS_DE_hydrologic_attributes.csv")
 
         return collections.OrderedDict(
             CAMELS_DIR = camels_db,
@@ -99,7 +95,7 @@ class CamelsCh(Camels):
 
     def read_site_info(self) -> pd.DataFrame:
         """
-        Read the basic information of gages in a CAMELS-CH dataset.
+        Read the basic information of gages in a CAMELS-DE dataset.
 
         Returns
         -------
@@ -107,11 +103,11 @@ class CamelsCh(Camels):
             basic info of gages
         """
         camels_file = self.data_source_description["CAMELS_GAUGE_FILE"]
-        return pd.read_csv(camels_file,sep=",",header=1,dtype={"gauge_id": str},skiprows=0)
+        return pd.read_csv(camels_file,sep=",",dtype={"gauge_id": str})
 
     def get_constant_cols(self) -> np.ndarray:
         """
-        all readable attrs in CAMELS-CH
+        all readable attrs in CAMELS-DE
 
         Returns
         -------
@@ -120,12 +116,12 @@ class CamelsCh(Camels):
         """
         data_folder = self.data_source_description["CAMELS_ATTR_DIR"]
         return self._get_constant_cols_some(
-            data_folder, "CAMELS_CH_","_attributes_obs.csv",","
+            data_folder, "CAMELS_DE_","_attributes.csv",","
         )
 
     def get_relevant_cols(self) -> np.ndarray:
         """
-        all readable forcing types in CAMELS-CH
+        all readable forcing types in CAMELS-DE
 
         Returns
         -------
@@ -134,19 +130,31 @@ class CamelsCh(Camels):
         """
         return np.array(
             [
-                "waterlevel(m)",
-                "precipitation(mm/d)",
-                "temperature_min(degC)",
-                "temperature_mean(degC)",
-                "temperature_max(degC)",
-                "rel_sun_dur(%)",
-                "swe(mm)",
+                "water_level",
+                "precipitation_mean",
+                "precipitation_min",
+                "precipitation_median",
+                "precipitation_max",
+                "precipitation_stdev",
+                "humidity_mean",
+                "humidity_min",
+                "humidity_median",
+                "humidity_max",
+                "humidity_stdev",
+                "radiation_global_mean",
+                "radiation_global_min",
+                "radiation_global_median",
+                "radiation_global_max",
+                "radiation_global_stdev",
+                "temperature_mean",
+                "temperature_min",
+                "temperature_max",
             ]
         )
 
     def get_target_cols(self) -> np.ndarray:
         """
-        For CAMELS-CH, the target vars are streamflows
+        For CAMELS-DE, the target vars are streamflows
 
         Returns
         -------
@@ -171,19 +179,22 @@ class CamelsCh(Camels):
         """
         return self.sites["gauge_id"].values
 
-    def read_ch_gage_flow_forcing(self, gage_id, t_range, var_type):
+    def read_de_gage_flow_forcing(self, gage_id, t_range, var_type):
         """
-        Read gage's streamflow or forcing from CAMELS-CH
+        Read gage's streamflow or forcing from CAMELS-DE
 
         Parameters
         ----------
         gage_id
             the station id
         t_range
-            the time range, for example, ["1981-01-01","2020-12-31"]
+            the time range, for example, ["1951-01-01", "2020-12-31"]
         var_type
-            flow type: "discharge_vol(m3/s)", "discharge_spec(mm/d)"
-            forcing type: "waterlevel(m)", "precipitation(mm/d)", "temperature_min(degC)", "temperature_mean(degC)", "temperature_max(degC)", "rel_sun_dur(%)", "swe(mm)"
+            flow type: "discharge_vol", "discharge_spec"
+            forcing type: "water_level", "precipitation_mean", "precipitation_min", "precipitation_median",
+            " precipitation_max", "precipitation_stdev", "humidity_mean", "humidity_min", " humidity_median",
+            "humidity_max", "humidity_stdev", "radiation_global_mean", " radiation_global_min", "radiation_global_median",
+            "radiation_global_max", " radiation_global_stdev", " temperature_mean", " temperature_min", " temperature_max"
 
         Returns
         -------
@@ -193,11 +204,11 @@ class CamelsCh(Camels):
         logging.debug("reading %s streamflow data", gage_id)
         gage_file = os.path.join(
             self.data_source_description["CAMELS_FLOW_DIR"],
-            "CAMELS_CH_obs_based_" + gage_id + ".csv",
+            "CAMELS_DE_hydromet_timeseries_" + gage_id + ".csv",
         )
         data_temp = pd.read_csv(gage_file, sep=",")
         obs = data_temp[var_type].values
-        if var_type in ["discharge_vol(m3/s)", "discharge_spec(mm/d)"]:
+        if var_type in ["discharge_vol", "discharge_spec"]:
             obs[obs < 0] = np.nan
         date = pd.to_datetime(data_temp["date"]).values.astype("datetime64[D]")
         return time_intersect_dynamic_data(obs, date, t_range)
@@ -210,7 +221,7 @@ class CamelsCh(Camels):
         **kwargs,
     ) -> np.ndarray:
         """
-        read target values. for CAMELS-CH, they are streamflows.
+        read target values. for CAMELS-DE, they are streamflows.
 
         default target_cols is an one-value list
         Notice, the unit of target outputs in different regions are not totally same
@@ -220,10 +231,10 @@ class CamelsCh(Camels):
         gage_id_lst
             station ids
         t_range
-            the time range, for example, ["1981-01-01","2020-12-31"]
+            the time range, for example, ["1951-01-01", "2020-12-31"]
         target_cols
             the default is None, but we need at least one default target.
-            For CAMELS-CH, it's ["discharge_vol(m3/s)"]
+            For CAMELS-DE, it's ["discharge_vol"]
         kwargs
             some other params if needed
 
@@ -240,10 +251,10 @@ class CamelsCh(Camels):
         nt = t_range_list.shape[0]
         y = np.full([len(gage_id_lst), nt, nf], np.nan)
         for j in tqdm(
-            range(len(target_cols)), desc="Read streamflow data of CAMELS-CH"
+            range(len(target_cols)), desc="Read streamflow data of CAMELS-DE"
         ):
             for k in tqdm(range(len(gage_id_lst))):
-                data_obs = self.read_ch_gage_flow_forcing(
+                data_obs = self.read_de_gage_flow_forcing(
                     gage_id_lst[k], t_range, target_cols[j]
                 )
                 y[k, :, j] = data_obs
@@ -268,11 +279,14 @@ class CamelsCh(Camels):
         gage_id_lst
             station ids
         t_range
-            the time range, for example, ["1981-01-01","2020-12-31"]
+            the time range, for example, ["1951-01-01", "2020-12-31"]
         var_lst
-            forcing variable type: "waterlevel(m)", "precipitation(mm/d)", "temperature_min(degC)", "temperature_mean(degC)", "temperature_max(degC)", "rel_sun_dur(%)", "swe(mm)"
+            forcing variable type: "water_level", "precipitation_mean", "precipitation_min", "precipitation_median",
+            "precipitation_max", "precipitation_stdev", "humidity_mean", "humidity_min", "humidity_median",
+            "humidity_max", "humidity_stdev", "radiation_global_mean", " radiation_global_min", "radiation_global_median",
+            "radiation_global_max", "radiation_global_stdev", "temperature_mean", "temperature_min", "temperature_max"
         forcing_type
-            support for CAMELS-CH, there are two types: observation, simulation
+            support for CAMELS-DE, there are two types: observation, simulated
         Returns
         -------
         np.array
@@ -281,9 +295,9 @@ class CamelsCh(Camels):
         t_range_list = hydro_time.t_range_days(t_range)
         nt = t_range_list.shape[0]
         x = np.full([len(gage_id_lst), nt, len(var_lst)], np.nan)
-        for j in tqdm(range(len(var_lst)), desc="Read forcing data of CAMELS-CH"):
+        for j in tqdm(range(len(var_lst)), desc="Read forcing data of CAMELS-DE"):
             for k in tqdm(range(len(gage_id_lst))):
-                data_forcing = self.read_ch_gage_flow_forcing(
+                data_forcing = self.read_de_gage_flow_forcing(
                     gage_id_lst[k], t_range, var_lst[j]
                 )
                 x[k, :, j] = data_forcing
@@ -301,14 +315,11 @@ class CamelsCh(Camels):
         var_lst = []
         out_lst = []
         gage_dict = self.sites
-        camels_str = "CAMELS_CH_"
+        camels_str = "CAMELS_DE_"
         sep_ = ","
         for key in key_lst:
-            if key in ["climate", "hydrology"]:
-                data_file = os.path.join(data_folder, camels_str + key + "_attributes_obs.csv")
-            else:
-                data_file = os.path.join(data_folder, camels_str + key + "_attributes.csv")
-            data_temp = pd.read_csv(data_file, sep=sep_,header=1,skiprows=0)
+            data_file = os.path.join(data_folder, camels_str + key + "_attributes.csv")
+            data_temp = pd.read_csv(data_file, sep=sep_)
             var_lst_temp = list(data_temp.columns[1:])
             var_dict[key] = var_lst_temp
             var_lst.extend(var_lst_temp)
@@ -341,7 +352,7 @@ class CamelsCh(Camels):
         var_lst
             attribute variable types
         is_return_dict
-            if true, return var_dict and f_dict for CAMELS_CH
+            if true, return var_dict and f_dict for CAMELS_DE
         Returns
         -------
         Union[tuple, np.array]
@@ -369,7 +380,7 @@ class CamelsCh(Camels):
         gage_id_lst : list
             station ids
         unit : str, optional
-            the unit of mean_prcp, by default "mm/d"
+            the unit of p_mean, by default "mm/d"
 
         Returns
         -------
