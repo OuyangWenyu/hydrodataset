@@ -15,6 +15,7 @@ from hydrodataset import Camels
 from hydrodataset import CamelsCh
 from hydrodataset import CamelsDe
 from hydrodataset import CamelsDk
+from hydrodataset import CamelsSe
 
 camels_aus_path = os.path.join("camels", "camels_aus")
 camels_br_path = os.path.join("camels", "camels_br")
@@ -25,6 +26,7 @@ camels_aus_v2_path = os.path.join("camels", "camels_aus_v2")
 camels_ch_path = os.path.join("camels", "camels_ch")
 camels_de_path = os.path.join("camels", "camels_de")
 camels_dk_path = os.path.join("camels", "camels_dk")
+camels_se_path = os.path.join("camels", "camels_se")
 
 aus_v2_region = "AUS_v2"
 aus_region = "AUS"
@@ -35,6 +37,7 @@ us_region = "US"
 ch_region = "CH"
 de_region = "DE"
 dk_region = "DK"
+dk_region = "SE"
 
 # ------------------------------ US --------------------------------
 # if files is not zipped, set download=True to unzip the files
@@ -406,7 +409,8 @@ print(attrs)
 forcings = camelsch.read_relevant_cols(
         gage_ids[:5],
         ["1981-01-01","2020-12-31"],
-        var_lst=["waterlevel(m)", "precipitation(mm/d)", "temperature_min(degC)", "temperature_mean(degC)", "temperature_max(degC)", "rel_sun_dur(%)", "swe(mm)"]
+        var_lst=["waterlevel(m)", "precipitation(mm/d)", "temperature_min(degC)",
+                 "temperature_mean(degC)", "temperature_max(degC)", "rel_sun_dur(%)", "swe(mm)"]
     )
 print(forcings)
 streamflow = camelsch.read_target_cols(
@@ -465,7 +469,8 @@ print(attrs)
 forcings = camelsdk.read_relevant_cols(
     gage_ids[:5],
     ["1989-01-02", "2023-12-31"],
-    var_lst = ["precipitation","temperature","pet","DKM_dtp","DKM_eta","DKM_wcr","DKM_sdr","DKM_sre","DKM_gwh","Qdkm","DKM_irr","Abstraction"]
+    var_lst = ["precipitation","temperature","pet","DKM_dtp","DKM_eta",
+               "DKM_wcr","DKM_sdr","DKM_sre","DKM_gwh","Qdkm","DKM_irr","Abstraction"]
 )
 print(forcings)
 streamflow = camelsdk.read_target_cols(
@@ -479,4 +484,33 @@ print(attrs_types)
 forcing_types = camelsdk.get_relevant_cols()
 print(forcing_types)
 streamflow_types = camelsdk.get_target_cols()
+print(streamflow_types)
+
+
+
+
+camelsse = CamelsSe()
+gage_ids = camelsse.read_object_ids()
+assert gage_ids.size == 50
+attrs = camelsse.read_constant_cols(
+    gage_ids[:5], ["Area_km2", "Pmean_mm_year", "Wetlands_percentage"]
+)
+print(attrs)
+forcings = camelsse.read_relevant_cols(
+    gage_ids[:5],
+    ["1961-01-01", "2020-12-31"],
+    var_lst = ["Pobs_mm", "Tobs_C"]
+)
+print(forcings)
+streamflow = camelsse.read_target_cols(
+    gage_ids[:5],
+    ["1961-01-01", "2020-12-31"],
+    target_cols = ["Qobs_m3s", "Qobs_mm"],
+)
+print(streamflow)
+attrs_types = camelsse.get_constant_cols()
+print(attrs_types)
+forcing_types = camelsse.get_relevant_cols()
+print(forcing_types)
+streamflow_types = camelsse.get_target_cols()
 print(streamflow_types)
