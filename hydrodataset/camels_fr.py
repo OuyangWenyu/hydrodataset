@@ -83,7 +83,8 @@ class CamelsFr(Camels):
             "soil_general",
             "soil_quantiles",
             # "station_general",  # metadata
-            "topography_general"
+            "topography_general",
+            "topography_quantiles",
         ]
         gauge_id_file = attr_dir.joinpath("CAMELS_FR_geology_attributes.csv")
 
@@ -107,7 +108,7 @@ class CamelsFr(Camels):
             basic info of gages
         """
         camels_file = self.data_source_description["CAMELS_GAUGE_FILE"]
-        return pd.read_csv(camels_file,sep=";",header=7,dtype={"sta_code_h3": str},skiprows=[0,1,2,3,4,5,6])
+        return pd.read_csv(camels_file,sep=";",dtype={"sta_code_h3": str})
 
     def get_constant_cols(self) -> np.ndarray:
         """
@@ -188,7 +189,7 @@ class CamelsFr(Camels):
         gage_id
             the station id
         t_range
-            the time range, for example, ["1970-01-01", "2021-12-31"]
+            the time range, for example, ["19700101", "20211231"]
         var_type
             flow type: "tsd_q_l", "tsd_q_mm"
             forcing type: "tsd_prec","tsd_prec_solid_frac","tsd_temp","tsd_pet_ou","tsd_pet_pe","tsd_pet_pm","tsd_wind",
@@ -204,11 +205,12 @@ class CamelsFr(Camels):
             self.data_source_description["CAMELS_FLOW_DIR"],
             "CAMELS_FR_tsd_" + gage_id + ".csv",
         )
-        data_temp = pd.read_csv(gage_file, sep=";",header=7,skiprows=[0,1,2,3,4,5,6])
+        # data_temp = pd.read_csv(gage_file, sep=";",header=7,skiprows=[0,1,2,3,4,5,6])
+        data_temp = pd.read_csv(gage_file, sep=";",header=7)  # todo: no need the "skiprows", compare with the camels_ch, why?
         obs = data_temp[var_type].values
         if var_type in ["tsd_q_l", "tsd_q_mm"]:
             obs[obs < 0] = np.nan
-        date = pd.to_datetime(data_temp["date"]).values.astype("datetime64[D]")
+        date = pd.to_datetime(data_temp["tsd_date"]).values.astype("datetime64[D]")
         return time_intersect_dynamic_data(obs, date, t_range)
 
     def read_target_cols(
@@ -229,7 +231,7 @@ class CamelsFr(Camels):
         gage_id_lst
             station ids
         t_range
-            the time range, for example, ["1970-01-01", "2021-12-31"]
+            the time range, for example, ["19700101", "20211231"]
         target_cols
             the default is None, but we need at least one default target.
             For CAMELS-FR, it's ["tsd_q_l"]
@@ -277,7 +279,7 @@ class CamelsFr(Camels):
         gage_id_lst
             station ids
         t_range
-            the time range, for example, ["1970-01-01", "2021-12-31"]
+            the time range, for example, ["19700101", "20211231"]
         var_lst
             forcing variable type: "tsd_prec","tsd_prec_solid_frac","tsd_temp","tsd_pet_ou","tsd_pet_pe","tsd_pet_pm","tsd_wind",
             "tsd_humid","tsd_rad_dli","tsd_rad_ssi","tsd_swi_gr","tsd_swi_isba","tsd_swe_isba","tsd_temp_min","tsd_temp_max"
@@ -334,6 +336,36 @@ class CamelsFr(Camels):
             out_lst.append(out_temp)
         out = np.concatenate(out_lst, 1)
         return out, var_lst, var_dict, f_dict
+
+    def read_constant_cols(
+        self, gage_id_lst=None, var_lst=None, is_return_dict=False, **kwargs
+    ) -> np.ndarray:
+        """
+        Read Attributes data
+
+        Parameters
+        ----------
+        gage_id_lst
+            station ids
+        var_lst
+            attribute variable types
+        is_return_dict
+            if true, return var_dict and f_dict for CAMELS_DE
+        Returns
+        -------
+        Union[tuple, np.array]
+            if attr var type is str, return factorized data.
+            When we need to know what a factorized value represents, we need return a tuple;
+            otherwise just return an array
+        """
+        attr_all, var_lst_all, var_dict, f_dict = self.read_attr_all()
+        ind_var = [var_lst_all.index(var) for var in var_lst]
+        id_lst_all = self.read_object_ids()
+        # Notice the sequence of station ids ! Some id_lst_all are not sorted, so don't use np.intersect1d
+        ind_grid = [id_lst_all.tolist().index(tmp) for tmp in gage_id_lst]
+        temp = attr_all[ind_grid, :]
+        out = temp[:, ind_var]
+        return (out, var_dict, f_dict) if is_return_dict else out
 
     def read_area(self, gage_id_lst) -> np.ndarray:
         return self.read_constant_cols(gage_id_lst, ["sit_area_hydro"], is_return_dict=False)

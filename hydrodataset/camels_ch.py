@@ -308,7 +308,7 @@ class CamelsCh(Camels):
                 data_file = os.path.join(data_folder, camels_str + key + "_attributes_obs.csv")
             else:
                 data_file = os.path.join(data_folder, camels_str + key + "_attributes.csv")
-            data_temp = pd.read_csv(data_file, sep=sep_,header=1,skiprows=0)
+            data_temp = pd.read_csv(data_file, sep=sep_,header=1,skiprows=0)  # need the "skiprows"
             var_lst_temp = list(data_temp.columns[1:])
             var_dict[key] = var_lst_temp
             var_lst.extend(var_lst_temp)
