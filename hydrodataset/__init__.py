@@ -76,7 +76,7 @@ CACHE_DIR = Path(hydro_file.get_cache_dir())
 
 # set some constants for datasets
 DATASETS = ["CAMELS", "Caravan", "GRDC", "HYSETS", "LamaH", "MOPEX"]
-CAMELS_REGIONS = ["AUS", "BR", "CH", "CL", "DE", "DK", "GB", "SE", "US", "AUS_v2"]
+CAMELS_REGIONS = ["AUS", "BR", "CH", "CL", "DE", "DK", "FR", "GB", "SE", "US", "AUS_v2"]
 LAMAH_REGIONS = ["CE"]
 # For CANOPEX, We don't treat it as a dataset, but a special case for MOPEX. We only have CANOPEX now.
 MOPEX_REGIONS = ["CA"]
@@ -86,6 +86,7 @@ from .camels import *
 from .camels_ch import *
 from .camels_de import *
 from .camels_dk import *
+from .camels_fr import *
 from .camels_se import *
 from .multi_datasets import *
 from .lamah import *

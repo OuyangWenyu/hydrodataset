@@ -1,0 +1,373 @@
+import os
+import logging
+import collections
+import pandas as pd
+import numpy as np
+from typing import Union
+from tqdm import tqdm
+import xarray as xr
+from hydroutils import hydro_time, hydro_file
+from hydrodataset import HydroDataset, CACHE_DIR, CAMELS_REGIONS
+from hydrodataset.camels import Camels, time_intersect_dynamic_data
+from pandas.api.types import is_string_dtype, is_numeric_dtype
+
+CAMELS_NO_DATASET_ERROR_LOG = (
+    "We cannot read this dataset now. Please check if you choose correctly:\n"
+    + str(CAMELS_REGIONS)
+)
+
+class CamelsFr(Camels):
+    def __init__(
+        self,
+        data_path = os.path.join("camels","camels_fr"),
+        download = False,
+        region: str = "FR",
+    ):
+        """
+        Initialization for CAMELS-FR dataset
+
+        Parameters
+        ----------
+        data_path
+            where we put the dataset.
+            we already set the ROOT directory for hydrodataset,
+            so here just set it as a relative path,
+            by default "camels/camels_fr"
+        download
+            if true, download, by default False
+        region
+            the default is CAMELS-FR
+        """
+        super().__init__(data_path,download,region)
+
+    def set_data_source_describe(self) -> collections.OrderedDict:
+        """
+        the files in the dataset and their location in file system
+
+        Returns
+        -------
+        collections.OrderedDict
+            the description for a CAMELS-FR dataset
+        """
+        camels_db = self.data_source_dir
+
+        if self.region == "FR":
+            return self._set_data_source_camelsfr_describe(camels_db)
+        else:
+            raise NotImplementedError(CAMELS_NO_DATASET_ERROR_LOG)
+
+    def _set_data_source_camelsfr_describe(self, camels_db):
+        # shp file of basins
+        camels_shp_file = camels_db.joinpath(
+            "CAMELS_FR_geography",
+            "CAMELS_FR_catchment_boundaries.gpkg", # todo: fr gives a gis database file, maybe a manually transform is need.
+        )
+        # flow and forcing data are in a same file
+        flow_dir = camels_db.joinpath(
+            "CAMELS_FR_time_series",
+            "daily",
+        )
+        forcing_dir = flow_dir
+        # attr  todo: there are two attribution folders, how to deal with it?
+        attr_dir = camels_db.joinpath(
+            "CAMELS_FR_attributes",
+            "static_attributes",
+            # "time_series_statistics"
+        )
+        attr_key_lst = [
+            "geology",
+            "human_influences_dams",
+            "hydrogeology",
+            "land_cover",
+            # "site_general",   # metadata
+            "soil_general",
+            "soil_quantiles",
+            # "station_general",  # metadata
+            "topography_general"
+        ]
+        gauge_id_file = attr_dir.joinpath("CAMELS_FR_geology_attributes.csv")
+
+        return collections.OrderedDict(
+            CAMELS_DIR = camels_db,
+            CAMELS_FLOW_DIR = flow_dir,
+            CAMELS_FORCING_DIR = forcing_dir,
+            CAMELS_ATTR_DIR = attr_dir,
+            CAMELS_ATTR_KEY_LST = attr_key_lst,
+            CAMELS_GAUGE_FILE = gauge_id_file,
+            CAMELS_BASINS_SHP = camels_shp_file,
+        )
+
+    def read_site_info(self) -> pd.DataFrame:
+        """
+        Read the basic information of gages in a CAMELS-FR dataset.
+
+        Returns
+        -------
+        pd.DataFrame
+            basic info of gages
+        """
+        camels_file = self.data_source_description["CAMELS_GAUGE_FILE"]
+        return pd.read_csv(camels_file,sep=";",header=7,dtype={"sta_code_h3": str},skiprows=[0,1,2,3,4,5,6])
+
+    def get_constant_cols(self) -> np.ndarray:
+        """
+        all readable attrs in CAMELS-FR
+
+        Returns
+        -------
+        np.ndarray
+            attribute types
+        """
+        data_folder = self.data_source_description["CAMELS_ATTR_DIR"]
+        return self._get_constant_cols_some(
+            data_folder, "CAMELS_FR_","_attributes.csv",";"
+        )
+
+    def get_relevant_cols(self) -> np.ndarray:
+        """
+        all readable forcing types in CAMELS-FR
+
+        Returns
+        -------
+        np.ndarray
+            forcing types
+        """
+        return np.array(
+            [
+                "tsd_prec",
+                "tsd_prec_solid_frac",
+                "tsd_temp",
+                "tsd_pet_ou",
+                "tsd_pet_pe",
+                "tsd_pet_pm",
+                "tsd_wind",
+                "tsd_humid",
+                "tsd_rad_dli",
+                "tsd_rad_ssi",
+                "tsd_swi_gr",
+                "tsd_swi_isba",
+                "tsd_swe_isba",
+                "tsd_temp_min",
+                "tsd_temp_max",
+            ]
+        )
+
+    def get_target_cols(self) -> np.ndarray:
+        """
+        For CAMELS-FR, the target vars are streamflows
+
+        Returns
+        -------
+        np.ndarray
+            streamflow types
+        """
+        return np.array(["tsd_q_l", "tsd_q_mm"])
+
+    def read_object_ids(self, **kwargs) -> np.ndarray:
+        """
+        read station ids
+
+        Parameters
+        ----------
+        **kwargs
+            optional params if needed
+
+        Returns
+        -------
+        np.array
+            gage/station ids
+        """
+        return self.sites["sta_code_h3"].values
+
+    def read_fr_gage_flow_forcing(self, gage_id, t_range, var_type):
+        """
+        Read gage's streamflow or forcing from CAMELS-FR
+
+        Parameters
+        ----------
+        gage_id
+            the station id
+        t_range
+            the time range, for example, ["1970-01-01", "2021-12-31"]
+        var_type
+            flow type: "tsd_q_l", "tsd_q_mm"
+            forcing type: "tsd_prec","tsd_prec_solid_frac","tsd_temp","tsd_pet_ou","tsd_pet_pe","tsd_pet_pm","tsd_wind",
+            "tsd_humid","tsd_rad_dli","tsd_rad_ssi","tsd_swi_gr","tsd_swi_isba","tsd_swe_isba","tsd_temp_min","tsd_temp_max"
+
+        Returns
+        -------
+        np.array
+            streamflow or forcing data of one station for a given time range
+        """
+        logging.debug("reading %s streamflow data", gage_id)
+        gage_file = os.path.join(
+            self.data_source_description["CAMELS_FLOW_DIR"],
+            "CAMELS_FR_tsd_" + gage_id + ".csv",
+        )
+        data_temp = pd.read_csv(gage_file, sep=";",header=7,skiprows=[0,1,2,3,4,5,6])
+        obs = data_temp[var_type].values
+        if var_type in ["tsd_q_l", "tsd_q_mm"]:
+            obs[obs < 0] = np.nan
+        date = pd.to_datetime(data_temp["date"]).values.astype("datetime64[D]")
+        return time_intersect_dynamic_data(obs, date, t_range)
+
+    def read_target_cols(
+        self,
+        gage_id_lst: Union[list, np.array] = None,
+        t_range: list = None,
+        target_cols: Union[list, np.array] = None,
+        **kwargs,
+    ) -> np.ndarray:
+        """
+        read target values. for CAMELS-FR, they are streamflows.
+
+        default target_cols is an one-value list
+        Notice, the unit of target outputs in different regions are not totally same
+
+        Parameters
+        ----------
+        gage_id_lst
+            station ids
+        t_range
+            the time range, for example, ["1970-01-01", "2021-12-31"]
+        target_cols
+            the default is None, but we need at least one default target.
+            For CAMELS-FR, it's ["tsd_q_l"]
+        kwargs
+            some other params if needed
+
+        Returns
+        -------
+        np.array
+            streamflow data, 3-dim [station, time, streamflow]
+        """
+        if target_cols is None:
+            return np.array([])
+        else:
+            nf = len(target_cols)
+        t_range_list = hydro_time.t_range_days(t_range)
+        nt = t_range_list.shape[0]
+        y = np.full([len(gage_id_lst), nt, nf], np.nan)
+        for j in tqdm(
+            range(len(target_cols)), desc="Read streamflow data of CAMELS-FR"
+        ):
+            for k in tqdm(range(len(gage_id_lst))):
+                data_obs = self.read_fr_gage_flow_forcing(
+                    gage_id_lst[k], t_range, target_cols[j]
+                )
+                y[k, :, j] = data_obs
+        # Keep unit of streamflow unified: we use ft3/s here
+        # other units are m3/s -> ft3/s
+        y = y * 35.314666721489
+        return y
+
+    def read_relevant_cols(
+        self,
+        gage_id_lst: list = None,
+        t_range: list = None,
+        var_lst: list = None,
+        forcing_type="nan",
+        **kwargs,
+    ) -> np.ndarray:
+        """
+        Read forcing data
+
+        Parameters
+        ----------
+        gage_id_lst
+            station ids
+        t_range
+            the time range, for example, ["1970-01-01", "2021-12-31"]
+        var_lst
+            forcing variable type: "tsd_prec","tsd_prec_solid_frac","tsd_temp","tsd_pet_ou","tsd_pet_pe","tsd_pet_pm","tsd_wind",
+            "tsd_humid","tsd_rad_dli","tsd_rad_ssi","tsd_swi_gr","tsd_swi_isba","tsd_swe_isba","tsd_temp_min","tsd_temp_max"
+        forcing_type
+            support for CAMELS-FR, there are ** types:
+        Returns
+        -------
+        np.array
+            forcing data
+        """
+        t_range_list = hydro_time.t_range_days(t_range)
+        nt = t_range_list.shape[0]
+        x = np.full([len(gage_id_lst), nt, len(var_lst)], np.nan)
+        for j in tqdm(range(len(var_lst)), desc="Read forcing data of CAMELS-FR"):
+            for k in tqdm(range(len(gage_id_lst))):
+                data_forcing = self.read_fr_gage_flow_forcing(
+                    gage_id_lst[k], t_range, var_lst[j]
+                )
+                x[k, :, j] = data_forcing
+        return x
+
+    def read_attr_all(self):
+        """
+         Read Attributes data
+
+        """
+        data_folder = self.data_source_description["CAMELS_ATTR_DIR"]
+        key_lst = self.data_source_description["CAMELS_ATTR_KEY_LST"]
+        f_dict = {}
+        var_dict = {}
+        var_lst = []
+        out_lst = []
+        gage_dict = self.sites
+        camels_str = "CAMELS_FR_"
+        sep_ = ";"
+        for key in key_lst:
+            data_file = os.path.join(data_folder, camels_str + key + "_attributes.csv")
+            data_temp = pd.read_csv(data_file, sep=sep_)
+            var_lst_temp = list(data_temp.columns[1:])
+            var_dict[key] = var_lst_temp
+            var_lst.extend(var_lst_temp)
+            k = 0
+            gage_id_key = "sta_code_h3"
+            n_gage = len(gage_dict[gage_id_key].values)
+            out_temp = np.full([n_gage, len(var_lst_temp)], np.nan)
+            for field in var_lst_temp:
+                if is_string_dtype(data_temp[field]):
+                    value, ref = pd.factorize(data_temp[field], sort=True)
+                    out_temp[:, k] = value
+                    f_dict[field] = ref.tolist()
+                elif is_numeric_dtype(data_temp[field]):
+                    out_temp[:, k] = data_temp[field].values
+                k = k + 1
+            out_lst.append(out_temp)
+        out = np.concatenate(out_lst, 1)
+        return out, var_lst, var_dict, f_dict
+
+    def read_area(self, gage_id_lst) -> np.ndarray:
+        return self.read_constant_cols(gage_id_lst, ["sit_area_hydro"], is_return_dict=False)
+
+    def read_mean_prcp(self, gage_id_lst, unit="mm/d") -> xr.Dataset:
+        """Read mean precipitation data
+
+        Parameters
+        ----------
+        gage_id_lst : list
+            station ids
+        unit : str, optional
+            the unit of cli_prec_mean, by default "mm/d"
+
+        Returns
+        -------
+        xr.Dataset
+            mean precipitation data
+        """
+        data = self.read_constant_cols(
+            gage_id_lst,
+            ["cli_prec_mean"],
+            is_return_dict=False,
+        )
+        if unit in ["mm/d", "mm/day"]:
+            converted_data = data
+        elif unit in ["mm/h", "mm/hour"]:
+            converted_data = data / 24
+        elif unit in ["mm/3h", "mm/3hour"]:
+            converted_data = data / 8
+        elif unit in ["mm/8d", "mm/8day"]:
+            converted_data = data * 8
+        else:
+            raise ValueError(
+                "unit must be one of ['mm/d', 'mm/day', 'mm/h', 'mm/hour', 'mm/3h', 'mm/3hour', 'mm/8d', 'mm/8day']"
+            )
+        return converted_data

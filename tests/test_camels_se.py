@@ -14,7 +14,7 @@ def test_read_forcing():
 def test_read_streamflow():
     camelsse = CamelsSe()
     gage_ids = camelsse.read_object_ids()
-    streamflow = camelsse.read_target_cols(
+    streamflow = camelsse.read_target_cols(     # todo: do not pass the test
         gage_ids[:5],
         ["1961-01-01", "2020-12-31"],
 		target_cols = ["Qobs_m3s", "Qobs_mm"],
