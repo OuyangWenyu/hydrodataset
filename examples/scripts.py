@@ -16,6 +16,7 @@ from hydrodataset import CamelsCh
 from hydrodataset import CamelsDe
 from hydrodataset import CamelsDk
 from hydrodataset import CamelsSe
+from hydrodataset import CamelsFr
 
 camels_aus_path = os.path.join("camels", "camels_aus")
 camels_br_path = os.path.join("camels", "camels_br")
@@ -27,6 +28,7 @@ camels_ch_path = os.path.join("camels", "camels_ch")
 camels_de_path = os.path.join("camels", "camels_de")
 camels_dk_path = os.path.join("camels", "camels_dk")
 camels_se_path = os.path.join("camels", "camels_se")
+camels_fr_path = os.path.join("camels", "camels_fr")
 
 aus_v2_region = "AUS_v2"
 aus_region = "AUS"
@@ -37,7 +39,8 @@ us_region = "US"
 ch_region = "CH"
 de_region = "DE"
 dk_region = "DK"
-dk_region = "SE"
+SE_region = "SE"
+FR_region = "FR"
 
 # ------------------------------ US --------------------------------
 # if files is not zipped, set download=True to unzip the files
@@ -513,4 +516,39 @@ print(attrs_types)
 forcing_types = camelsse.get_relevant_cols()
 print(forcing_types)
 streamflow_types = camelsse.get_target_cols()
+print(streamflow_types)
+
+
+
+
+
+# todo: the test failed
+camelsfr = CamelsFr()
+gage_ids = camelsfr.read_object_ids()
+assert gage_ids.size == 654
+attrs = camelsfr.read_constant_cols(
+    gage_ids[:5], ["sit_area_hydro", "sol_sand", "hgl_thm_bedrock"]
+)
+print(attrs)
+forcings = camelsfr.read_relevant_cols(
+    gage_ids[:5],
+	# ["1970-01-01", "2021-12-31"],
+    ["19700101", "20211231"],       # todo: the test failed, for the date formate
+	var_lst = ["tsd_prec","tsd_prec_solid_frac","tsd_temp","tsd_pet_ou","tsd_pet_pe","tsd_pet_pm","tsd_wind",
+               "tsd_humid","tsd_rad_dli","tsd_rad_ssi","tsd_swi_gr","tsd_swi_isba","tsd_swe_isba","tsd_temp_min",
+               "tsd_temp_max"]
+)
+print(forcings)
+streamflow = camelsfr.read_target_cols(
+    gage_ids[:5],
+    ["1970-01-01", "2021-12-31"],    # todo: the test failed, for the date formate
+    # ["19700101", "20211231"],
+	target_cols = ["tsd_q_l", "tsd_q_mm"],
+)
+print(streamflow)
+attrs_types = camelsfr.get_constant_cols()
+print(attrs_types)
+forcing_types = camelsfr.get_relevant_cols()
+print(forcing_types)
+streamflow_types = camelsfr.get_target_cols()
 print(streamflow_types)
