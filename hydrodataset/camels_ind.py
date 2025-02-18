@@ -76,7 +76,10 @@ class CamelsInd(Camels):
         )
         forcing_types = ["observation"]
         # attr
-        attr_dir = camels_db.joinpath()
+        attr_dir = camels_db.joinpath(
+            "CAMELS_IND_All_Catchments",
+            "attributes_csv",
+        )
         attr_key_lst = [
             "anth",
             "clim",
@@ -84,6 +87,7 @@ class CamelsInd(Camels):
             "hydro",
             "land",
             # "name",  # gauge metadata
+            "soil",
             "topo",
         ]
         gauge_id_file = attr_dir.joinpath("camels_ind_clim.csv")
@@ -194,12 +198,12 @@ class CamelsInd(Camels):
         gage_id
             the station id
         t_range
-            the time range, for example, ["1980-01-01", "2020-12-31"]
+            the time range, for example, ["1980-01-01", "2020-12-31"]   todo: a problem for date format, ["1980,1,1", "2020,12,31"]
         var_type
             flow type: "discharge_vol", "discharge_spec"
             forcing type: "prcp(mm/day)", "tmax(C)", "tmin(C)", "tavg(C)", "srad_lw(w/m2)", "srad_sw(w/m2)", "wind_u(m/s)",
             "wind_v(m/s)", "wind(m/s)", "rel_hum(%)", "pet(mm/day)", "pet_gleam(mm/day)", "aet_gleam(mm/day)", "evap_canopy(kg/m2/s)",
-            "evap_surface(kg/m2/s)", "sm_lvl1(kg/m2)", "sm_lvl2(kg/m2)", "sm_lvl3(kg/m2)", "sm_lvl4(kg/m2)",
+            "evap_surface(kg/m2/s)", "sm_lvl1(kg/m2)", "sm_lvl2(kg/m2)", "sm_lvl3(kg/m2)", "sm_lvl4(kg/m2)"
 
         Returns
         -------
@@ -208,14 +212,14 @@ class CamelsInd(Camels):
         """
         logging.debug("reading %s streamflow data", gage_id)
         gage_file = os.path.join(
-            self.data_source_description["CAMELS_FLOW_DIR"],
+            self.data_source_description["CAMELS_FORCING_DIR"],
             gage_id + ".csv",
         )
         data_temp = pd.read_csv(gage_file, sep=",")
         obs = data_temp[var_type].values
         if var_type in ["discharge_vol"]: # todo: streamflow separate with forcing
             obs[obs < 0] = np.nan
-        date = pd.to_datetime(data_temp["date"]).values.astype("datetime64[D]")
+        date = pd.to_datetime(data_temp["date"]).values.astype("datetime64[D]")  #
         return time_intersect_dynamic_data(obs, date, t_range)
 
     def read_target_cols(
@@ -288,7 +292,7 @@ class CamelsInd(Camels):
         var_lst
             forcing variable type: "prcp(mm/day)", "tmax(C)", "tmin(C)", "tavg(C)", "srad_lw(w/m2)", "srad_sw(w/m2)", "wind_u(m/s)",
             "wind_v(m/s)", "wind(m/s)", "rel_hum(%)", "pet(mm/day)", "pet_gleam(mm/day)", "aet_gleam(mm/day)", "evap_canopy(kg/m2/s)",
-            "evap_surface(kg/m2/s)", "sm_lvl1(kg/m2)", "sm_lvl2(kg/m2)", "sm_lvl3(kg/m2)", "sm_lvl4(kg/m2)",
+            "evap_surface(kg/m2/s)", "sm_lvl1(kg/m2)", "sm_lvl2(kg/m2)", "sm_lvl3(kg/m2)", "sm_lvl4(kg/m2)"
         forcing_type
             support for CAMELS-IND, there are two types: observation, simulated
         Returns
@@ -319,7 +323,7 @@ class CamelsInd(Camels):
         var_lst = []
         out_lst = []
         gage_dict = self.sites
-        camels_str = "camels_ind"
+        camels_str = "camels_ind_"
         sep_ = ","
         for key in key_lst:
             data_file = os.path.join(data_folder, camels_str + key + ".csv")
@@ -356,7 +360,7 @@ class CamelsInd(Camels):
         var_lst
             attribute variable types
         is_return_dict
-            if true, return var_dict and f_dict for CAMELS_DE
+            if true, return var_dict and f_dict for CAMELS-IND
         Returns
         -------
         Union[tuple, np.array]
@@ -374,7 +378,7 @@ class CamelsInd(Camels):
         return (out, var_dict, f_dict) if is_return_dict else out
 
     def read_area(self, gage_id_lst) -> np.ndarray:
-        return self.read_constant_cols(gage_id_lst, ["area"], is_return_dict=False)
+        return self.read_constant_cols(gage_id_lst, ["cwc_area"], is_return_dict=False)
 
     def read_mean_prcp(self, gage_id_lst, unit="mm/d") -> xr.Dataset:
         """Read mean precipitation data

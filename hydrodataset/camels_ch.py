@@ -341,7 +341,7 @@ class CamelsCh(Camels):
         var_lst
             attribute variable types
         is_return_dict
-            if true, return var_dict and f_dict for CAMELS_CH
+            if true, return var_dict and f_dict for CAMELS-CH
         Returns
         -------
         Union[tuple, np.array]

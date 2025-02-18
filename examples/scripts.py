@@ -17,6 +17,7 @@ from hydrodataset import CamelsDe
 from hydrodataset import CamelsDk
 from hydrodataset import CamelsSe
 from hydrodataset import CamelsFr
+from hydrodataset import CamelsInd
 
 camels_aus_path = os.path.join("camels", "camels_aus")
 camels_br_path = os.path.join("camels", "camels_br")
@@ -29,6 +30,7 @@ camels_de_path = os.path.join("camels", "camels_de")
 camels_dk_path = os.path.join("camels", "camels_dk")
 camels_se_path = os.path.join("camels", "camels_se")
 camels_fr_path = os.path.join("camels", "camels_fr")
+camels_ind_path = os.path.join("camels", "camels_ind")
 
 aus_v2_region = "AUS_v2"
 aus_region = "AUS"
@@ -41,6 +43,7 @@ de_region = "DE"
 dk_region = "DK"
 SE_region = "SE"
 FR_region = "FR"
+Ind_region = "IND"
 
 # ------------------------------ US --------------------------------
 # if files is not zipped, set download=True to unzip the files
@@ -521,7 +524,6 @@ print(streamflow_types)
 
 
 
-
 # todo: the test failed
 camelsfr = CamelsFr()
 gage_ids = camelsfr.read_object_ids()
@@ -551,4 +553,38 @@ print(attrs_types)
 forcing_types = camelsfr.get_relevant_cols()
 print(forcing_types)
 streamflow_types = camelsfr.get_target_cols()
+print(streamflow_types)
+
+
+
+
+# todo: the test failed
+camelsind = CamelsInd()
+gage_ids = camelsind.read_object_ids()
+assert gage_ids.size == 472
+attrs = camelsind.read_constant_cols(
+    gage_ids[:5], ["cwc_area","p_mean","soil_conductivity_top"]
+)
+print(attrs)
+forcings = camelsind.read_relevant_cols(
+    gage_ids[:5],
+	["1980-01-01", "2020-12-31"],
+        # ["1980,1,1", "2020,12,31"],        # todo: the test failed, for the date formate
+        var_lst=["prcp(mm/day)", "tmax(C)", "tmin(C)", "tavg(C)", "srad_lw(w/m2)", "srad_sw(w/m2)", "wind_u(m/s)",
+            "wind_v(m/s)", "wind(m/s)", "rel_hum(%)", "pet(mm/day)", "pet_gleam(mm/day)", "aet_gleam(mm/day)", "evap_canopy(kg/m2/s)",
+            "evap_surface(kg/m2/s)", "sm_lvl1(kg/m2)", "sm_lvl2(kg/m2)", "sm_lvl3(kg/m2)", "sm_lvl4(kg/m2)"]
+)
+print(forcings)
+streamflow = camelsind.read_target_cols(
+    gage_ids[:5],
+    ["1980-01-01", "2020-12-31"],
+        # ["1980,1,1", "2020,12,31"],
+        target_cols=["discharge_vol(m3/s)"],   # todo: the test failed, for the separation of streamflow and forcing data
+)
+print(streamflow)
+attrs_types = camelsind.get_constant_cols()
+print(attrs_types)
+forcing_types = camelsind.get_relevant_cols()
+print(forcing_types)
+streamflow_types = camelsind.get_target_cols()
 print(streamflow_types)
