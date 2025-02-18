@@ -68,6 +68,7 @@ class CamelsInd(Camels):
         flow_dir = camels_db.joinpath(
             "CAMELS_IND_All_Catchments",
             "streamflow_timeseries",
+            "streamflow_observed.csv",
         )
         # forcing
         forcing_dir = camels_db.joinpath(
@@ -171,7 +172,7 @@ class CamelsInd(Camels):
         np.ndarray
             streamflow types
         """
-        return np.array(["discharge_vol"])  # todo: streamflow separate with forcing
+        return np.array(["streamflow_observed"])  # todo: streamflow separate with forcing
 
     def read_object_ids(self, **kwargs) -> np.ndarray:
         """
@@ -217,12 +218,12 @@ class CamelsInd(Camels):
         )
         data_temp = pd.read_csv(gage_file, sep=",")
         obs = data_temp[var_type].values
-        if var_type in ["discharge_vol"]: # todo: streamflow separate with forcing
+        if var_type in ["streamflow_observed"]: # todo: streamflow separate with forcing
             obs[obs < 0] = np.nan
         date = pd.to_datetime(data_temp["date"]).values.astype("datetime64[D]")  #
         return time_intersect_dynamic_data(obs, date, t_range)
 
-    def read_target_cols(
+    def read_target_cols(       # todo: streamflow separate with forcing
         self,
         gage_id_lst: Union[list, np.array] = None,
         t_range: list = None,
@@ -259,14 +260,30 @@ class CamelsInd(Camels):
         t_range_list = hydro_time.t_range_days(t_range)
         nt = t_range_list.shape[0]
         y = np.full([len(gage_id_lst), nt, nf], np.nan)
-        for j in tqdm(
+        for k in tqdm(
             range(len(target_cols)), desc="Read streamflow data of CAMELS-IND"
         ):
-            for k in tqdm(range(len(gage_id_lst))):
-                data_obs = self.read_ind_gage_flow_forcing(
-                    gage_id_lst[k], t_range, target_cols[j]
+            if target_cols[k] == "streamflow_observed":
+                flow_data = pd.read_csv(
+                    os.path.join(
+                        self.data_source_description["CAMELS_FLOW_DIR"]
+                    ),
+                    sep=",",
+                    index_col=0,
                 )
-                y[k, :, j] = data_obs
+            else:
+                raise NotImplementedError(CAMELS_NO_DATASET_ERROR_LOG)
+            date = pd.to_datetime(flow_data.index.values).values.astype("datetime64[D]")
+            [c, ind1, ind2] = np.intersect1d(date, t_range_list, return_indices=True)
+            station_ids = [id_.zfill(8) for id_ in flow_data.columns.values]
+            assert all(x < y for x, y in zip(station_ids, station_ids[1:]))
+            ind3 = [station_ids.index(tmp) for tmp in gage_id_lst]
+            # to guarantee the sequence is not changed we don't use np.intersect1d
+            chosen_data = flow_data.iloc[ind1, ind3].replace("\s+", np.nan, regex=True)
+            chosen_data = chosen_data.astype(float)
+            chosen_data[chosen_data < 0] = np.nan
+            y[:, ind2, k] = chosen_data.values.T
+
         # Keep unit of streamflow unified: we use ft3/s here
         # other units are m3/s -> ft3/s
         y = y * 35.314666721489
