@@ -18,8 +18,7 @@ def test_read_streamflow():
     gage_ids = camelsfr.read_object_ids()
     streamflow = camelsfr.read_target_cols(
         gage_ids[:5],
-        ["1970-01-01", "2021-12-31"],    # todo: the test failed, for the date formate
-        # ["19700101", "20211231"],
+        ["1970-01-01", "2021-12-31"],
 		target_cols = ["tsd_q_l", "tsd_q_mm"],
     )
     print(streamflow)

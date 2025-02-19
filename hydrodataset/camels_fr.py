@@ -208,9 +208,8 @@ class CamelsFr(Camels):
         # data_temp = pd.read_csv(gage_file, sep=";",header=7,skiprows=[0,1,2,3,4,5,6])
         data_temp = pd.read_csv(gage_file, sep=";",header=7)  # todo: no need the "skiprows", compare with the camels_ch, why?
         obs = data_temp[var_type].values
-        if var_type in ["tsd_q_l", "tsd_q_mm"]:
-            obs[obs < 0] = np.nan
-        # date = pd.to_datetime(data_temp["tsd_date"]).values.astype("datetime64[D]")
+        # if var_type in ["tsd_q_l", "tsd_q_mm"]:
+        #     obs[obs < 0] = np.nan
         date = pd.to_datetime(pd.Series(data_temp["tsd_date"]),format="%Y%m%d").dt.strftime("%Y-%m-%d").values.astype("datetime64[D]")
         return time_intersect_dynamic_data(obs, date, t_range)
 
@@ -329,7 +328,7 @@ class CamelsFr(Camels):
             for field in var_lst_temp:
                 if is_string_dtype(data_temp[field]):
                     value, ref = pd.factorize(data_temp[field], sort=True)
-                    out_temp[:, k] = value
+                    out_temp[:, k] = value      # todo: bug, ValueError: could not broadcast input array from shape (5886,) into shape (654,)
                     f_dict[field] = ref.tolist()
                 elif is_numeric_dtype(data_temp[field]):
                     out_temp[:, k] = data_temp[field].values

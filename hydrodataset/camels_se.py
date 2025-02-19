@@ -369,7 +369,7 @@ class CamelsSe(Camels):
         """
         data = self.read_constant_cols(
             gage_id_lst,
-            ["Pmean_mm_year"], #todo:the unit is year
+            ["Pmean_mm_year"],
             is_return_dict=False,
         )
         if unit in ["mm/d", "mm/day"]:
