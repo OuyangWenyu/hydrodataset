@@ -172,7 +172,7 @@ class CamelsInd(Camels):
         np.ndarray
             streamflow types
         """
-        return np.array(["streamflow_observed"])  # todo: streamflow separate with forcing
+        return np.array(["streamflow_observed"])
 
     def read_object_ids(self, **kwargs) -> np.ndarray:
         """
@@ -199,7 +199,7 @@ class CamelsInd(Camels):
         gage_id
             the station id
         t_range
-            the time range, for example, ["1980-01-01", "2020-12-31"]   todo: a problem for date format, ["1980,1,1", "2020,12,31"]
+            the time range, for example, ["1980-01-01", "2020-12-31"]
         var_type
             forcing type: "prcp(mm/day)", "tmax(C)", "tmin(C)", "tavg(C)", "srad_lw(w/m2)", "srad_sw(w/m2)", "wind_u(m/s)",
             "wind_v(m/s)", "wind(m/s)", "rel_hum(%)", "pet(mm/day)", "pet_gleam(mm/day)", "aet_gleam(mm/day)", "evap_canopy(kg/m2/s)",
@@ -217,10 +217,11 @@ class CamelsInd(Camels):
         )
         data_temp = pd.read_csv(gage_file, sep=",")
         obs = data_temp[var_type].values
-        date = pd.to_datetime(data_temp["date"]).values.astype("datetime64[D]")  #
+        df_date = data_temp[["year", "month", "day"]]
+        date = pd.to_datetime(df_date).values.astype("datetime64[D]")
         return time_intersect_dynamic_data(obs, date, t_range)
 
-    def read_target_cols(       # todo: streamflow separate with forcing
+    def read_target_cols(
         self,
         gage_id_lst: Union[list, np.array] = None,
         t_range: list = None,
@@ -269,15 +270,15 @@ class CamelsInd(Camels):
                 )
             else:
                 raise NotImplementedError(CAMELS_NO_DATASET_ERROR_LOG)
-            # date = pd.to_datetime(flow_data.index.values).values.astype("datetime64[D]")  # todo: a problem for date format, ["1980,1,1", "2020,12,31"]
+
             df_date = flow_data[["year", "month", "day"]]
             date = pd.to_datetime(df_date).values.astype("datetime64[D]")
-            [c, ind1, ind2] = np.intersect1d(date, t_range_list, return_indices=True)
-            station_ids = [id_.zfill(8) for id_ in flow_data.columns.values] #
-            assert all(x < y for x, y in zip(station_ids, station_ids[1:]))
+            [c, ind1, ind2] = np.intersect1d(date, t_range_list, return_indices=True)   #用y与x对比，以x为主。返回的是[相交的元素, 相交的元素在x中的位置，相交的元素在y中的位置]。
+            station_ids = [id_.zfill(5) for id_ in flow_data.columns.values]
+            # assert all(x < y for x, y in zip(station_ids, station_ids[1:]))  # what's mean?
             ind3 = [station_ids.index(tmp) for tmp in gage_id_lst]
             # to guarantee the sequence is not changed we don't use np.intersect1d
-            chosen_data = flow_data.iloc[ind1, ind3].replace("\s+", np.nan, regex=True)
+            chosen_data = flow_data.iloc[ind1, ind3]
             chosen_data = chosen_data.astype(float)
             chosen_data[chosen_data < 0] = np.nan
             y[:, ind2, k] = chosen_data.values.T

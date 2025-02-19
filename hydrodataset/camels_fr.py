@@ -210,7 +210,8 @@ class CamelsFr(Camels):
         obs = data_temp[var_type].values
         if var_type in ["tsd_q_l", "tsd_q_mm"]:
             obs[obs < 0] = np.nan
-        date = pd.to_datetime(data_temp["tsd_date"]).values.astype("datetime64[D]")
+        # date = pd.to_datetime(data_temp["tsd_date"]).values.astype("datetime64[D]")
+        date = pd.to_datetime(pd.Series(data_temp["tsd_date"]),format="%Y%m%d").dt.strftime("%Y-%m-%d").values.astype("datetime64[D]")
         return time_intersect_dynamic_data(obs, date, t_range)
 
     def read_target_cols(

@@ -6,8 +6,7 @@ def test_read_forcing():
     print(gage_ids)
     forcings = camelsfr.read_relevant_cols(
         gage_ids[:5],
-        # ["1970-01-01", "2021-12-31"],
-        ["19700101", "20211231"],       # todo: the test failed, for the date formate
+        ["1970-01-01", "2021-12-31"],
 		var_lst = ["tsd_prec","tsd_prec_solid_frac","tsd_temp","tsd_pet_ou","tsd_pet_pe","tsd_pet_pm","tsd_wind",
                    "tsd_humid","tsd_rad_dli","tsd_rad_ssi","tsd_swi_gr","tsd_swi_isba","tsd_swe_isba","tsd_temp_min",
                    "tsd_temp_max"]
