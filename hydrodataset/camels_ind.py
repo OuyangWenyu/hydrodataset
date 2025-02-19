@@ -190,7 +190,7 @@ class CamelsInd(Camels):
         """
         return self.sites["gauge_id"].values
 
-    def read_ind_gage_flow_forcing(self, gage_id, t_range, var_type):
+    def read_ind_gage_forcing(self, gage_id, t_range, var_type):
         """
         Read gage's streamflow or forcing from CAMELS-IND
 
@@ -201,7 +201,6 @@ class CamelsInd(Camels):
         t_range
             the time range, for example, ["1980-01-01", "2020-12-31"]   todo: a problem for date format, ["1980,1,1", "2020,12,31"]
         var_type
-            flow type: "discharge_vol", "discharge_spec"
             forcing type: "prcp(mm/day)", "tmax(C)", "tmin(C)", "tavg(C)", "srad_lw(w/m2)", "srad_sw(w/m2)", "wind_u(m/s)",
             "wind_v(m/s)", "wind(m/s)", "rel_hum(%)", "pet(mm/day)", "pet_gleam(mm/day)", "aet_gleam(mm/day)", "evap_canopy(kg/m2/s)",
             "evap_surface(kg/m2/s)", "sm_lvl1(kg/m2)", "sm_lvl2(kg/m2)", "sm_lvl3(kg/m2)", "sm_lvl4(kg/m2)"
@@ -211,15 +210,13 @@ class CamelsInd(Camels):
         np.array
             streamflow or forcing data of one station for a given time range
         """
-        logging.debug("reading %s streamflow data", gage_id)
+        logging.debug("reading %s forcing data", gage_id)
         gage_file = os.path.join(
             self.data_source_description["CAMELS_FORCING_DIR"],
             gage_id + ".csv",
         )
         data_temp = pd.read_csv(gage_file, sep=",")
         obs = data_temp[var_type].values
-        if var_type in ["streamflow_observed"]: # todo: streamflow separate with forcing
-            obs[obs < 0] = np.nan
         date = pd.to_datetime(data_temp["date"]).values.astype("datetime64[D]")  #
         return time_intersect_dynamic_data(obs, date, t_range)
 
@@ -269,13 +266,14 @@ class CamelsInd(Camels):
                         self.data_source_description["CAMELS_FLOW_DIR"]
                     ),
                     sep=",",
-                    index_col=0,
                 )
             else:
                 raise NotImplementedError(CAMELS_NO_DATASET_ERROR_LOG)
-            date = pd.to_datetime(flow_data.index.values).values.astype("datetime64[D]")
+            # date = pd.to_datetime(flow_data.index.values).values.astype("datetime64[D]")  # todo: a problem for date format, ["1980,1,1", "2020,12,31"]
+            df_date = flow_data[["year", "month", "day"]]
+            date = pd.to_datetime(df_date).values.astype("datetime64[D]")
             [c, ind1, ind2] = np.intersect1d(date, t_range_list, return_indices=True)
-            station_ids = [id_.zfill(8) for id_ in flow_data.columns.values]
+            station_ids = [id_.zfill(8) for id_ in flow_data.columns.values] #
             assert all(x < y for x, y in zip(station_ids, station_ids[1:]))
             ind3 = [station_ids.index(tmp) for tmp in gage_id_lst]
             # to guarantee the sequence is not changed we don't use np.intersect1d
@@ -322,7 +320,7 @@ class CamelsInd(Camels):
         x = np.full([len(gage_id_lst), nt, len(var_lst)], np.nan)
         for j in tqdm(range(len(var_lst)), desc="Read forcing data of CAMELS-IND"):
             for k in tqdm(range(len(gage_id_lst))):
-                data_forcing = self.read_ind_gage_flow_forcing(
+                data_forcing = self.read_ind_gage_forcing(
                     gage_id_lst[k], t_range, var_lst[j]
                 )
                 x[k, :, j] = data_forcing

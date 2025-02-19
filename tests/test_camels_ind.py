@@ -22,7 +22,7 @@ def test_read_streamflow():
         gage_ids[:5],
         ["1980-01-01", "2020-12-31"],
         # ["1980,1,1", "2020,12,31"],
-        target_cols=["discharge_vol(m3/s)"],   # todo: ?
+        target_cols=["streamflow_observed"],   # todo: ?
     )
     print(streamflow)
 
