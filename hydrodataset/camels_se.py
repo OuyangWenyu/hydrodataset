@@ -4,9 +4,10 @@ import logging
 import collections
 import pandas as pd
 import numpy as np
+import xarray as xr
 from typing import Union
 from tqdm import tqdm
-import xarray as xr
+import re
 from hydroutils import hydro_time, hydro_file
 from hydrodataset import HydroDataset, CACHE_DIR, CAMELS_REGIONS
 from hydrodataset.camels import Camels, time_intersect_dynamic_data
@@ -184,16 +185,23 @@ class CamelsSe(Camels):
             streamflow or forcing data of one station for a given time range
         """
         logging.debug("reading %s streamflow data", gage_id)
+        # use regular expressions for filename fuzzy matching
+        pattern = r'catchment_id_' + gage_id + r'_.*\.csv'
+        regex = re.compile(pattern)
+        match_file = ""
+        for filename in os.listdir(self.data_source_description["CAMELS_FLOW_DIR"]):
+            if regex.search(filename):
+                match_file = filename
         gage_file = os.path.join(
             self.data_source_description["CAMELS_FLOW_DIR"],
-            "catchment_id_" + gage_id, "_", "*.csv",
-        ) #todo: a filename matching problem
-        # gage_file = glob.glob(gage_file)
+            match_file,
+        )
         data_temp = pd.read_csv(gage_file, sep=",")
         obs = data_temp[var_type].values
         if var_type in ["Qobs_m3s", "Qobs_mm"]:
             obs[obs < 0] = np.nan
-        date = pd.to_datetime(data_temp["date"]).values.astype("datetime64[D]")
+        df_date = data_temp[["Year", "Month", "Day"]]
+        date = pd.to_datetime(df_date).values.astype("datetime64[D]")
         return time_intersect_dynamic_data(obs, date, t_range)
 
     def read_target_cols(

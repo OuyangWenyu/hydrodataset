@@ -60,7 +60,7 @@ class CamelsFr(Camels):
         # shp file of basins
         camels_shp_file = camels_db.joinpath(
             "CAMELS_FR_geography",
-            "CAMELS_FR_catchment_boundaries.gpkg", # todo: fr gives a gis database file, maybe a manually transform is need.
+            "CAMELS_FR_catchment_boundaries.gpkg", # todo: fr gives a gis database file, maybe need a manually transform.
         )
         # flow and forcing data are in a same file
         flow_dir = camels_db.joinpath(
@@ -68,7 +68,7 @@ class CamelsFr(Camels):
             "daily",
         )
         forcing_dir = flow_dir
-        # attr  todo: there are two attribution folders, how to deal with it?
+        # attr  todo: there are two attribution folders, how to deal?
         attr_dir = camels_db.joinpath(
             "CAMELS_FR_attributes",
             "static_attributes",
@@ -205,10 +205,9 @@ class CamelsFr(Camels):
             self.data_source_description["CAMELS_FLOW_DIR"],
             "CAMELS_FR_tsd_" + gage_id + ".csv",
         )
-        # data_temp = pd.read_csv(gage_file, sep=";",header=7,skiprows=[0,1,2,3,4,5,6])
-        data_temp = pd.read_csv(gage_file, sep=";",header=7)  # todo: no need the "skiprows", compare with the camels_ch, why?
+        data_temp = pd.read_csv(gage_file, sep=";",header=7)  # no need the "skiprows"
         obs = data_temp[var_type].values
-        # if var_type in ["tsd_q_l", "tsd_q_mm"]:
+        # if var_type in ["tsd_sq_l", "tsd_q_mm"]:
         #     obs[obs < 0] = np.nan
         date = pd.to_datetime(pd.Series(data_temp["tsd_date"]),format="%Y%m%d").dt.strftime("%Y-%m-%d").values.astype("datetime64[D]")
         return time_intersect_dynamic_data(obs, date, t_range)
@@ -324,6 +323,12 @@ class CamelsFr(Camels):
             k = 0
             gage_id_key = "sta_code_h3"
             n_gage = len(gage_dict[gage_id_key].values)
+            print(len(var_lst_temp))
+            n = 5886
+            if len(var_lst_temp) == n:
+                print("len(var_lst_temp) = 5886")
+            elif n_gage == n:
+                print("n_gage = 5886")
             out_temp = np.full([n_gage, len(var_lst_temp)], np.nan)
             for field in var_lst_temp:
                 if is_string_dtype(data_temp[field]):
