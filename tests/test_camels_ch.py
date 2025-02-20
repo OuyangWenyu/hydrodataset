@@ -30,3 +30,7 @@ def test_read_attr():
     )
     print(attributes)
 
+def test_cache_forcing():
+    camelsch = CamelsCh()
+    cacheforcing = camelsch.cache_forcing_xrdataset()
+
