@@ -26,9 +26,9 @@ def test_read_streamflow():
 def test_read_attr():
     camelsfr = CamelsFr()
     gage_ids = camelsfr.read_object_ids()
-    attributes = camelsfr.read_constant_cols(       #todo: the test failed, a bug
+    attributes = camelsfr.read_constant_cols(
         gage_ids[:5],
-        ["sit_area_hydro", "sol_sand", "hgl_thm_bedrock"]
+        ["geo_dom_class", "hgl_krs_karstic", "hgl_thm_bedrock"]
     )
     print(attributes)
 

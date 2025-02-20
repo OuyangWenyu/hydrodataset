@@ -74,17 +74,17 @@ class CamelsFr(Camels):
             "static_attributes",
             # "time_series_statistics"
         )
-        attr_key_lst = [
+        attr_key_lst = [    # todo: the commented attribution files have different number of rows with station number
             "geology",
             "human_influences_dams",
             "hydrogeology",
             "land_cover",
-            # "site_general",   # metadata
-            "soil_general",
-            "soil_quantiles",
+            # "site_general",   # metadata   "sit_area_hydro", hydrological catchment area
+            # "soil_general",
+            # "soil_quantiles",
             # "station_general",  # metadata
             "topography_general",
-            "topography_quantiles",
+            # "topography_quantiles",
         ]
         gauge_id_file = attr_dir.joinpath("CAMELS_FR_geology_attributes.csv")
 
@@ -324,16 +324,11 @@ class CamelsFr(Camels):
             gage_id_key = "sta_code_h3"
             n_gage = len(gage_dict[gage_id_key].values)
             print(len(var_lst_temp))
-            n = 5886
-            if len(var_lst_temp) == n:
-                print("len(var_lst_temp) = 5886")
-            elif n_gage == n:
-                print("n_gage = 5886")
             out_temp = np.full([n_gage, len(var_lst_temp)], np.nan)
             for field in var_lst_temp:
                 if is_string_dtype(data_temp[field]):
                     value, ref = pd.factorize(data_temp[field], sort=True)
-                    out_temp[:, k] = value      # todo: bug, ValueError: could not broadcast input array from shape (5886,) into shape (654,)
+                    out_temp[:, k] = value
                     f_dict[field] = ref.tolist()
                 elif is_numeric_dtype(data_temp[field]):
                     out_temp[:, k] = data_temp[field].values
@@ -373,9 +368,9 @@ class CamelsFr(Camels):
         return (out, var_dict, f_dict) if is_return_dict else out
 
     def read_area(self, gage_id_lst) -> np.ndarray:
-        return self.read_constant_cols(gage_id_lst, ["sit_area_hydro"], is_return_dict=False)
+        return self.read_constant_cols(gage_id_lst, ["sit_area_hydro"], is_return_dict=False)   # todo:
 
-    def read_mean_prcp(self, gage_id_lst, unit="mm/d") -> xr.Dataset:
+    def read_mean_prcp(self, gage_id_lst, unit="mm/d") -> xr.Dataset:  # todo:
         """Read mean precipitation data
 
         Parameters

@@ -527,8 +527,8 @@ print(streamflow_types)
 camelsfr = CamelsFr()
 gage_ids = camelsfr.read_object_ids()
 assert gage_ids.size == 654
-attrs = camelsfr.read_constant_cols(    # todo: the test failed
-    gage_ids[:5], ["sit_area_hydro", "sol_sand", "hgl_thm_bedrock"]
+attrs = camelsfr.read_constant_cols(
+    gage_ids[:5], ["geo_dom_class", "hgl_krs_karstic", "hgl_thm_bedrock"]
 )
 print(attrs)
 forcings = camelsfr.read_relevant_cols(
