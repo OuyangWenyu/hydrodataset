@@ -6,11 +6,12 @@ import numpy as np
 from typing import Union
 from tqdm import tqdm
 import xarray as xr
-import json
 from hydroutils import hydro_time, hydro_file
 from hydrodataset import HydroDataset, CACHE_DIR, CAMELS_REGIONS
 from hydrodataset.camels import Camels, time_intersect_dynamic_data
 from pandas.api.types import is_string_dtype, is_numeric_dtype
+import json
+import warnings
 
 CAMELS_NO_DATASET_ERROR_LOG = (
     "We cannot read this dataset now. Please check if you choose correctly:\n"
@@ -154,7 +155,7 @@ class CamelsCh(Camels):
         np.ndarray
             streamflow types
         """
-        return np.array(["discharge_vol", "discharge_spec"])
+        return np.array(["discharge_vol(m3/s)", "discharge_spec(mm/d)"])
 
     def read_object_ids(self, **kwargs) -> np.ndarray:
         """
@@ -473,12 +474,13 @@ class CamelsCh(Camels):
         attr_files = self.data_source_dir.glob("CAMELS_CH_*.csv")
         attrs = {
             f.stem.split("_")[1]: pd.read_csv(
-                f, sep=",", index_col=0, dtype={"huc_02": str, "gauge_id": str}
+                f, sep=",", index_col=0, dtype={"gauge_id": str}
             )
             for f in attr_files
         }
 
-        attrs_df = pd.concat(attrs.values(), axis=1)
+        # attrs_df = pd.concat(attrs.values(), axis=1)
+        attrs_df = attrs
 
         # fix station names
         def fix_station_nm(station_nm):
@@ -567,3 +569,53 @@ class CamelsCh(Camels):
             },
             attrs={"forcing_type": "observation"},
         )
+
+    def cache_streamflow_xrdataset(self):
+        """Save all basins' streamflow data in a netcdf file in the cache directory
+
+        """
+        cache_npy_file = CACHE_DIR.joinpath("camels_ch_streamflow.npy")
+        json_file = CACHE_DIR.joinpath("camels_ch_streamflow.json")
+        if (not os.path.isfile(cache_npy_file)) or (not os.path.isfile(json_file)):
+            self.cache_streamflow_np_json()
+        streamflow = np.load(cache_npy_file)
+        with open(json_file, "r") as fp:
+            streamflow_dict = json.load(fp, object_pairs_hook=collections.OrderedDict)
+        import pint_xarray
+
+        basins = streamflow_dict["basin"]
+        times = pd.date_range(
+            streamflow_dict["time"][0], periods=len(streamflow_dict["time"])
+        )
+        return xr.Dataset(
+            {
+                "streamflow": (
+                    ["basin", "time"],
+                    streamflow[:, :, 0],
+                    {"units": self.streamflow_unit},
+                ),
+                "ET": (
+                    ["basin", "time"],
+                    streamflow[:, :, 1],
+                    {"units": "mm/day"},
+                ),
+            },
+            coords={
+                "basin": basins,
+                "time": times,
+            },
+        )
+
+    def cache_xrdataset(self):
+        """
+        Save all data in a netcdf file in the cache directory
+
+        """
+
+        warnings.warn("Check you units of all variables")
+        ds_attr = self.cache_attributes_xrdataset()
+        ds_attr.to_netcdf(CACHE_DIR.joinpath("camelsch_attributes.nc"))
+        ds_streamflow = self.cache_streamflow_xrdataset()
+        ds_forcing = self.cache_forcing_xrdataset()
+        ds = xr.merge([ds_streamflow, ds_forcing])
+        ds.to_netcdf(CACHE_DIR.joinpath("camelsch_timeseries.nc"))

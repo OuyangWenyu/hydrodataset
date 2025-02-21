@@ -34,3 +34,10 @@ def test_cache_forcing():
     camelsch = CamelsCh()
     cacheforcing = camelsch.cache_forcing_xrdataset()
 
+def test_cache_streamflow():
+    camelsch = CamelsCh()
+    cachestreamflow = camelsch.cache_streamflow_xrdataset()
+
+def test_cache_xrdataset():
+    camelsch = CamelsCh()
+    cachexrdataset = camelsch.cache_xrdataset()
