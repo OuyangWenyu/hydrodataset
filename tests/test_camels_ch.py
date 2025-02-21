@@ -38,6 +38,9 @@ def test_cache_streamflow():
     camelsch = CamelsCh()
     cachestreamflow = camelsch.cache_streamflow_xrdataset()
 
+def test_cache_attributes():
+    camelsch = CamelsCh()
+    cacheatributes = camelsch.cache_attributes_xrdataset()
 def test_cache_xrdataset():
     camelsch = CamelsCh()
     cachexrdataset = camelsch.cache_xrdataset()

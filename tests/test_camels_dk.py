@@ -30,3 +30,21 @@ def test_read_attr():
     )
     print(attributes)
 
+def test_cache_forcing():
+    camelsdk = CamelsDk()
+    cacheforcing = camelsdk.cache_forcing_xrdataset()
+
+def test_cache_streamflow():
+    camelsdk = CamelsDk()
+    cachestreamflow = camelsdk.cache_streamflow_xrdataset()
+
+def test_cache_attributes():
+    camelsdk = CamelsDk()
+    cacheatributes = camelsdk.cache_attributes_xrdataset()
+
+def test_cache_xrdataset():
+    camelsdk = CamelsDk()
+    cachexrdataset = camelsdk.cache_xrdataset()
+
+
+

@@ -39,6 +39,10 @@ def test_cache_streamflow():
     camelsde = CamelsDe()
     cachestreamflow = camelsde.cache_streamflow_xrdataset()
 
+def test_cache_attributes():
+    camelsde = CamelsDe()
+    cacheatributes = camelsde.cache_attributes_xrdataset()
+
 def test_cache_xrdataset():
     camelsde = CamelsDe()
     cachexrdataset = camelsde.cache_xrdataset()

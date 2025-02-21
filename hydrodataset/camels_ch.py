@@ -406,7 +406,7 @@ class CamelsCh(Camels):
         In addition, we need a document to explain the meaning of all dimensions.
 
         """
-        cache_npy_file = CACHE_DIR.joinpath("camels_ch_forcing.npy")
+        cache_npy_file = CACHE_DIR.joinpath("camels_ch_forcing.npy")  # "C:\Users\xxxx\AppData\Local\hydro\Cache\camels_ch_forcing.json"
         json_file = CACHE_DIR.joinpath("camels_ch_forcing.json")
         variables = self.get_relevant_cols()
         basins = self.sites["gauge_id"].values
@@ -471,7 +471,7 @@ class CamelsCh(Camels):
         # NOTICE: although it seems that we don't use pint_xarray, we have to import this package
         import pint_xarray
 
-        attr_files = self.data_source_dir.glob("CAMELS_CH_*.csv")
+        attr_files = self.data_source_dir.glob(["CAMELS_CH_*_attributes.csv","CAMELS_CH_*_attributes_obs.csv"])
         attrs = {
             f.stem.split("_")[1]: pd.read_csv(
                 f, sep=",", index_col=0, dtype={"gauge_id": str}
@@ -515,7 +515,61 @@ class CamelsCh(Camels):
             "gauge_lon": "degree",
             "elev_mean": "m",
             "slope_mean": "m/km",
-
+            "area_gages2": "km^2",
+            "area_geospa_fabric": "km^2",
+            "geol_1st_class": "dimensionless",
+            "glim_1st_class_frac": "dimensionless",
+            "geol_2nd_class": "dimensionless",
+            "glim_2nd_class_frac": "dimensionless",
+            "carbonate_rocks_frac": "dimensionless",
+            "geol_porostiy": "dimensionless",
+            "geol_permeability": "m^2",
+            "frac_forest": "dimensionless",
+            "lai_max": "dimensionless",
+            "lai_diff": "dimensionless",
+            "gvf_max": "dimensionless",
+            "gvf_diff": "dimensionless",
+            "dom_land_cover_frac": "dimensionless",
+            "dom_land_cover": "dimensionless",
+            "root_depth_50": "m",
+            "root_depth_99": "m",
+            "q_mean": "mm/day",
+            "runoff_ratio": "dimensionless",
+            "slope_fdc": "dimensionless",
+            "baseflow_index": "dimensionless",
+            "stream_elas": "dimensionless",
+            "q5": "mm/day",
+            "q95": "mm/day",
+            "high_q_freq": "day/year",
+            "high_q_dur": "day",
+            "low_q_freq": "day/year",
+            "low_q_dur": "day",
+            "zero_q_freq": "percent",
+            "hfd_mean": "dimensionless",
+            "soil_depth_pelletier": "m",
+            "soil_depth_statsgo": "m",
+            "soil_porosity": "dimensionless",
+            "soil_conductivity": "cm/hr",
+            "max_water_content": "m",
+            "sand_frac": "percent",
+            "silt_frac": "percent",
+            "clay_frac": "percent",
+            "water_frac": "percent",
+            "organic_frac": "percent",
+            "other_frac": "percent",
+            "p_mean": "mm/day",
+            "pet_mean": "mm/day",
+            "p_seasonality": "dimensionless",
+            "frac_snow": "dimensionless",
+            "aridity": "dimensionless",
+            "high_prec_freq": "days/year",
+            "high_prec_dur": "day",
+            "high_prec_timing": "dimensionless",
+            "low_prec_freq": "days/year",
+            "low_prec_dur": "day",
+            "low_prec_timing": "dimensionless",
+            "huc_02": "dimensionless",
+            "gauge_name": "dimensionless",
         }
 
         # Assign units to the variables in the Dataset
