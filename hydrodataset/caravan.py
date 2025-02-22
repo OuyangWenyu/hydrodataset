@@ -4,6 +4,7 @@ import re
 import warnings
 from tqdm import tqdm
 import xarray as xr
+import shutil
 import os
 from pathlib import Path
 from typing import Union
@@ -92,7 +93,7 @@ class Caravan(HydroDataset):
         forcing_dir = flow_dir
         attr_dir = os.path.join(dataset_dir, "attributes")
         ts_csv_dir = os.path.join(dataset_dir, "timeseries", "csv")
-        download_url = "https://zenodo.org/record/7944025/files/Caravan.zip"
+        download_url = "https://zenodo.org/records/14673536/files/Caravan-nc.tar.xz?download=1"
         return collections.OrderedDict(
             DATASET_DIR=dataset_dir,
             FLOW_DIR=flow_dir,
@@ -118,17 +119,36 @@ class Caravan(HydroDataset):
         self.data_source_dir.mkdir(exist_ok=True)
         url = dataset_config["DOWNLOAD_URL"]
         fzip = Path(self.data_source_dir, url.rsplit("/", 1)[1])
+        
+        # Check if the file exists and verify the size before downloading
         if fzip.exists():
             with urlopen(url) as response:
                 if int(response.info()["Content-length"]) != fzip.stat().st_size:
-                    fzip.unlink()
+                    fzip.unlink()  # Remove the incomplete file if the size does not match
+        
+        # Prepare the download list if the file doesn't exist
         to_dl = []
-        if not Path(self.data_source_dir, url.rsplit("/", 1)[1]).exists():
+        if not fzip.exists():
             to_dl.append(url)
-        hydro_file.download_zip_files(to_dl, self.data_source_dir)
-        # It seems that there is sth. wrong with hysets_06444000.nc
+        
+        # Download the file if needed
+        if to_dl:
+            hydro_file.download_zip_files(to_dl, self.data_source_dir)
+        
+        # Handle unzipping .tar.xz files
         try:
-            hydro_file.zip_extract(dataset_config["DATASET_DIR"])
+            # If the downloaded file is a .tar.xz file, extract it
+            if fzip.suffix == '.xz':
+                with tarfile.open(fzip, "r:xz") as tar:
+                    tar.extractall(path=self.data_source_dir)
+                print(f"Successfully extracted {fzip.name}")
+            elif fzip.suffix == '.zip':
+                # Handle regular .zip files (just in case)
+                shutil.unpack_archive(fzip, self.data_source_dir)
+                print(f"Successfully extracted {fzip.name}")
+            else:
+                print(f"Unsupported file format: {fzip.suffix}")
+            
         except tarfile.ReadError:
             Warning("Please manually unzip the file.")
 

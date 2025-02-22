@@ -17,6 +17,12 @@ from hydrodataset.caravan import Caravan, _extract_unit
 
 
 @pytest.fixture()
+def caravan_us():
+    return Caravan(
+        os.path.join(ROOT_DIR, "caravan"),
+        region="US",
+    )
+@pytest.fixture()
 def caravan():
     return Caravan(
         os.path.join(ROOT_DIR, "caravan"),
@@ -24,46 +30,46 @@ def caravan():
     )
 
 
-def test_read_caravan_us(caravan):
-    caravan_ids = caravan.read_object_ids()
-    assert len(caravan_ids) == 482
+def test_read_caravan_us(caravan_us):
+    caravan_ids = caravan_us.read_object_ids()
+    assert len(caravan_ids) == 671
 
-    streamflow_types = caravan.get_target_cols()
+    streamflow_types = caravan_us.get_target_cols()
     np.testing.assert_array_equal(streamflow_types, np.array(["streamflow"]))
-    focing_types = caravan.get_relevant_cols()
+    focing_types = caravan_us.get_relevant_cols()
     np.testing.assert_array_equal(
         focing_types[:3],
         np.array(
             [
-                "snow_depth_water_equivalent_mean",
-                "surface_net_solar_radiation_mean",
-                "surface_net_thermal_radiation_mean",
+                "dewpoint_temperature_2m_max",
+                "dewpoint_temperature_2m_mean",
+                "dewpoint_temperature_2m_min",
             ]
         ),
     )
-    attr_types = caravan.get_constant_cols()
+    attr_types = caravan_us.get_constant_cols()
     np.testing.assert_array_equal(
         attr_types[:3],
-        np.array(["p_mean", "pet_mean", "aridity"]),
+        np.array(["aridity_ERA5_LAND", "aridity_FAO_PM", "frac_snow"]),
     )
 
-    attrs = caravan.read_constant_cols(
+    attrs = caravan_us.read_constant_cols(
         caravan_ids[:5],
-        var_lst=["p_mean", "pet_mean", "aridity"],
+        var_lst=["aridity_ERA5_LAND", "aridity_FAO_PM", "frac_snow"],
     )
     np.testing.assert_almost_equal(
         attrs,
         np.array(
             [
-                [3.20371278, 14.54395441, 4.53971857],
-                [3.2891471, 12.98397837, 3.94752134],
-                [3.2756958, 12.1030139, 3.69479177],
-                [3.40199329, 10.64317544, 3.12851159],
-                [3.66423575, 10.99960641, 3.00188284],
+                [3.7639294, 0.4925567, 0.37453797],
+                [4.539418, 0.5809156, 0.3354396],
+                [4.2636347, 0.5328785, 0.31613037],
+                [3.9475863, 0.51058507, 0.3062726],
+                [3.6948392, 0.5015839, 0.2990631],
             ]
         ),
     )
-    forcings = caravan.read_relevant_cols(
+    forcings = caravan_us.read_relevant_cols(
         caravan_ids[:5],
         ["1990-01-01", "2009-12-31"],
         var_lst=[
@@ -76,7 +82,7 @@ def test_read_caravan_us(caravan):
         forcings.to_array().transpose("gauge_id", "date", "variable").shape,
         np.array([5, 7305, 3]),
     )
-    flows = caravan.read_target_cols(
+    flows = caravan_us.read_target_cols(
         caravan_ids[:5], ["1990-01-01", "2009-12-31"], target_cols=["streamflow"]
     )
     np.testing.assert_array_equal(
@@ -91,7 +97,7 @@ def all_elements_in_array(elements_list, np_array):
 
 def test_read_caravan(caravan):
     caravan_ids = caravan.read_object_ids()
-    assert len(caravan_ids) == 6830
+    assert len(caravan_ids) == 15960
 
     streamflow_types = caravan.get_target_cols()
     np.testing.assert_array_equal(streamflow_types, np.array(["streamflow"]))
@@ -106,24 +112,24 @@ def test_read_caravan(caravan):
     )
     attr_types = caravan.get_constant_cols()
     assert all_elements_in_array(
-        ["p_mean", "pet_mean", "aridity"],
+        ["p_mean", "pet_mean_ERA5_LAND", "aridity_ERA5_LAND"],
         attr_types,
     )
 
     caravan_ids_chosen = caravan_ids[:3].tolist() + caravan_ids[-2:].tolist()
     attrs = caravan.read_constant_cols(
         caravan_ids_chosen,
-        var_lst=["p_mean", "pet_mean", "aridity"],
+        var_lst=["p_mean", "pet_mean_ERA5_LAND", "aridity_ERA5_LAND"],
     )
     np.testing.assert_almost_equal(
         attrs,
         np.array(
             [
-                [3.20371278, 14.54395441, 4.53971857],
-                [3.2891471, 12.98397837, 3.94752134],
-                [3.2756958, 12.1030139, 3.69479177],
-                [3.00678349, 3.6481265, 1.2132987],
-                [2.75425491, 3.64257786, 1.3225275],
+                [3.175454, 11.952184, 3.7639294],
+                [3.2038372, 14.543556, 4.539418],
+                [3.1840692, 13.575707, 4.2636347],
+                [2.7544532, 3.6424763, 1.3223954],
+                [3.0899684, 2.9222033, 0.9457065],
             ]
         ),
     )
@@ -153,6 +159,7 @@ def test_cache_caravan(caravan):
     caravan.cache_xrdataset(checkregion=None)
 
 
+
 def test_read_ts_xrdataset(caravan):
     caravan_ids = caravan.read_object_ids()
     ts_data = caravan.read_ts_xrdataset(
@@ -160,14 +167,14 @@ def test_read_ts_xrdataset(caravan):
         ["1990-01-01", "2009-12-31"],
         var_lst=None,
     )
-    print(ts_data)
+    print("TS Data for Selected IDs:", ts_data)  # Print the time series data for debugging
 
 
 def test_read_attr_xrdataset(caravan):
     caravan_ids = caravan.read_object_ids()
     attr_data = caravan.read_attr_xrdataset(
         caravan_ids[:3].tolist() + caravan_ids[-2:].tolist(),
-        ["p_mean", "pet_mean", "aridity"],
+        ["p_mean", "pet_mean_ERA5_LAND", "aridity_ERA5_LAND"],
     )
     print(attr_data)
 
