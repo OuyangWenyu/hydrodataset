@@ -119,8 +119,7 @@ class Caravan(HydroDataset):
         self.data_source_dir.mkdir(exist_ok=True)
         url = dataset_config["DOWNLOAD_URL"]
         fzip = Path(self.data_source_dir, url.rsplit("/", 1)[1])
-        
-        # Check if the file exists and verify the size before downloading
+        print(f"Checking file: {fzip}")
         if fzip.exists():
             with urlopen(url) as response:
                 if int(response.info()["Content-length"]) != fzip.stat().st_size:
