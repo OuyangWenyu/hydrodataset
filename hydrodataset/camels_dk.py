@@ -146,7 +146,6 @@ class CamelsDk(Camels):
                 "DKM_sdr",
                 "DKM_sre",
                 "DKM_gwh",
-                "Qdkm",
                 "DKM_irr",
                 "Abstraction",
             ]
@@ -161,7 +160,7 @@ class CamelsDk(Camels):
         np.ndarray
             streamflow types
         """
-        return np.array(["Qobs"])
+        return np.array(["Qobs","Qdkm"])  # Qdkm means Qsim
 
     def read_object_ids(self, **kwargs) -> np.ndarray:
         """
@@ -190,7 +189,7 @@ class CamelsDk(Camels):
         t_range
             the time range, for example, ["1989-01-02", "2023-12-31"]
         var_type
-            flow type: "Qobs"
+            flow type: "Qobs","Qdkm"
             forcing type: "precipitation","temperature","pet","DKM_dtp","DKM_eta","DKM_wcr","DKM_sdr","DKM_sre","DKM_gwh","Qdkm","DKM_irr","Abstraction"
 
         Returns
@@ -205,7 +204,7 @@ class CamelsDk(Camels):
         )
         data_temp = pd.read_csv(gage_file, sep=",")
         obs = data_temp[var_type].values
-        if var_type in ["Qobs"]:
+        if var_type in ["Qobs","Qdkm"]:
             obs[obs < 0] = np.nan
         date = pd.to_datetime(data_temp["date"]).values.astype("datetime64[D]")
         return time_intersect_dynamic_data(obs, date, t_range)
@@ -231,7 +230,7 @@ class CamelsDk(Camels):
             the time range, for example, ["1989-01-02", "2023-12-31"]
         target_cols
             the default is None, but we need at least one default target.
-            For CAMELS-DK, it's ["Qobs"]
+            For CAMELS-DK, it's ["Qobs","Qdkm"]
         kwargs
             some other params if needed
 
@@ -554,7 +553,7 @@ class CamelsDk(Camels):
         )
         variables = forcing_dict["variable"]
 
-        units = ["s", "mm/day", "W/m^2", "mm", "°C", "°C", "Pa", "mm/day"]
+        units = ["mm/d", "°C", "mm/d", "m", "mm/d", "-", "m^3/s", "m^3/s", "m", "m^3/s", "m^3/s"]
         return xr.Dataset(
             data_vars={
                 **{

@@ -33,3 +33,18 @@ def test_read_attr():
     )
     print(attributes)
 
+def test_cache_forcing():
+    camelsind = CamelsInd()
+    cacheforcing = camelsind.cache_forcing_xrdataset()
+
+def test_cache_streamflow():
+    camelsind = CamelsInd()
+    cachestreamflow = camelsind.cache_streamflow_xrdataset()
+
+def test_cache_attributes():
+    camelsind = CamelsInd()
+    cacheatributes = camelsind.cache_attributes_xrdataset()
+
+def test_cache_xrdataset():
+    camelsind = CamelsInd()
+    cachexrdataset = camelsind.cache_xrdataset()
