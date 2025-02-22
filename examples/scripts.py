@@ -494,36 +494,6 @@ print(streamflow_types)
 
 
 
-
-camelsse = CamelsSe()
-gage_ids = camelsse.read_object_ids()
-assert gage_ids.size == 50
-attrs = camelsse.read_constant_cols(
-    gage_ids[:5], ["Area_km2", "Pmean_mm_year", "Wetlands_percentage"]
-)
-print(attrs)
-forcings = camelsse.read_relevant_cols(
-    gage_ids[:5],
-    ["1961-01-01", "2020-12-31"],
-    var_lst = ["Pobs_mm", "Tobs_C"]
-)
-print(forcings)
-streamflow = camelsse.read_target_cols(
-    gage_ids[:5],
-    ["1961-01-01", "2020-12-31"],
-    target_cols = ["Qobs_m3s", "Qobs_mm"],
-)
-print(streamflow)
-attrs_types = camelsse.get_constant_cols()
-print(attrs_types)
-forcing_types = camelsse.get_relevant_cols()
-print(forcing_types)
-streamflow_types = camelsse.get_target_cols()
-print(streamflow_types)
-
-
-
-
 camelsfr = CamelsFr()
 gage_ids = camelsfr.read_object_ids()
 assert gage_ids.size == 654
@@ -582,4 +552,33 @@ print(attrs_types)
 forcing_types = camelsind.get_relevant_cols()
 print(forcing_types)
 streamflow_types = camelsind.get_target_cols()
+print(streamflow_types)
+
+
+
+
+camelsse = CamelsSe()
+gage_ids = camelsse.read_object_ids()
+assert gage_ids.size == 50
+attrs = camelsse.read_constant_cols(
+    gage_ids[:5], ["Area_km2", "Pmean_mm_year", "Wetlands_percentage"]
+)
+print(attrs)
+forcings = camelsse.read_relevant_cols(
+    gage_ids[:5],
+    ["1961-01-01", "2020-12-31"],
+    var_lst = ["Pobs_mm", "Tobs_C"]
+)
+print(forcings)
+streamflow = camelsse.read_target_cols(
+    gage_ids[:5],
+    ["1961-01-01", "2020-12-31"],
+    target_cols = ["Qobs_m3s", "Qobs_mm"],
+)
+print(streamflow)
+attrs_types = camelsse.get_constant_cols()
+print(attrs_types)
+forcing_types = camelsse.get_relevant_cols()
+print(forcing_types)
+streamflow_types = camelsse.get_target_cols()
 print(streamflow_types)

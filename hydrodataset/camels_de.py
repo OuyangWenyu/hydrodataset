@@ -562,7 +562,7 @@ class CamelsDe(Camels):
         )
         variables = forcing_dict["variable"]
 
-        units = ["s", "mm/day", "W/m^2", "mm", "°C", "°C", "Pa", "mm/day"]
+        units = ["m", "mm/d", "mm/d", "mm/d", "mm/d", "mm/d", "%", "%", "%", "%", "%", "W/m^2", "W/m^2", "W/m^2", "W/m^2", "W/m^2", "°C", "°C", "°C"]
         return xr.Dataset(
             data_vars={
                 **{
