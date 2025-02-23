@@ -84,7 +84,8 @@ class CamelsCh(Camels):
             "hydrology",
             "landcover",
             "soil",
-            "topographic"
+            "topographic",
+            "catchments", #this file static_attributes\CAMELS_CH_catchments_attributes.csv should be exported manually from catchment_delineations\CAMELS_CH_catchments.shp to replace the static_attributes\CAMELS_CH_sub_catchment_attributes.csv file, for the reason that the sub file do not contain all stations.
         ]
         gauge_id_file = attr_dir.joinpath("CAMELS_CH_hydrology_attributes_obs.csv")
 
@@ -310,7 +311,10 @@ class CamelsCh(Camels):
                 data_file = os.path.join(data_folder, camels_str + key + "_attributes_obs.csv")
             else:
                 data_file = os.path.join(data_folder, camels_str + key + "_attributes.csv")
-            data_temp = pd.read_csv(data_file, sep=sep_,header=1)  # if a UnicodeDecodeError bug appeared, a manually encoding transform for camels_ch\static_attributes\CAMELS_CH_topographic_attributes.csv is need, encoding->convert to UTF-8 in Notepad++.
+            header_ = 1
+            if key in ["catchments",]:
+                header_ = 0
+            data_temp = pd.read_csv(data_file, sep=sep_,header=header_)  # if a UnicodeDecodeError bug appeared, a manually encoding transform for camels_ch\static_attributes\CAMELS_CH_topographic_attributes.csv is need, encoding->convert to UTF-8 in Notepad++.
             var_lst_temp = list(data_temp.columns[1:])
             var_dict[key] = var_lst_temp
             var_lst.extend(var_lst_temp)
@@ -464,6 +468,9 @@ class CamelsCh(Camels):
     def cache_attributes_xrdataset(self):
         """Convert all the attributes to a single dataframe
 
+        attributes不用先cache成np和json文件，直接转为dataframe, 后面直接输出成.nc
+        但是这里没有用到前面的read_constant_cols和read_attr_all
+
         Returns
         -------
         None
@@ -471,27 +478,29 @@ class CamelsCh(Camels):
         # NOTICE: although it seems that we don't use pint_xarray, we have to import this package
         import pint_xarray
 
-        attr_files = self.data_source_dir.glob("CAMELS_CH_*csv")
+        attr_files = self.data_source_description["CAMELS_ATTR_DIR"].glob("CAMELS_CH_*.csv")
+        index_col_ = 1
+
         attrs = {
             f.stem.split("_")[1]: pd.read_csv(
                 f, sep=",", index_col=0, dtype={"gauge_id": str}
             )
-            for f in attr_files
+            for f in attr_files  #这里这样读属性数据，那前面为什么要写read_constant_cols和read_attr_all？
         }
 
         # attrs_df = pd.concat(attrs.values(), axis=1)
         attrs_df = attrs
 
         # fix station names
-        def fix_station_nm(station_nm):
-            name = station_nm.title().rsplit(" ", 1)
-            name[0] = name[0] if name[0][-1] == "," else f"{name[0]},"
-            name[1] = name[1].replace(".", "")
-            return " ".join(
-                (name[0], name[1].upper() if len(name[1]) == 2 else name[1].title())
-            )
-
-        attrs_df["gauge_name"] = [fix_station_nm(n) for n in attrs_df["gauge_name"]]
+        # def fix_station_nm(station_nm):
+        #     name = station_nm.title().rsplit(" ", 1)
+        #     name[0] = name[0] if name[0][-1] == "," else f"{name[0]},"
+        #     name[1] = name[1].replace(".", "")
+        #     return " ".join(
+        #         (name[0], name[1].upper() if len(name[1]) == 2 else name[1].title())
+        #     )
+        #
+        # attrs_df["gauge_name"] = [fix_station_nm(n) for n in attrs_df["gauge_name"]]
         obj_cols = attrs_df.columns[attrs_df.dtypes == "object"]
         for c in obj_cols:
             attrs_df[c] = attrs_df[c].str.strip().astype(str)
@@ -699,6 +708,14 @@ class CamelsCh(Camels):
             "slope_mean": "degree",
             "flat_area_perc": "%",
             "steep_area_perc": "%",
+            "ID6": "dimensionless",
+            "gauge_name": "dimensionless",
+            "water_body": "dimensionless",
+            "type": "dimensionless",
+            "country": "dimensionless",
+            "Shape_Leng": "m",
+            "Shape_Area": "m^2",
+            "ORIG_FID": "dimensionless",
         }
 
         # Assign units to the variables in the Dataset

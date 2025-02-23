@@ -12,6 +12,8 @@ from hydroutils import hydro_time, hydro_file
 from hydrodataset import HydroDataset, CACHE_DIR, CAMELS_REGIONS
 from hydrodataset.camels import Camels, time_intersect_dynamic_data
 from pandas.api.types import is_string_dtype, is_numeric_dtype
+import json
+import warnings
 
 CAMELS_NO_DATASET_ERROR_LOG = (
     "We cannot read this dataset now. Please check if you choose correctly:\n"
@@ -395,3 +397,40 @@ class CamelsSe(Camels):
                 "unit must be one of ['mm/d', 'mm/day', 'mm/h', 'mm/hour', 'mm/3h', 'mm/3hour', 'mm/8d', 'mm/8day', 'mm/y', 'mm/year']"
             )
         return converted_data
+
+
+    def cache_forcing_np_json(self):
+        """
+        Save all basin-forcing data in a numpy array file in the cache directory.
+
+        Because it takes much time to read data from csv files,
+        it is a good way to cache data as a numpy file to speed up the reading.
+        In addition, we need a document to explain the meaning of all dimensions.
+
+        """
+        cache_npy_file = CACHE_DIR.joinpath("camels_se_forcing.npy")
+        json_file = CACHE_DIR.joinpath("camels_se_forcing.json")
+        variables = self.get_relevant_cols()
+        basins = self.sites["ID"].values
+        t_range = ["1961-01-01", "2020-12-31"]
+        times = [
+            hydro_time.t2str(tmp)
+            for tmp in hydro_time.t_range_days(t_range).tolist()
+        ]
+        data_info = collections.OrderedDict(
+            {
+                "dim": ["basin", "time", "variable"],
+                "basin": basins.tolist(),
+                "time": times,
+                "variable": variables.tolist(),
+            }
+        )
+        with open(json_file, "w") as FP:
+            json.dump(data_info, FP, indent=4)
+        data = self.read_relevant_cols(
+            gage_id_lst=basins.tolist(),
+            t_range=t_range,
+            var_lst=variables.tolist(),
+        )
+        np.save(cache_npy_file, data)
+
