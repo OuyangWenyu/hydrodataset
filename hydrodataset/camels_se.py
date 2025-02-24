@@ -512,12 +512,51 @@ class CamelsSe(Camels):
         attrs_df.index.name = "basin"
         # We use xarray dataset to cache all data
         ds_from_df = attrs_df.to_xarray()
-        units_dict = {      # todo:
-            "gauge_lat": "degree",
-            "gauge_lon": "degree",
-            "elev_mean": "m",
-            "slope_mean": "m/km",
-
+        units_dict = {
+            "S01_Qmean": "mm/year",
+            "S02_Qcoeff": "%",
+            "S03_COM": "dimensionless",
+            "S04_SPD": "dimensionless",
+            "S05_Qmean_spring": "mm/season",
+            "S06_Qmean_summer": "mm/season",
+            "S07_Qmean_autumn": "mm/season",
+            "S08_Qmean_winter": "mm/season",
+            "S09_LFfreq": "days/year",
+            "S10_T_minQ_d30": "days",
+            "S11_minQ_d7": "mm",
+            "S12_minQ_d30": "mm",
+            "S13_HFfreq": "days/year",
+            "S14_T_maxQ_d1": "dimensionless",
+            "S15_maxQ_d30": "mm",
+            "S16_maxQ_d1": "mm",
+            "Urban_percentage": "%",
+            "Water_percentage": "%",
+            "Forest_percentage": "%",
+            "Open_land_percentage": "%",
+            "Agriculture_percentage": "%",
+            "Glaciers_percentage": "%",
+            "Shrubs_and_grassland_percentage": "%",
+            "Wetlands_percentage": "%",
+            "Name": "dimensionless",
+            "Latitude_WGS84": "degree N",
+            "Longitude_WGS84": "degree E",
+            "Area_km2": "km^2",
+            "Elevation_mabsl": "m a.s.l.",
+            "Slope_mean_degree": "degree",
+            "DOR": "%",
+            "RegVol_m3": "m^3",
+            "Pmean_mm_year": "mm/yr",
+            "Tmean_C": "Celsius degree",
+            "Glaciofluvial_sediment_percentage": "%",
+            "Bedrock_percentage": "%",
+            "Postglacial_sand_and_gravel_percentage": "%",
+            "Till_percentage": "%",
+            "Water_percentage": "%",
+            "Peat_percentage": "%",
+            "Silt_percentage": "%",
+            "Clayey_till_and_clay_till_percentage": "%",
+            "Till_and_weathered_deposit_percentage": "%",
+            "Glacier_percentage": "%",
         }
 
         # Assign units to the variables in the Dataset
@@ -607,4 +646,18 @@ class CamelsSe(Camels):
                 "time": times,
             },
         )
+
+    def cache_xrdataset(self):
+        """
+        Save all data in a netcdf file in the cache directory
+
+        """
+
+        warnings.warn("Check you units of all variables")
+        ds_attr = self.cache_attributes_xrdataset()
+        ds_attr.to_netcdf(CACHE_DIR.joinpath("camelsse_attributes.nc"))
+        ds_streamflow = self.cache_streamflow_xrdataset()
+        ds_forcing = self.cache_forcing_xrdataset()
+        ds = xr.merge([ds_streamflow, ds_forcing])
+        ds.to_netcdf(CACHE_DIR.joinpath("camelsse_timeseries.nc"))
 
