@@ -73,7 +73,7 @@ class CamelsDk(Camels):
             "Dynamics",
             "Ungauged_catchments",
         )
-        flow_dir = flow_dir1/flow_dir2
+        flow_dir = [flow_dir1, flow_dir2]
         forcing_dir = flow_dir  #todo: 这里有问题，属性文件里面所有的catch_id混合在一起，如何区分哪些catch_id在Gauged_catchments里面、哪些在Ungauged_catchments里面。
         # attr
         attr_dir = camels_db.joinpath(
@@ -473,45 +473,47 @@ class CamelsDk(Camels):
         # NOTICE: although it seems that we don't use pint_xarray, we have to import this package
         import pint_xarray
 
-        attr_files = self.data_source_dir.glob("CAMELS_DK_*.csv")
-        attrs = {
-            f.stem.split("_")[1]: pd.read_csv(
-                f, sep=",", index_col=0, dtype={"catch_id": str}
-            )
-            for f in attr_files
-        }
-
-        # attrs_df = pd.concat(attrs.values(), axis=1)
-        attrs_df = attrs
+        # attr_files = self.data_source_dir.glob("CAMELS_DK_*.csv")
+        # attrs = {
+        #     f.stem.split("_")[1]: pd.read_csv(
+        #         f, sep=",", index_col=0, dtype={"catch_id": str}
+        #     )
+        #     for f in attr_files
+        # }
+        #
+        # # attrs_df = pd.concat(attrs.values(), axis=1)
+        # attrs_df = attrs
+        attr_all, var_lst_all, var_dict, f_dict = self.read_attr_all()
+        attrs_df = pd.DataFrame(data=attr_all[0:, 0:], columns=var_lst_all)
 
         # fix station names
-        def fix_station_nm(station_nm):
-            name = station_nm.title().rsplit(" ", 1)
-            name[0] = name[0] if name[0][-1] == "," else f"{name[0]},"
-            name[1] = name[1].replace(".", "")
-            return " ".join(
-                (name[0], name[1].upper() if len(name[1]) == 2 else name[1].title())
-            )
-
-        attrs_df["gauge_name"] = [fix_station_nm(n) for n in attrs_df["gauge_name"]]
+        # def fix_station_nm(station_nm):
+        #     name = station_nm.title().rsplit(" ", 1)
+        #     name[0] = name[0] if name[0][-1] == "," else f"{name[0]},"
+        #     name[1] = name[1].replace(".", "")
+        #     return " ".join(
+        #         (name[0], name[1].upper() if len(name[1]) == 2 else name[1].title())
+        #     )
+        #
+        # attrs_df["gauge_name"] = [fix_station_nm(n) for n in attrs_df["gauge_name"]]
         obj_cols = attrs_df.columns[attrs_df.dtypes == "object"]
         for c in obj_cols:
             attrs_df[c] = attrs_df[c].str.strip().astype(str)
 
         # transform categorical variables to numeric
-        categorical_mappings = {}
-        for column in attrs_df.columns:
-            if attrs_df[column].dtype == "object":
-                attrs_df[column] = attrs_df[column].astype("category")
-                categorical_mappings[column] = dict(
-                    enumerate(attrs_df[column].cat.categories)
-                )
-                attrs_df[column] = attrs_df[column].cat.codes
+        # categorical_mappings = {}
+        # for column in attrs_df.columns:
+        #     if attrs_df[column].dtype == "object":
+        #         attrs_df[column] = attrs_df[column].astype("category")
+        #         categorical_mappings[column] = dict(
+        #             enumerate(attrs_df[column].cat.categories)
+        #         )
+        #         attrs_df[column] = attrs_df[column].cat.codes
 
         # unify id to basin
-        attrs_df.index.name = "basin"
+        attrs_df.index.name = "basin"  #
         # We use xarray dataset to cache all data
-        ds_from_df = attrs_df.to_xarray()
+        ds_from_df = attrs_df.to_xarray()  # todo: ValueError: cannot convert DataFrame with non-unique columns
         units_dict = {
             "p_mean": "mm/day",
             "t_mean": "Celsius degree",
@@ -738,10 +740,10 @@ class CamelsDk(Camels):
                 ds_from_df[var_name].attrs["units"] = units_dict[var_name]
 
         # Assign categorical mappings to the variables in the Dataset
-        for column in ds_from_df.data_vars:
-            if column in categorical_mappings:
-                mapping_str = categorical_mappings[column]
-                ds_from_df[column].attrs["category_mapping"] = str(mapping_str)
+        # for column in ds_from_df.data_vars:
+        #     if column in categorical_mappings:
+        #         mapping_str = categorical_mappings[column]
+        #         ds_from_df[column].attrs["category_mapping"] = str(mapping_str)
         return ds_from_df
 
     def cache_forcing_xrdataset(self):
