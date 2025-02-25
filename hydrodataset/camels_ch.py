@@ -332,7 +332,7 @@ class CamelsCh(Camels):
                 k = k + 1
             out_lst.append(out_temp)
         out = np.concatenate(out_lst, 1)
-        return out, var_lst, var_dict, f_dict
+        return out, var_lst, var_dict, f_dict  #
 
     def read_constant_cols(
         self, gage_id_lst=None, var_lst=None, is_return_dict=False, **kwargs
@@ -355,7 +355,7 @@ class CamelsCh(Camels):
             When we need to know what a factorized value represents, we need return a tuple;
             otherwise just return an array
         """
-        attr_all, var_lst_all, var_dict, f_dict = self.read_attr_all()
+        attr_all, var_lst_all, var_dict, f_dict = self.read_attr_all() #
         ind_var = [var_lst_all.index(var) for var in var_lst]
         id_lst_all = self.read_object_ids()
         # Notice the sequence of station ids ! Some id_lst_all are not sorted, so don't use np.intersect1d
@@ -468,9 +468,6 @@ class CamelsCh(Camels):
     def cache_attributes_xrdataset(self):
         """Convert all the attributes to a single dataframe
 
-        attributes不用先cache成np和json文件，直接转为dataframe, 后面直接输出成.nc
-        但是这里没有用到前面的read_constant_cols和read_attr_all
-
         Returns
         -------
         None
@@ -478,47 +475,14 @@ class CamelsCh(Camels):
         # NOTICE: although it seems that we don't use pint_xarray, we have to import this package
         import pint_xarray
 
-        attr_files = self.data_source_description["CAMELS_ATTR_DIR"].glob("CAMELS_CH_*.csv")
-        index_col_ = 1
+        attr_all, var_lst_all, var_dict, f_dict = self.read_attr_all()
 
-        attrs = {
-            f.stem.split("_")[1]: pd.read_csv(
-                f, sep=",", index_col=0, dtype={"gauge_id": str}
-            )
-            for f in attr_files  #这里这样读属性数据，那前面为什么要写read_constant_cols和read_attr_all？
-        }
-
-        # attrs_df = pd.concat(attrs.values(), axis=1)
-        attrs_df = attrs
-
-        # fix station names
-        # def fix_station_nm(station_nm):
-        #     name = station_nm.title().rsplit(" ", 1)
-        #     name[0] = name[0] if name[0][-1] == "," else f"{name[0]},"
-        #     name[1] = name[1].replace(".", "")
-        #     return " ".join(
-        #         (name[0], name[1].upper() if len(name[1]) == 2 else name[1].title())
-        #     )
-        #
-        # attrs_df["gauge_name"] = [fix_station_nm(n) for n in attrs_df["gauge_name"]]
-        obj_cols = attrs_df.columns[attrs_df.dtypes == "object"]
-        for c in obj_cols:
-            attrs_df[c] = attrs_df[c].str.strip().astype(str)
-
-        # transform categorical variables to numeric
-        categorical_mappings = {}
-        for column in attrs_df.columns:
-            if attrs_df[column].dtype == "object":
-                attrs_df[column] = attrs_df[column].astype("category")
-                categorical_mappings[column] = dict(
-                    enumerate(attrs_df[column].cat.categories)
-                )
-                attrs_df[column] = attrs_df[column].cat.codes
+        attrs_df = pd.DataFrame(data=attr_all[0:,0:],columns=var_lst_all)
 
         # unify id to basin
         attrs_df.index.name = "basin"
         # We use xarray dataset to cache all data
-        ds_from_df = attrs_df.to_xarray()
+        ds_from_df = attrs_df.to_xarray()  # *
         units_dict = {
             "ind_start_date": "dimensionless",
             "ind_end_date": "dimensionless",
@@ -723,11 +687,6 @@ class CamelsCh(Camels):
             if var_name in ds_from_df.data_vars:
                 ds_from_df[var_name].attrs["units"] = units_dict[var_name]
 
-        # Assign categorical mappings to the variables in the Dataset
-        for column in ds_from_df.data_vars:
-            if column in categorical_mappings:
-                mapping_str = categorical_mappings[column]
-                ds_from_df[column].attrs["category_mapping"] = str(mapping_str)
         return ds_from_df
 
     def cache_forcing_xrdataset(self):
