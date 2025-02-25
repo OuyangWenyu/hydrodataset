@@ -476,7 +476,6 @@ class CamelsCh(Camels):
         import pint_xarray
 
         attr_all, var_lst_all, var_dict, f_dict = self.read_attr_all()
-
         attrs_df = pd.DataFrame(data=attr_all[0:,0:],columns=var_lst_all)
 
         # unify id to basin
@@ -777,4 +776,4 @@ class CamelsCh(Camels):
         ds_streamflow = self.cache_streamflow_xrdataset()
         ds_forcing = self.cache_forcing_xrdataset()
         ds = xr.merge([ds_streamflow, ds_forcing])
-        ds.to_netcdf(CACHE_DIR.joinpath("camelsch_timeseries.nc"))
+        ds.to_netcdf(CACHE_DIR.joinpath("camelsch_timeseries.nc"))  # todo: Forward slashes '/' are not allowed in variable and dimension names (got 'precipitation(mm/d)'). Forward slashes are used as hierarchy-separators for HDF5-based files ('netcdf4'/'h5netcdf').
