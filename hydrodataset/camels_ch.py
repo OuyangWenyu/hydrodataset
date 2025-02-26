@@ -432,12 +432,13 @@ class CamelsCh(Camels):
             hydro_time.t2str(tmp)
             for tmp in hydro_time.t_range_days(t_range).tolist()
         ]
+        variables_list = self.delete_variables_unit(variables)  # delete the unit behind the variables name, e.g. 'prcp(mm/day)' -> 'prcp'
         data_info = collections.OrderedDict(
             {
                 "dim": ["basin", "time", "variable"],
                 "basin": basins.tolist(),
                 "time": times,
-                "variable": variables.tolist(),
+                "variable": variables_list,
             }
         )
         with open(json_file, "w") as FP:
@@ -461,12 +462,13 @@ class CamelsCh(Camels):
         times = [
             hydro_time.t2str(tmp) for tmp in hydro_time.t_range_days(t_range).tolist()
         ]
+        variables_list = self.delete_variables_unit(variables)  # delete the unit behind the variables name, e.g. "discharge_vol(m3/s)" -> "discharge_vol"
         data_info = collections.OrderedDict(
             {
                 "dim": ["basin", "time", "variable"],
                 "basin": basins.tolist(),
                 "time": times,
-                "variable": variables.tolist(),
+                "variable": variables_list,
             }
         )
         with open(json_file, "w") as FP:
@@ -765,7 +767,7 @@ class CamelsCh(Camels):
                     streamflow[:, :, 0],
                     {"units": self.streamflow_unit},
                 ),
-                "ET": (
+                "ET": (     # todo: where the ET data comes from?
                     ["basin", "time"],
                     streamflow[:, :, 1],
                     {"units": "mm/day"},

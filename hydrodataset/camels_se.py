@@ -473,40 +473,12 @@ class CamelsSe(Camels):
         # NOTICE: although it seems that we don't use pint_xarray, we have to import this package
         import pint_xarray
 
-        attr_files = self.data_source_dir.glob("catchments_*.csv")
-        attrs = {
-            f.stem.split("_")[1]: pd.read_csv(
-                f, sep=",", index_col=0, dtype={"ID": str}
-            )
-            for f in attr_files
-        }
+        attr_all, var_lst_all, var_dict, f_dict = self.read_attr_all()
+        attrs_df = pd.DataFrame(data=attr_all[0:, 0:], columns=var_lst_all)
 
-        # attrs_df = pd.concat(attrs.values(), axis=1)
-        attrs_df = attrs
-
-        # fix station names
-        def fix_station_nm(station_nm):
-            name = station_nm.title().rsplit(" ", 1)
-            name[0] = name[0] if name[0][-1] == "," else f"{name[0]},"
-            name[1] = name[1].replace(".", "")
-            return " ".join(
-                (name[0], name[1].upper() if len(name[1]) == 2 else name[1].title())
-            )
-
-        attrs_df["gauge_name"] = [fix_station_nm(n) for n in attrs_df["gauge_name"]]
-        obj_cols = attrs_df.columns[attrs_df.dtypes == "object"]
-        for c in obj_cols:
-            attrs_df[c] = attrs_df[c].str.strip().astype(str)
-
-        # transform categorical variables to numeric
-        categorical_mappings = {}
-        for column in attrs_df.columns:
-            if attrs_df[column].dtype == "object":
-                attrs_df[column] = attrs_df[column].astype("category")
-                categorical_mappings[column] = dict(
-                    enumerate(attrs_df[column].cat.categories)
-                )
-                attrs_df[column] = attrs_df[column].cat.codes
+        # delete the repetitive attribute item, "Water_percentage".
+        duplicate_columns = attrs_df.columns[attrs_df.columns.duplicated()]
+        attrs_df = attrs_df.loc[:, ~attrs_df.columns.duplicated()]
 
         # unify id to basin
         attrs_df.index.name = "basin"
@@ -551,7 +523,6 @@ class CamelsSe(Camels):
             "Bedrock_percentage": "%",
             "Postglacial_sand_and_gravel_percentage": "%",
             "Till_percentage": "%",
-            "Water_percentage": "%",
             "Peat_percentage": "%",
             "Silt_percentage": "%",
             "Clayey_till_and_clay_till_percentage": "%",
@@ -564,11 +535,6 @@ class CamelsSe(Camels):
             if var_name in ds_from_df.data_vars:
                 ds_from_df[var_name].attrs["units"] = units_dict[var_name]
 
-        # Assign categorical mappings to the variables in the Dataset
-        for column in ds_from_df.data_vars:
-            if column in categorical_mappings:
-                mapping_str = categorical_mappings[column]
-                ds_from_df[column].attrs["category_mapping"] = str(mapping_str)
         return ds_from_df
 
     def cache_forcing_xrdataset(self):
@@ -635,7 +601,7 @@ class CamelsSe(Camels):
                     streamflow[:, :, 0],
                     {"units": self.streamflow_unit},
                 ),
-                "ET": (
+                "ET": (    # todo: the ET use the Qobs_mm streamflow? why?
                     ["basin", "time"],
                     streamflow[:, :, 1],
                     {"units": "mm/day"},

@@ -1928,3 +1928,24 @@ class Camels(HydroDataset):
     @property
     def streamflow_unit(self):
         return "foot^3/s"
+
+
+    def delete_variables_unit(self, variables):
+        """
+        delete the unit behind the variables name, e.g. 'prcp(mm/day)' -> 'prcp'
+
+        Parameters
+        ----------
+        variables,
+
+        Returns
+        -------
+        variables_list,
+        """
+
+        variables_list = []
+        for name in variables:
+            name_ = name.split("(")[0]
+            variables_list.append(name_)
+
+        return variables_list

@@ -328,7 +328,7 @@ class CamelsInd(Camels):
                     gage_id_lst[k], t_range, var_lst[j]
                 )
                 x[k, :, j] = data_forcing
-        return x    # todo: need to delete the "/" in variables name
+        return x
 
     def read_attr_all(self):
         """
@@ -452,12 +452,14 @@ class CamelsInd(Camels):
             hydro_time.t2str(tmp)
             for tmp in hydro_time.t_range_days(t_range).tolist()
         ]
+
+        variables_list = self.delete_variables_unit(variables)  # delete the unit behind the variables name, e.g. 'prcp(mm/day)' -> 'prcp'
         data_info = collections.OrderedDict(
             {
                 "dim": ["basin", "time", "variable"],
                 "basin": basins.tolist(),
                 "time": times,
-                "variable": variables.tolist(),
+                "variable": variables_list,
             }
         )
         with open(json_file, "w") as FP:
@@ -467,7 +469,6 @@ class CamelsInd(Camels):
             t_range=t_range,
             var_lst=variables.tolist(),
         )
-        # todo: or handle the forward slashes '/' problem here ?
         np.save(cache_npy_file, data)
 
     def cache_streamflow_np_json(self):
@@ -794,6 +795,12 @@ class CamelsInd(Camels):
                     streamflow[:, :, 0],
                     {"units": self.streamflow_unit},
                 ),
+                # todo: what about ET?
+                # "ET": (  # todo: where the ET data comes from?
+                #     ["basin", "time"],
+                #     streamflow[:, :, 1],
+                #     {"units": "mm/day"},
+                # ),
             },
             coords={
                 "basin": basins,
