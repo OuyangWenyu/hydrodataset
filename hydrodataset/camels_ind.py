@@ -820,4 +820,4 @@ class CamelsInd(Camels):
         ds_streamflow = self.cache_streamflow_xrdataset()
         ds_forcing = self.cache_forcing_xrdataset()
         ds = xr.merge([ds_streamflow, ds_forcing])
-        ds.to_netcdf(CACHE_DIR.joinpath("camelsind_timeseries.nc"))  # todo: ValueError: Forward slashes '/' are not allowed in variable and dimension names (got 'prcp(mm/day)'). Forward slashes are used as hierarchy-separators for HDF5-based files ('netcdf4'/'h5netcdf').
+        ds.to_netcdf(CACHE_DIR.joinpath("camelsind_timeseries.nc"))

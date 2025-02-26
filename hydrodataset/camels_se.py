@@ -478,7 +478,9 @@ class CamelsSe(Camels):
 
         # delete the repetitive attribute item, "Water_percentage".
         duplicate_columns = attrs_df.columns[attrs_df.columns.duplicated()]
-        attrs_df = attrs_df.loc[:, ~attrs_df.columns.duplicated()]
+        if duplicate_columns.size > 0:
+            attrs_df = attrs_df.loc[:, ~attrs_df.columns.duplicated()]
+
 
         # unify id to basin
         attrs_df.index.name = "basin"

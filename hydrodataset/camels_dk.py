@@ -84,7 +84,6 @@ class CamelsDk(Camels):
             "geology",
             "landuse",
             "signature_obs_based",
-            "signature_sim_based",
             "soil",
             "topography",
         ]
@@ -189,8 +188,8 @@ class CamelsDk(Camels):
         t_range
             the time range, for example, ["1989-01-02", "2023-12-31"]
         var_type
-            flow type: "Qobs","Qdkm"
-            forcing type: "precipitation","temperature","pet","DKM_dtp","DKM_eta","DKM_wcr","DKM_sdr","DKM_sre","DKM_gwh","Qdkm","DKM_irr","Abstraction"
+            flow type: "Qobs","Qdkm"  # Qdkm means Qsim
+            forcing type: "precipitation","temperature","pet","DKM_dtp","DKM_eta","DKM_wcr","DKM_sdr","DKM_sre","DKM_gwh","DKM_irr","Abstraction"
 
         Returns
         -------
@@ -314,6 +313,7 @@ class CamelsDk(Camels):
             dict, the all enumerated type or categorical variable in all attributes item, e.g. in dk, the enumerated type "high_prec_timing" and its items ->
             'high_prec_timing': ['jja', 'son']. For dk, len(f_dict) = 2.
         """
+
         data_folder = self.data_source_description["CAMELS_ATTR_DIR"]
         key_lst = self.data_source_description["CAMELS_ATTR_KEY_LST"]
         f_dict = {}
@@ -342,7 +342,7 @@ class CamelsDk(Camels):
                     out_temp[:, k] = data_temp[field].values
                 k = k + 1
             out_lst.append(out_temp)
-        out = np.concatenate(out_lst, 1)   #todo；some processing is need to delete the repetitive attribute item which caused error in cache_attributes_xrdataset() method.
+        out = np.concatenate(out_lst, 1)
         return out, var_lst, var_dict, f_dict
 
     def read_constant_cols(
@@ -486,47 +486,13 @@ class CamelsDk(Camels):
         # NOTICE: although it seems that we don't use pint_xarray, we have to import this package
         import pint_xarray
 
-        # attr_files = self.data_source_dir.glob("CAMELS_DK_*.csv")
-        # attrs = {
-        #     f.stem.split("_")[1]: pd.read_csv(
-        #         f, sep=",", index_col=0, dtype={"catch_id": str}
-        #     )
-        #     for f in attr_files
-        # }
-        #
-        # # attrs_df = pd.concat(attrs.values(), axis=1)
-        # attrs_df = attrs
         attr_all, var_lst_all, var_dict, f_dict = self.read_attr_all()
         attrs_df = pd.DataFrame(data=attr_all[0:, 0:], columns=var_lst_all)
-
-        # fix station names
-        # def fix_station_nm(station_nm):
-        #     name = station_nm.title().rsplit(" ", 1)
-        #     name[0] = name[0] if name[0][-1] == "," else f"{name[0]},"
-        #     name[1] = name[1].replace(".", "")
-        #     return " ".join(
-        #         (name[0], name[1].upper() if len(name[1]) == 2 else name[1].title())
-        #     )
-        #
-        # attrs_df["gauge_name"] = [fix_station_nm(n) for n in attrs_df["gauge_name"]]
-        # obj_cols = attrs_df.columns[attrs_df.dtypes == "object"]
-        # for c in obj_cols:
-        #     attrs_df[c] = attrs_df[c].str.strip().astype(str)
-
-        # transform categorical variables to numeric
-        # categorical_mappings = {}
-        # for column in attrs_df.columns:
-        #     if attrs_df[column].dtype == "object":
-        #         attrs_df[column] = attrs_df[column].astype("category")
-        #         categorical_mappings[column] = dict(
-        #             enumerate(attrs_df[column].cat.categories)
-        #         )
-        #         attrs_df[column] = attrs_df[column].cat.codes
 
         # unify id to basin
         attrs_df.index.name = "basin"  #
         # We use xarray dataset to cache all data
-        ds_from_df = attrs_df.to_xarray()  # todo: ValueError: cannot convert DataFrame with non-unique columns. Two same item "Q_mean" lead to this error.
+        ds_from_df = attrs_df.to_xarray()
         units_dict = {
             "p_mean": "mm/day",
             "t_mean": "Celsius degree",
@@ -654,55 +620,6 @@ class CamelsDk(Camels):
             "RecessionK_part": "1/day",
             "SeasonalTranslation": "dimensionless",
             "SnowStorage": "mm",
-            "Q_mean": "mm/day",
-            "Q5": "mm/timestep",
-            "Q95": "mm/timestep",
-            "Q_7_day_min": "mm/day",
-            "BFI": "percent",
-            "CoV": "dimensionless",
-            "high_Q_frequency": "dimensionless",
-            "low_Q_frequency": "dimensionless",
-            "zero_Q_frequency": "dimensionless",
-            "high_Q_duration": "timestep",
-            "low_Q_duration": "timestep",
-            "zero_Q_duration": "day",
-            "HFD_mean": "day/year",
-            "HFI_mean": "day",
-            "AC1": "dimensionless",
-            "FDC_slope": "percent",
-            "BaseflowRecessionK": "1/d",
-            "TotalRR": "percent",
-            "QP_elasticity": "percent",
-            "SnowDayRatio": "dimensionless",
-            "RLD": "1/day",
-            "RR_Seasonality": "dimensionless",
-            "EventRR": "dimensionless",
-            "StorageFraction": "dimensionless",
-            "Recession_a_Seasonality": "dimensionless",
-            "AverageStorage": "dimensionless",
-            "Spearmans_rho": "dimensionless",
-            "EventRR_TotalRR_ratio": "dimensionless",
-            "VariabilityIndex": "dimensionless",
-            "IE_effect": "dimensionless",
-            "SE_effect": "dimensionless",
-            "IE_thresh_signif": "dimensionless",
-            "IE_thresh": "mm/day",
-            "SE_thresh_signif": "dimensionless",
-            "SE_thresh": "mm",
-            "SE_slope": "dimensionless",
-            "Storage_thresh_signif": "dimensionless",
-            "Storage_thresh": "mm",
-            "min_Qf_perc": "dimensionless",
-            "BaseflowMagnitude": "mm",
-            "ResponseTime": "day",
-            "FlashinessIndex": "dimensionless",
-            "PQ_Curve": "dimensionless",
-            "Q_n_day_max": "mm/day",
-            "Q_skew": "mm^3/day^3",
-            "Q_var": "mm^2/day^2",
-            "RecessionK_part": "1/day",
-            "SeasonalTranslation": "dimensionless",
-            "SnowStorage": "mm",
             "root_depth": "m",
             "pct_sand": "percent",
             "pct_silt": "percent",
@@ -752,11 +669,6 @@ class CamelsDk(Camels):
             if var_name in ds_from_df.data_vars:
                 ds_from_df[var_name].attrs["units"] = units_dict[var_name]
 
-        # Assign categorical mappings to the variables in the Dataset
-        # for column in ds_from_df.data_vars:
-        #     if column in categorical_mappings:
-        #         mapping_str = categorical_mappings[column]
-        #         ds_from_df[column].attrs["category_mapping"] = str(mapping_str)
         return ds_from_df
 
     def cache_forcing_xrdataset(self):

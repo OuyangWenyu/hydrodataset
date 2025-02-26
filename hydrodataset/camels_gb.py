@@ -11,12 +11,11 @@ import warnings
         In addition, we need a document to explain the meaning of all dimensions.
 
         """
-        cache_npy_file = CACHE_DIR.joinpath(
-            "camels_gb_forcing.npy")  # "C:\Users\xxxx\AppData\Local\hydro\Cache\camels_xx_forcing.json"
+        cache_npy_file = CACHE_DIR.joinpath("camels_gb_forcing.npy")  # "C:\Users\xxxx\AppData\Local\hydro\Cache\camels_xx_forcing.json"
         json_file = CACHE_DIR.joinpath("camels_gb_forcing.json")
         variables = self.get_relevant_cols()
         basins = self.sites["gauge_id"].values
-        t_range = ["1990-01-01", "2000-01-01"]
+        t_range = ["1970-10-01", "2015-09-30"]
         times = [
             hydro_time.t2str(tmp)
             for tmp in hydro_time.t_range_days(t_range).tolist()
@@ -46,7 +45,7 @@ import warnings
         json_file = CACHE_DIR.joinpath("camels_gb_streamflow.json")
         variables = self.get_target_cols()
         basins = self.sites["gauge_id"].values
-        t_range = ["1990-01-01", "2000-01-01"]
+        t_range = ["1970-10-01", "2015-09-30"]
         times = [
             hydro_time.t2str(tmp) for tmp in hydro_time.t_range_days(t_range).tolist()
         ]

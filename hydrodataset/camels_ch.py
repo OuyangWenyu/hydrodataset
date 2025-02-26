@@ -496,7 +496,7 @@ class CamelsCh(Camels):
         # unify id to basin
         attrs_df.index.name = "basin"
         # We use xarray dataset to cache all data
-        ds_from_df = attrs_df.to_xarray()
+        ds_from_df = attrs_df.to_xarray()    # todo: for duplicate variables, why no bug?
         units_dict = {
             "ind_start_date": "dimensionless",
             "ind_end_date": "dimensionless",
@@ -664,7 +664,7 @@ class CamelsCh(Camels):
             "conductivity_90": "cm/h",
             "conductivity_skewness": "cm/h",
             "conductivity_missing": "cm/h",
-            "country": "dimensionless",
+            "country": "dimensionless", #
             "gauge_name": "dimensionless",
             "water_body_name": "dimensionless",
             "id6": "dimensionless",
@@ -791,4 +791,4 @@ class CamelsCh(Camels):
         ds_streamflow = self.cache_streamflow_xrdataset()
         ds_forcing = self.cache_forcing_xrdataset()
         ds = xr.merge([ds_streamflow, ds_forcing])
-        ds.to_netcdf(CACHE_DIR.joinpath("camelsch_timeseries.nc"))  # todo: Forward slashes '/' are not allowed in variable and dimension names (got 'precipitation(mm/d)'). Forward slashes are used as hierarchy-separators for HDF5-based files ('netcdf4'/'h5netcdf').
+        ds.to_netcdf(CACHE_DIR.joinpath("camelsch_timeseries.nc"))
