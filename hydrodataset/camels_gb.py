@@ -2,41 +2,41 @@ import json
 import warnings
 
 
-def cache_forcing_np_json(self):
-    """
-    Save all basin-forcing data in a numpy array file in the cache directory.
+    def cache_forcing_np_json(self):
+        """
+        Save all basin-forcing data in a numpy array file in the cache directory.
 
-    Because it takes much time to read data from csv files,
-    it is a good way to cache data as a numpy file to speed up the reading.
-    In addition, we need a document to explain the meaning of all dimensions.
+        Because it takes much time to read data from csv files,
+        it is a good way to cache data as a numpy file to speed up the reading.
+        In addition, we need a document to explain the meaning of all dimensions.
 
-    """
-    cache_npy_file = CACHE_DIR.joinpath(
-        "camels_gb_forcing.npy")  # "C:\Users\xxxx\AppData\Local\hydro\Cache\camels_xx_forcing.json"
-    json_file = CACHE_DIR.joinpath("camels_gb_forcing.json")
-    variables = self.get_relevant_cols()
-    basins = self.sites["gauge_id"].values
-    t_range = ["1990-01-01", "2000-01-01"]
-    times = [
-        hydro_time.t2str(tmp)
-        for tmp in hydro_time.t_range_days(t_range).tolist()
-    ]
-    data_info = collections.OrderedDict(
-        {
-            "dim": ["basin", "time", "variable"],
-            "basin": basins.tolist(),
-            "time": times,
-            "variable": variables.tolist(),
-        }
-    )
-    with open(json_file, "w") as FP:
-        json.dump(data_info, FP, indent=4)
-    data = self.read_relevant_cols(
-        gage_id_lst=basins.tolist(),
-        t_range=t_range,
-        var_lst=variables.tolist(),
-    )
-    np.save(cache_npy_file, data)
+        """
+        cache_npy_file = CACHE_DIR.joinpath(
+            "camels_gb_forcing.npy")  # "C:\Users\xxxx\AppData\Local\hydro\Cache\camels_xx_forcing.json"
+        json_file = CACHE_DIR.joinpath("camels_gb_forcing.json")
+        variables = self.get_relevant_cols()
+        basins = self.sites["gauge_id"].values
+        t_range = ["1990-01-01", "2000-01-01"]
+        times = [
+            hydro_time.t2str(tmp)
+            for tmp in hydro_time.t_range_days(t_range).tolist()
+        ]
+        data_info = collections.OrderedDict(
+            {
+                "dim": ["basin", "time", "variable"],
+                "basin": basins.tolist(),
+                "time": times,
+                "variable": variables.tolist(),
+            }
+        )
+        with open(json_file, "w") as FP:
+            json.dump(data_info, FP, indent=4)
+        data = self.read_relevant_cols(
+            gage_id_lst=basins.tolist(),
+            t_range=t_range,
+            var_lst=variables.tolist(),
+        )
+        np.save(cache_npy_file, data)
 
     def cache_streamflow_np_json(self):
         """
@@ -133,4 +133,43 @@ def cache_forcing_np_json(self):
             if column in categorical_mappings:
                 mapping_str = categorical_mappings[column]
                 ds_from_df[column].attrs["category_mapping"] = str(mapping_str)
-        return ds_from_df
+
+    def cache_forcing_xrdataset(self):
+        """Save all basin-forcing data in a netcdf file in the cache directory.
+
+        """
+        cache_npy_file = CACHE_DIR.joinpath("camels_gb_forcing.npy")
+        json_file = CACHE_DIR.joinpath("camels_gb_forcing.json")
+        if (not os.path.isfile(cache_npy_file)) or (not os.path.isfile(json_file)):
+            self.cache_forcing_np_json()
+        forcing = np.load(cache_npy_file)
+        with open(json_file, "r") as fp:
+            forcing_dict = json.load(
+                fp, object_pairs_hook=collections.OrderedDict
+            )
+        import pint_xarray
+
+        basins = forcing_dict["basin"]
+        times = pd.date_range(
+            forcing_dict["time"][0], periods=len(forcing_dict["time"])
+        )
+        variables = forcing_dict["variable"]
+
+        units = ["m", "mm/day", "°C", "°C", "°C", "%", "mm"]
+        return xr.Dataset(
+            data_vars={
+                **{
+                    variables[i]: (
+                        ["basin", "time"],
+                        forcing[:, :, i],
+                        {"units": units[i]},
+                    )
+                    for i in range(len(variables))
+                }
+            },
+            coords={
+                "basin": basins,
+                "time": times,
+            },
+            attrs={"forcing_type": "observation"},
+        )

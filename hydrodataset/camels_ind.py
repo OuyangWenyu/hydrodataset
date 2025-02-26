@@ -90,7 +90,7 @@ class CamelsInd(Camels):
             "geol",
             "hydro",
             "land",
-            # "name",  # gauge metadata
+            "name",  # gauge metadata
             "soil",
             "topo",
         ]
@@ -328,7 +328,7 @@ class CamelsInd(Camels):
                     gage_id_lst[k], t_range, var_lst[j]
                 )
                 x[k, :, j] = data_forcing
-        return x
+        return x    # todo: need to delete the "/" in variables name
 
     def read_attr_all(self):
         """
@@ -467,6 +467,7 @@ class CamelsInd(Camels):
             t_range=t_range,
             var_lst=variables.tolist(),
         )
+        # todo: or handle the forward slashes '/' problem here ?
         np.save(cache_npy_file, data)
 
     def cache_streamflow_np_json(self):
@@ -508,43 +509,8 @@ class CamelsInd(Camels):
         # NOTICE: although it seems that we don't use pint_xarray, we have to import this package
         import pint_xarray
 
-        # attr_files = self.data_source_dir.glob("camels_ind_*.csv")
-        # attrs = {
-        #     f.stem.split("_")[1]: pd.read_csv(
-        #         f, sep=",", index_col=0, dtype={"gauge_id": str}
-        #     )
-        #     for f in attr_files
-        # }
-        #
-        # # attrs_df = pd.concat(attrs.values(), axis=1)
-        # attrs_df = attrs
-
         attr_all, var_lst_all, var_dict, f_dict = self.read_attr_all()
         attrs_df = pd.DataFrame(data=attr_all[0:, 0:], columns=var_lst_all)
-
-        # fix station names
-        def fix_station_nm(station_nm):
-            name = station_nm.title().rsplit(" ", 1)
-            name[0] = name[0] if name[0][-1] == "," else f"{name[0]},"
-            name[1] = name[1].replace(".", "")
-            return " ".join(
-                (name[0], name[1].upper() if len(name[1]) == 2 else name[1].title())
-            )
-
-        attrs_df["gauge_name"] = [fix_station_nm(n) for n in attrs_df["gauge_name"]]
-        obj_cols = attrs_df.columns[attrs_df.dtypes == "object"]
-        for c in obj_cols:
-            attrs_df[c] = attrs_df[c].str.strip().astype(str)
-
-        # transform categorical variables to numeric
-        categorical_mappings = {}
-        for column in attrs_df.columns:
-            if attrs_df[column].dtype == "object":
-                attrs_df[column] = attrs_df[column].astype("category")
-                categorical_mappings[column] = dict(
-                    enumerate(attrs_df[column].cat.categories)
-                )
-                attrs_df[column] = attrs_df[column].cat.codes
 
         # unify id to basin
         attrs_df.index.name = "basin"
@@ -762,11 +728,6 @@ class CamelsInd(Camels):
             if var_name in ds_from_df.data_vars:
                 ds_from_df[var_name].attrs["units"] = units_dict[var_name]
 
-        # Assign categorical mappings to the variables in the Dataset
-        for column in ds_from_df.data_vars:
-            if column in categorical_mappings:
-                mapping_str = categorical_mappings[column]
-                ds_from_df[column].attrs["category_mapping"] = str(mapping_str)
         return ds_from_df
 
     def cache_forcing_xrdataset(self):
@@ -833,11 +794,6 @@ class CamelsInd(Camels):
                     streamflow[:, :, 0],
                     {"units": self.streamflow_unit},
                 ),
-                "ET": (
-                    ["basin", "time"],
-                    streamflow[:, :, 1],
-                    {"units": "mm/day"},
-                ),
             },
             coords={
                 "basin": basins,
@@ -857,4 +813,4 @@ class CamelsInd(Camels):
         ds_streamflow = self.cache_streamflow_xrdataset()
         ds_forcing = self.cache_forcing_xrdataset()
         ds = xr.merge([ds_streamflow, ds_forcing])
-        ds.to_netcdf(CACHE_DIR.joinpath("camelsind_timeseries.nc"))
+        ds.to_netcdf(CACHE_DIR.joinpath("camelsind_timeseries.nc"))  # todo: ValueError: Forward slashes '/' are not allowed in variable and dimension names (got 'prcp(mm/day)'). Forward slashes are used as hierarchy-separators for HDF5-based files ('netcdf4'/'h5netcdf').

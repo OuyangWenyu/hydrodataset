@@ -298,8 +298,21 @@ class CamelsDk(Camels):
 
     def read_attr_all(self):
         """
-         Read Attributes data
+         Read attributes data all
 
+        Returns
+        -------
+        out
+            np.ndarray, the all attribute values, do not contain the column names, pure numerical values. For dk, (3330, 217).
+        var_lst
+            list, the all attributes item, the column names, e.g. "p_mean", "root_depth", "slope_mean" and so on. For dk, len(var_lst) = 217.
+        var_dict
+            dict, the all attribute keys and their attribute items, e.g. in dk, the key "climate" and its attribute items -> 'climate': ['p_mean',
+            't_mean', 'pet_mean', 'aridity', 'high_prec_freq', 'high_prec_dur', 'high_prec_timing', 'low_prec_freq', 'low_prec_dur', 'low_prec_timing',
+            'frac_snow_daily', 'p_seasonality']. For dk, len(var_dict) = 7.
+        f_dict
+            dict, the all enumerated type or categorical variable in all attributes item, e.g. in dk, the enumerated type "high_prec_timing" and its items ->
+            'high_prec_timing': ['jja', 'son']. For dk, len(f_dict) = 2.
         """
         data_folder = self.data_source_description["CAMELS_ATTR_DIR"]
         key_lst = self.data_source_description["CAMELS_ATTR_KEY_LST"]
@@ -322,14 +335,14 @@ class CamelsDk(Camels):
             out_temp = np.full([n_gage, len(var_lst_temp)], np.nan)
             for field in var_lst_temp:
                 if is_string_dtype(data_temp[field]):
-                    value, ref = pd.factorize(data_temp[field], sort=True)
+                    value, ref = pd.factorize(data_temp[field], sort=True)  # Encode the object as an enumerated type or categorical variable.
                     out_temp[:, k] = value
                     f_dict[field] = ref.tolist()
                 elif is_numeric_dtype(data_temp[field]):
                     out_temp[:, k] = data_temp[field].values
                 k = k + 1
             out_lst.append(out_temp)
-        out = np.concatenate(out_lst, 1)
+        out = np.concatenate(out_lst, 1)   #todo；some processing is need to delete the repetitive attribute item which caused error in cache_attributes_xrdataset() method.
         return out, var_lst, var_dict, f_dict
 
     def read_constant_cols(
@@ -496,9 +509,9 @@ class CamelsDk(Camels):
         #     )
         #
         # attrs_df["gauge_name"] = [fix_station_nm(n) for n in attrs_df["gauge_name"]]
-        obj_cols = attrs_df.columns[attrs_df.dtypes == "object"]
-        for c in obj_cols:
-            attrs_df[c] = attrs_df[c].str.strip().astype(str)
+        # obj_cols = attrs_df.columns[attrs_df.dtypes == "object"]
+        # for c in obj_cols:
+        #     attrs_df[c] = attrs_df[c].str.strip().astype(str)
 
         # transform categorical variables to numeric
         # categorical_mappings = {}
@@ -513,7 +526,7 @@ class CamelsDk(Camels):
         # unify id to basin
         attrs_df.index.name = "basin"  #
         # We use xarray dataset to cache all data
-        ds_from_df = attrs_df.to_xarray()  # todo: ValueError: cannot convert DataFrame with non-unique columns
+        ds_from_df = attrs_df.to_xarray()  # todo: ValueError: cannot convert DataFrame with non-unique columns. Two same item "Q_mean" lead to this error.
         units_dict = {
             "p_mean": "mm/day",
             "t_mean": "Celsius degree",
@@ -810,7 +823,7 @@ class CamelsDk(Camels):
                     streamflow[:, :, 0],
                     {"units": self.streamflow_unit},
                 ),
-                "ET": (
+                "ET": (  # todo: where the ET data comes from?
                     ["basin", "time"],
                     streamflow[:, :, 1],
                     {"units": "mm/day"},

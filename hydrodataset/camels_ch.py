@@ -294,8 +294,21 @@ class CamelsCh(Camels):
 
     def read_attr_all(self):
         """
-         Read Attributes data
+         Read attributes data all
 
+        Returns
+        -------
+        out
+            np.ndarray, the all attribute values, do not contain the column names, pure numerical values. For ch, (331, 188).
+        var_lst
+            list, the all attributes item, the column names, e.g. "p_mean", "grass_perc", "area" and so on. For ch, len(var_lst) = 188.
+        var_dict
+            dict, the all attribute keys and their attribute items, e.g. in ch, the key "climate" and its attribute items -> 'climate': ['ind_start_date',
+            'ind_end_date', 'ind_number_of_years', 'p_mean', 'pet_mean', 'aridity', 'p_seasonality', 'frac_snow', 'high_prec_freq', 'high_prec_dur',
+            'high_prec_timing', 'low_prec_freq', 'low_prec_dur', 'low_prec_timing']. For ch, len(var_dict) = 10.
+        f_dict
+            dict, the all enumerated type or categorical variable in all attributes item, e.g. in ch, the enumerated type "country" and its items ->
+            'country': ['A', 'CH', 'DE', 'FR', 'I']. For ch, len(f_dict) = 8.
         """
         data_folder = self.data_source_description["CAMELS_ATTR_DIR"]
         key_lst = self.data_source_description["CAMELS_ATTR_KEY_LST"]
@@ -324,7 +337,7 @@ class CamelsCh(Camels):
             out_temp = np.full([n_gage, len(var_lst_temp)], np.nan)
             for field in var_lst_temp:
                 if is_string_dtype(data_temp[field]):
-                    value, ref = pd.factorize(data_temp[field], sort=True)
+                    value, ref = pd.factorize(data_temp[field], sort=True) # Encode the object as an enumerated type or categorical variable.
                     out_temp[:, k] = value
                     f_dict[field] = ref.tolist()
                 elif is_numeric_dtype(data_temp[field]):
@@ -481,7 +494,7 @@ class CamelsCh(Camels):
         # unify id to basin
         attrs_df.index.name = "basin"
         # We use xarray dataset to cache all data
-        ds_from_df = attrs_df.to_xarray()  # *
+        ds_from_df = attrs_df.to_xarray()
         units_dict = {
             "ind_start_date": "dimensionless",
             "ind_end_date": "dimensionless",
