@@ -481,14 +481,13 @@ class CamelsSe(Camels):
         if duplicate_columns.size > 0:
             attrs_df = attrs_df.loc[:, ~attrs_df.columns.duplicated()]
 
-
         # unify id to basin
         attrs_df.index.name = "basin"
         # We use xarray dataset to cache all data
         ds_from_df = attrs_df.to_xarray()
         units_dict = {
             "S01_Qmean": "mm/year",
-            "S02_Qcoeff": "%",
+            "S02_Qcoeff": "percent",
             "S03_COM": "dimensionless",
             "S04_SPD": "dimensionless",
             "S05_Qmean_spring": "mm/season",
@@ -503,33 +502,34 @@ class CamelsSe(Camels):
             "S14_T_maxQ_d1": "dimensionless",
             "S15_maxQ_d30": "mm",
             "S16_maxQ_d1": "mm",
-            "Urban_percentage": "%",
-            "Water_percentage": "%",
-            "Forest_percentage": "%",
-            "Open_land_percentage": "%",
-            "Agriculture_percentage": "%",
-            "Glaciers_percentage": "%",
-            "Shrubs_and_grassland_percentage": "%",
-            "Wetlands_percentage": "%",
+            "Urban_percentage": "percent",
+            "Water_percentage": "percent",
+            "Forest_percentage": "percent",
+            "Open_land_percentage": "percent",
+            "Agriculture_percentage": "percent",
+            "Glaciers_percentage": "percent",
+            "Shrubs_and_grassland_percentage": "percent",
+            "Wetlands_percentage": "percent",
             "Name": "dimensionless",
             "Latitude_WGS84": "degree N",
             "Longitude_WGS84": "degree E",
             "Area_km2": "km^2",
             "Elevation_mabsl": "m a.s.l.",
             "Slope_mean_degree": "degree",
-            "DOR": "%",
+            "DOR": "percent",
             "RegVol_m3": "m^3",
             "Pmean_mm_year": "mm/yr",
             "Tmean_C": "Celsius degree",
-            "Glaciofluvial_sediment_percentage": "%",
-            "Bedrock_percentage": "%",
-            "Postglacial_sand_and_gravel_percentage": "%",
-            "Till_percentage": "%",
-            "Peat_percentage": "%",
-            "Silt_percentage": "%",
-            "Clayey_till_and_clay_till_percentage": "%",
-            "Till_and_weathered_deposit_percentage": "%",
-            "Glacier_percentage": "%",
+            "Glaciofluvial_sediment_percentage": "percent",
+            "Bedrock_percentage": "percent",
+            "Postglacial_sand_and_gravel_percentage": "percent",
+            "Till_percentage": "percent",
+            "Water_percentage": "percent",  # todo：
+            "Peat_percentage": "percent",
+            "Silt_percentage": "percent",
+            "Clayey_till_and_clay_till_percentage": "percent",
+            "Till_and_weathered_deposit_percentage": "percent",
+            "Glacier_percentage": "percent",
         }
 
         # Assign units to the variables in the Dataset

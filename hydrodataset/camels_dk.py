@@ -74,7 +74,7 @@ class CamelsDk(Camels):
             "Ungauged_catchments",
         )
         flow_dir = [flow_dir1, flow_dir2]
-        forcing_dir = flow_dir  #todo: 这里有问题，属性文件里面所有的catch_id混合在一起，如何区分哪些catch_id在Gauged_catchments里面、哪些在Ungauged_catchments里面。
+        forcing_dir = flow_dir
         # attr
         attr_dir = camels_db.joinpath(
             "Attributes",
@@ -188,7 +188,7 @@ class CamelsDk(Camels):
         t_range
             the time range, for example, ["1989-01-02", "2023-12-31"]
         var_type
-            flow type: "Qobs","Qdkm"  # Qdkm means Qsim
+            flow type: "Qobs","Qdkm"   # Qdkm means Qsim
             forcing type: "precipitation","temperature","pet","DKM_dtp","DKM_eta","DKM_wcr","DKM_sdr","DKM_sre","DKM_gwh","DKM_irr","Abstraction"
 
         Returns
@@ -197,15 +197,25 @@ class CamelsDk(Camels):
             streamflow or forcing data of one station for a given time range
         """
         logging.debug("reading %s streamflow data", gage_id)
-        gage_file = os.path.join(
-            self.data_source_description["CAMELS_FLOW_DIR"],
+        # locate the gage file
+        gage_file1 = os.path.join(
+            self.data_source_description["CAMELS_FLOW_DIR"][0],
             "CAMELS_DK_obs_based_" + gage_id + ".csv",
         )
+        gage_file2 = os.path.join(
+            self.data_source_description["CAMELS_FLOW_DIR"][1],
+            "CAMELS_DK_sim_based_" + gage_id + ".csv",
+        )
+        if os.path.exists(gage_file1):
+            gage_file = gage_file1
+        elif os.path.exists(gage_file2):
+            gage_file = gage_file2
         data_temp = pd.read_csv(gage_file, sep=",")
+
         obs = data_temp[var_type].values
         if var_type in ["Qobs","Qdkm"]:
             obs[obs < 0] = np.nan
-        date = pd.to_datetime(data_temp["date"]).values.astype("datetime64[D]")
+        date = pd.to_datetime(data_temp["time"]).values.astype("datetime64[D]")
         return time_intersect_dynamic_data(obs, date, t_range)
 
     def read_target_cols(
@@ -276,7 +286,7 @@ class CamelsDk(Camels):
         t_range
             the time range, for example, ["1989-01-02", "2023-12-31"]
         var_lst
-            forcing variable type: "precipitation","temperature","pet","DKM_dtp","DKM_eta","DKM_wcr","DKM_sdr","DKM_sre","DKM_gwh","Qdkm","DKM_irr","Abstraction"
+            forcing variable type: "precipitation","temperature","pet","DKM_dtp","DKM_eta","DKM_wcr","DKM_sdr","DKM_sre","DKM_gwh","DKM_irr","Abstraction"
         forcing_type
             support for CAMELS-DK, there are ** types:
         Returns
@@ -490,7 +500,7 @@ class CamelsDk(Camels):
         attrs_df = pd.DataFrame(data=attr_all[0:, 0:], columns=var_lst_all)
 
         # unify id to basin
-        attrs_df.index.name = "basin"  #
+        attrs_df.index.name = "basin"
         # We use xarray dataset to cache all data
         ds_from_df = attrs_df.to_xarray()
         units_dict = {

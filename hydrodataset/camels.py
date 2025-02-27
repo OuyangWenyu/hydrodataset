@@ -1949,3 +1949,31 @@ class Camels(HydroDataset):
             variables_list.append(name_)
 
         return variables_list
+
+    def unit_convert_mean_prcp(self, p_mean):
+        """
+        convert the mean precipitation uint to mm/d
+        Parameters
+        ----------
+        p_mean
+
+        Returns
+        -------
+        converted_data
+
+        """
+        if unit in ["mm/d", "mm/day"]:
+            converted_data = p_mean
+        elif unit in ["mm/h", "mm/hour"]:
+            converted_data = p_mean / 24
+        elif unit in ["mm/3h", "mm/3hour"]:
+            converted_data = p_mean / 8
+        elif unit in ["mm/8d", "mm/8day"]:
+            converted_data = p_mean * 8
+        elif unit in ["mm/y", "mm/year"]:  # the added unit transform for year
+            converted_data = data * 365  # todo: whether or not to consider the leap year
+        else:
+            raise ValueError(
+                "unit must be one of ['mm/d', 'mm/day', 'mm/h', 'mm/hour', 'mm/3h', 'mm/3hour', 'mm/8d', 'mm/8day', 'mm/y', 'mm/year']"
+            )
+        return converted_data

@@ -7,7 +7,7 @@ def test_read_forcing():
     forcings = camelsdk.read_relevant_cols(
         gage_ids[:5],
         ["1989-01-02", "2023-12-31"],
-		var_lst = ["precipitation","temperature","pet","DKM_dtp","DKM_eta","DKM_wcr","DKM_sdr","DKM_sre","DKM_gwh","Qdkm","DKM_irr","Abstraction"]
+		var_lst = ["precipitation","temperature","pet","DKM_dtp","DKM_eta","DKM_wcr","DKM_sdr","DKM_sre","DKM_gwh","DKM_irr","Abstraction"]
     )
     print(forcings)
 

@@ -70,13 +70,17 @@ class CamelsFr(Camels):
             "daily",
         )
         forcing_dir = flow_dir
-        # attr  todo: there are two attribution folders, how to deal?
-        attr_dir = camels_db.joinpath(
+        # attr
+        attr_dir1 = camels_db.joinpath(
             "CAMELS_FR_attributes",
             "static_attributes",
-            # "time_series_statistics"
         )
-        attr_key_lst = [    # todo: the commented attribution files have different number of rows with station number
+        attr_dir2 = camels_db.joinpath(
+            "CAMELS_FR_attributes",
+            "time_series_statistics"
+        )
+        attr_dir = [attr_dir1, attr_dir2]
+        attr_key_lst = [    # the commented attribution files have different number of rows with station number
             "geology",
             "human_influences_dams",
             "hydrogeology",
@@ -84,11 +88,18 @@ class CamelsFr(Camels):
             # "site_general",   # metadata   "sit_area_hydro", hydrological catchment area
             # "soil_general",
             # "soil_quantiles",
-            # "station_general",  # metadata
+            "station_general",  # metadata
             "topography_general",
             # "topography_quantiles",
+            "climatic_statistics",      # time_series_statistics
+            # "hydroclimatic_quantiles",
+            # "hydroclimatic_regimes_daily",
+            "hydroclimatic_statistics_joint_availability_yearly",
+            # "hydroclimatic_statistics_timeseries_yearly",
+            "hydrological_signatures",
+            "hydrometry_statistics",
         ]
-        gauge_id_file = attr_dir.joinpath("CAMELS_FR_geology_attributes.csv")
+        gauge_id_file = attr_dir1.joinpath("CAMELS_FR_geology_attributes.csv")
 
         return collections.OrderedDict(
             CAMELS_DIR = camels_db,
@@ -307,7 +318,8 @@ class CamelsFr(Camels):
          Read Attributes data
 
         """
-        data_folder = self.data_source_description["CAMELS_ATTR_DIR"]
+        data_folder1 = self.data_source_description["CAMELS_ATTR_DIR"][0]
+        data_folder2 = self.data_source_description["CAMELS_ATTR_DIR"][1]
         key_lst = self.data_source_description["CAMELS_ATTR_KEY_LST"]
         f_dict = {}
         var_dict = {}
@@ -317,7 +329,13 @@ class CamelsFr(Camels):
         camels_str = "CAMELS_FR_"
         sep_ = ";"
         for key in key_lst:
-            data_file = os.path.join(data_folder, camels_str + key + "_attributes.csv")
+            # locate the attribute file
+            data_file1 = os.path.join(data_folder1, camels_str + key + "_attributes.csv")
+            data_file2 = os.path.join(data_folder2, camels_str + key + ".csv")
+            if os.path.exists(data_file1):
+                data_file = data_file1
+            elif os.path.exists(data_file2):
+                data_file = data_file2
             data_temp = pd.read_csv(data_file, sep=sep_)
             var_lst_temp = list(data_temp.columns[1:])
             var_dict[key] = var_lst_temp
@@ -370,9 +388,9 @@ class CamelsFr(Camels):
         return (out, var_dict, f_dict) if is_return_dict else out
 
     def read_area(self, gage_id_lst) -> np.ndarray:
-        return self.read_constant_cols(gage_id_lst, ["sit_area_hydro"], is_return_dict=False)   # todo:
+        return self.read_constant_cols(gage_id_lst, ["sit_area_hydro"], is_return_dict=False)
 
-    def read_mean_prcp(self, gage_id_lst, unit="mm/d") -> xr.Dataset:  # todo:
+    def read_mean_prcp(self, gage_id_lst, unit="mm/d") -> xr.Dataset:
         """Read mean precipitation data
 
         Parameters
@@ -480,40 +498,8 @@ class CamelsFr(Camels):
         # NOTICE: although it seems that we don't use pint_xarray, we have to import this package
         import pint_xarray
 
-        attr_files = self.data_source_dir.glob("CAMELS_FR_*.csv")
-        attrs = {
-            f.stem.split("_")[1]: pd.read_csv(
-                f, sep=",", index_col=0, dtype={"sta_code_h3": str}
-            )
-            for f in attr_files
-        }
-
-        # attrs_df = pd.concat(attrs.values(), axis=1)
-        attrs_df = attrs
-
-        # fix station names
-        def fix_station_nm(station_nm):
-            name = station_nm.title().rsplit(" ", 1)
-            name[0] = name[0] if name[0][-1] == "," else f"{name[0]},"
-            name[1] = name[1].replace(".", "")
-            return " ".join(
-                (name[0], name[1].upper() if len(name[1]) == 2 else name[1].title())
-            )
-
-        attrs_df["gauge_name"] = [fix_station_nm(n) for n in attrs_df["gauge_name"]]
-        obj_cols = attrs_df.columns[attrs_df.dtypes == "object"]
-        for c in obj_cols:
-            attrs_df[c] = attrs_df[c].str.strip().astype(str)
-
-        # transform categorical variables to numeric
-        categorical_mappings = {}
-        for column in attrs_df.columns:
-            if attrs_df[column].dtype == "object":
-                attrs_df[column] = attrs_df[column].astype("category")
-                categorical_mappings[column] = dict(
-                    enumerate(attrs_df[column].cat.categories)
-                )
-                attrs_df[column] = attrs_df[column].cat.codes
+        attr_all, var_lst_all, var_dict, f_dict = self.read_attr_all()
+        attrs_df = pd.DataFrame(data=attr_all[0:, 0:], columns=var_lst_all)
 
         # unify id to basin
         attrs_df.index.name = "basin"
@@ -521,188 +507,188 @@ class CamelsFr(Camels):
         ds_from_df = attrs_df.to_xarray()
         units_dict = {
             "geo_dom_class": "dimensionless",
-            "geo_su": "%",
-            "geo_ss": "%",
-            "geo_py": "%",
-            "geo_sm": "%",
-            "geo_sc": "%",
-            "geo_ev": "%",
-            "geo_va": "%",
-            "geo_vi": "%",
-            "geo_vb": "%",
-            "geo_pa": "%",
-            "geo_pi": "%",
-            "geo_pb": "%",
-            "geo_mt": "%",
-            "geo_wb": "%",
-            "geo_ig": "%",
-            "geo_nd": "%",
+            "geo_su": "percent",
+            "geo_ss": "percent",
+            "geo_py": "percent",
+            "geo_sm": "percent",
+            "geo_sc": "percent",
+            "geo_ev": "percent",
+            "geo_va": "percent",
+            "geo_vi": "percent",
+            "geo_vb": "percent",
+            "geo_pa": "percent",
+            "geo_pi": "percent",
+            "geo_pb": "percent",
+            "geo_mt": "percent",
+            "geo_wb": "percent",
+            "geo_ig": "percent",
+            "geo_nd": "percent",
             "dam_n": "dimensionless",
             "dam_volume": "Mm^3",
             "dam_influence": "mm",
-            "hgl_krs_not_karstic": "%",
-            "hgl_krs_karstic": "%",
-            "hgl_krs_unknown": "%",
-            "hgl_thm_alluvial": "%",
-            "hgl_thm_sedimentary": "%",
-            "hgl_thm_bedrock": "%",
-            "hgl_thm_intense_folded": "%",
-            "hgl_thm_volcanism": "%",
-            "hgl_thm_unknown": "%",
+            "hgl_krs_not_karstic": "percent",
+            "hgl_krs_karstic": "percent",
+            "hgl_krs_unknown": "percent",
+            "hgl_thm_alluvial": "percent",
+            "hgl_thm_sedimentary": "percent",
+            "hgl_thm_bedrock": "percent",
+            "hgl_thm_intense_folded": "percent",
+            "hgl_thm_volcanism": "percent",
+            "hgl_thm_unknown": "percent",
             "hgl_permeability": "log10(m^2)",
             "hgl_porosity": "dimensionless",
             "clc_2018_lvl1_dom_class": "dimensionless",
-            "clc_2018_lvl1_1": "%",
-            "clc_2018_lvl1_2": "%",
-            "clc_2018_lvl1_3": "%",
-            "clc_2018_lvl1_4": "%",
-            "clc_2018_lvl1_5": "%",
-            "clc_2018_lvl1_na": "%",
+            "clc_2018_lvl1_1": "percent",
+            "clc_2018_lvl1_2": "percent",
+            "clc_2018_lvl1_3": "percent",
+            "clc_2018_lvl1_4": "percent",
+            "clc_2018_lvl1_5": "percent",
+            "clc_2018_lvl1_na": "percent",
             "clc_2018_lvl2_dom_class": "dimensionless",
-            "clc_2018_lvl2_11": "%",
-            "clc_2018_lvl2_12": "%",
-            "clc_2018_lvl2_13": "%",
-            "clc_2018_lvl2_14": "%",
-            "clc_2018_lvl2_21": "%",
-            "clc_2018_lvl2_22": "%",
-            "clc_2018_lvl2_23": "%",
-            "clc_2018_lvl2_24": "%",
-            "clc_2018_lvl2_31": "%",
-            "clc_2018_lvl2_32": "%",
-            "clc_2018_lvl2_33": "%",
-            "clc_2018_lvl2_41": "%",
-            "clc_2018_lvl2_42": "%",
-            "clc_2018_lvl2_51": "%",
-            "clc_2018_lvl2_52": "%",
-            "clc_2018_lvl2_na": "%",
+            "clc_2018_lvl2_11": "percent",
+            "clc_2018_lvl2_12": "percent",
+            "clc_2018_lvl2_13": "percent",
+            "clc_2018_lvl2_14": "percent",
+            "clc_2018_lvl2_21": "percent",
+            "clc_2018_lvl2_22": "percent",
+            "clc_2018_lvl2_23": "percent",
+            "clc_2018_lvl2_24": "percent",
+            "clc_2018_lvl2_31": "percent",
+            "clc_2018_lvl2_32": "percent",
+            "clc_2018_lvl2_33": "percent",
+            "clc_2018_lvl2_41": "percent",
+            "clc_2018_lvl2_42": "percent",
+            "clc_2018_lvl2_51": "percent",
+            "clc_2018_lvl2_52": "percent",
+            "clc_2018_lvl2_na": "percent",
             "clc_2018_lvl3_dom_class": "dimensionless",
-            "clc_2018_lvl3_111": "%",
-            "clc_2018_lvl3_112": "%",
-            "clc_2018_lvl3_121": "%",
-            "clc_2018_lvl3_122": "%",
-            "clc_2018_lvl3_123": "%",
-            "clc_2018_lvl3_124": "%",
-            "clc_2018_lvl3_131": "%",
-            "clc_2018_lvl3_132": "%",
-            "clc_2018_lvl3_133": "%",
-            "clc_2018_lvl3_141": "%",
-            "clc_2018_lvl3_142": "%",
-            "clc_2018_lvl3_211": "%",
-            "clc_2018_lvl3_212": "%",
-            "clc_2018_lvl3_213": "%",
-            "clc_2018_lvl3_221": "%",
-            "clc_2018_lvl3_222": "%",
-            "clc_2018_lvl3_223": "%",
-            "clc_2018_lvl3_231": "%",
-            "clc_2018_lvl3_241": "%",
-            "clc_2018_lvl3_242": "%",
-            "clc_2018_lvl3_243": "%",
-            "clc_2018_lvl3_244": "%",
-            "clc_2018_lvl3_311": "%",
-            "clc_2018_lvl3_312": "%",
-            "clc_2018_lvl3_313": "%",
-            "clc_2018_lvl3_321": "%",
-            "clc_2018_lvl3_322": "%",
-            "clc_2018_lvl3_323": "%",
-            "clc_2018_lvl3_324": "%",
-            "clc_2018_lvl3_331": "%",
-            "clc_2018_lvl3_332": "%",
-            "clc_2018_lvl3_333": "%",
-            "clc_2018_lvl3_334": "%",
-            "clc_2018_lvl3_335": "%",
-            "clc_2018_lvl3_411": "%",
-            "clc_2018_lvl3_412": "%",
-            "clc_2018_lvl3_421": "%",
-            "clc_2018_lvl3_422": "%",
-            "clc_2018_lvl3_423": "%",
-            "clc_2018_lvl3_511": "%",
-            "clc_2018_lvl3_512": "%",
-            "clc_2018_lvl3_521": "%",
-            "clc_2018_lvl3_522": "%",
-            "clc_2018_lvl3_523": "%",
-            "clc_2018_lvl3_na": "%",
+            "clc_2018_lvl3_111": "percent",
+            "clc_2018_lvl3_112": "percent",
+            "clc_2018_lvl3_121": "percent",
+            "clc_2018_lvl3_122": "percent",
+            "clc_2018_lvl3_123": "percent",
+            "clc_2018_lvl3_124": "percent",
+            "clc_2018_lvl3_131": "percent",
+            "clc_2018_lvl3_132": "percent",
+            "clc_2018_lvl3_133": "percent",
+            "clc_2018_lvl3_141": "percent",
+            "clc_2018_lvl3_142": "percent",
+            "clc_2018_lvl3_211": "percent",
+            "clc_2018_lvl3_212": "percent",
+            "clc_2018_lvl3_213": "percent",
+            "clc_2018_lvl3_221": "percent",
+            "clc_2018_lvl3_222": "percent",
+            "clc_2018_lvl3_223": "percent",
+            "clc_2018_lvl3_231": "percent",
+            "clc_2018_lvl3_241": "percent",
+            "clc_2018_lvl3_242": "percent",
+            "clc_2018_lvl3_243": "percent",
+            "clc_2018_lvl3_244": "percent",
+            "clc_2018_lvl3_311": "percent",
+            "clc_2018_lvl3_312": "percent",
+            "clc_2018_lvl3_313": "percent",
+            "clc_2018_lvl3_321": "percent",
+            "clc_2018_lvl3_322": "percent",
+            "clc_2018_lvl3_323": "percent",
+            "clc_2018_lvl3_324": "percent",
+            "clc_2018_lvl3_331": "percent",
+            "clc_2018_lvl3_332": "percent",
+            "clc_2018_lvl3_333": "percent",
+            "clc_2018_lvl3_334": "percent",
+            "clc_2018_lvl3_335": "percent",
+            "clc_2018_lvl3_411": "percent",
+            "clc_2018_lvl3_412": "percent",
+            "clc_2018_lvl3_421": "percent",
+            "clc_2018_lvl3_422": "percent",
+            "clc_2018_lvl3_423": "percent",
+            "clc_2018_lvl3_511": "percent",
+            "clc_2018_lvl3_512": "percent",
+            "clc_2018_lvl3_521": "percent",
+            "clc_2018_lvl3_522": "percent",
+            "clc_2018_lvl3_523": "percent",
+            "clc_2018_lvl3_na": "percent",
             "clc_1990_lvl1_dom_class": "dimensionless",
-            "clc_1990_lvl1_1": "%",
-            "clc_1990_lvl1_2": "%",
-            "clc_1990_lvl1_3": "%",
-            "clc_1990_lvl1_4": "%",
-            "clc_1990_lvl1_5": "%",
-            "clc_1990_lvl1_na": "%",
+            "clc_1990_lvl1_1": "percent",
+            "clc_1990_lvl1_2": "percent",
+            "clc_1990_lvl1_3": "percent",
+            "clc_1990_lvl1_4": "percent",
+            "clc_1990_lvl1_5": "percent",
+            "clc_1990_lvl1_na": "percent",
             "clc_1990_lvl2_dom_class": "dimensionless",
-            "clc_1990_lvl2_11": "%",
-            "clc_1990_lvl2_12": "%",
-            "clc_1990_lvl2_13": "%",
-            "clc_1990_lvl2_14": "%",
-            "clc_1990_lvl2_21": "%",
-            "clc_1990_lvl2_22": "%",
-            "clc_1990_lvl2_23": "%",
-            "clc_1990_lvl2_24": "%",
-            "clc_1990_lvl2_31": "%",
-            "clc_1990_lvl2_32": "%",
-            "clc_1990_lvl2_33": "%",
-            "clc_1990_lvl2_41": "%",
-            "clc_1990_lvl2_42": "%",
-            "clc_1990_lvl2_51": "%",
-            "clc_1990_lvl2_52": "%",
-            "clc_1990_lvl2_na": "%",
+            "clc_1990_lvl2_11": "percent",
+            "clc_1990_lvl2_12": "percent",
+            "clc_1990_lvl2_13": "percent",
+            "clc_1990_lvl2_14": "percent",
+            "clc_1990_lvl2_21": "percent",
+            "clc_1990_lvl2_22": "percent",
+            "clc_1990_lvl2_23": "percent",
+            "clc_1990_lvl2_24": "percent",
+            "clc_1990_lvl2_31": "percent",
+            "clc_1990_lvl2_32": "percent",
+            "clc_1990_lvl2_33": "percent",
+            "clc_1990_lvl2_41": "percent",
+            "clc_1990_lvl2_42": "percent",
+            "clc_1990_lvl2_51": "percent",
+            "clc_1990_lvl2_52": "percent",
+            "clc_1990_lvl2_na": "percent",
             "clc_1990_lvl3_dom_class": "dimensionless",
-            "clc_1990_lvl3_111": "%",
-            "clc_1990_lvl3_112": "%",
-            "clc_1990_lvl3_121": "%",
-            "clc_1990_lvl3_122": "%",
-            "clc_1990_lvl3_123": "%",
-            "clc_1990_lvl3_124": "%",
-            "clc_1990_lvl3_131": "%",
-            "clc_1990_lvl3_132": "%",
-            "clc_1990_lvl3_133": "%",
-            "clc_1990_lvl3_141": "%",
-            "clc_1990_lvl3_142": "%",
-            "clc_1990_lvl3_211": "%",
-            "clc_1990_lvl3_212": "%",
-            "clc_1990_lvl3_213": "%",
-            "clc_1990_lvl3_221": "%",
-            "clc_1990_lvl3_222": "%",
-            "clc_1990_lvl3_223": "%",
-            "clc_1990_lvl3_231": "%",
-            "clc_1990_lvl3_241": "%",
-            "clc_1990_lvl3_242": "%",
-            "clc_1990_lvl3_243": "%",
-            "clc_1990_lvl3_244": "%",
-            "clc_1990_lvl3_311": "%",
-            "clc_1990_lvl3_312": "%",
-            "clc_1990_lvl3_313": "%",
-            "clc_1990_lvl3_321": "%",
-            "clc_1990_lvl3_322": "%",
-            "clc_1990_lvl3_323": "%",
-            "clc_1990_lvl3_324": "%",
-            "clc_1990_lvl3_331": "%",
-            "clc_1990_lvl3_332": "%",
-            "clc_1990_lvl3_333": "%",
-            "clc_1990_lvl3_334": "%",
-            "clc_1990_lvl3_335": "%",
-            "clc_1990_lvl3_411": "%",
-            "clc_1990_lvl3_412": "%",
-            "clc_1990_lvl3_421": "%",
-            "clc_1990_lvl3_422": "%",
-            "clc_1990_lvl3_423": "%",
-            "clc_1990_lvl3_511": "%",
-            "clc_1990_lvl3_512": "%",
-            "clc_1990_lvl3_521": "%",
-            "clc_1990_lvl3_522": "%",
-            "clc_1990_lvl3_523": "%",
-            "clc_1990_lvl3_na": "%",
+            "clc_1990_lvl3_111": "percent",
+            "clc_1990_lvl3_112": "percent",
+            "clc_1990_lvl3_121": "percent",
+            "clc_1990_lvl3_122": "percent",
+            "clc_1990_lvl3_123": "percent",
+            "clc_1990_lvl3_124": "percent",
+            "clc_1990_lvl3_131": "percent",
+            "clc_1990_lvl3_132": "percent",
+            "clc_1990_lvl3_133": "percent",
+            "clc_1990_lvl3_141": "percent",
+            "clc_1990_lvl3_142": "percent",
+            "clc_1990_lvl3_211": "percent",
+            "clc_1990_lvl3_212": "percent",
+            "clc_1990_lvl3_213": "percent",
+            "clc_1990_lvl3_221": "percent",
+            "clc_1990_lvl3_222": "percent",
+            "clc_1990_lvl3_223": "percent",
+            "clc_1990_lvl3_231": "percent",
+            "clc_1990_lvl3_241": "percent",
+            "clc_1990_lvl3_242": "percent",
+            "clc_1990_lvl3_243": "percent",
+            "clc_1990_lvl3_244": "percent",
+            "clc_1990_lvl3_311": "percent",
+            "clc_1990_lvl3_312": "percent",
+            "clc_1990_lvl3_313": "percent",
+            "clc_1990_lvl3_321": "percent",
+            "clc_1990_lvl3_322": "percent",
+            "clc_1990_lvl3_323": "percent",
+            "clc_1990_lvl3_324": "percent",
+            "clc_1990_lvl3_331": "percent",
+            "clc_1990_lvl3_332": "percent",
+            "clc_1990_lvl3_333": "percent",
+            "clc_1990_lvl3_334": "percent",
+            "clc_1990_lvl3_335": "percent",
+            "clc_1990_lvl3_411": "percent",
+            "clc_1990_lvl3_412": "percent",
+            "clc_1990_lvl3_421": "percent",
+            "clc_1990_lvl3_422": "percent",
+            "clc_1990_lvl3_423": "percent",
+            "clc_1990_lvl3_511": "percent",
+            "clc_1990_lvl3_512": "percent",
+            "clc_1990_lvl3_521": "percent",
+            "clc_1990_lvl3_522": "percent",
+            "clc_1990_lvl3_523": "percent",
+            "clc_1990_lvl3_na": "percent",
             "top_altitude_mean": "m.a.s.l.",
             "top_slo_mean": "degree",
             "top_dist_outlet_mean": "km",
             "top_itopo_mean": "dimensionless",
-            "top_slo_ori_n": "%",
-            "top_slo_ori_ne": "%",
-            "top_slo_ori_e": "%",
-            "top_slo_ori_se": "%",
-            "top_slo_ori_s": "%",
-            "top_slo_ori_sw": "%",
-            "top_slo_ori_w": "%",
-            "top_slo_ori_nw": "%",
+            "top_slo_ori_n": "percent",
+            "top_slo_ori_ne": "percent",
+            "top_slo_ori_e": "percent",
+            "top_slo_ori_se": "percent",
+            "top_slo_ori_s": "percent",
+            "top_slo_ori_sw": "percent",
+            "top_slo_ori_w": "percent",
+            "top_slo_ori_nw": "percent",
             "top_drainage_density": "km km^2",
             "top_mor_form_factor_horton": "dimensionless",
             "top_mor_form_factor_square": "dimensionless",
@@ -712,12 +698,12 @@ class CamelsFr(Camels):
             "top_mor_elong_ratio_circ": "dimensionless",
             "top_mor_elong_ratio_catchment": "dimensionless",
             "top_mor_relief_ratio": "dimensionless",
-            "top_slo_flat": "%",
-            "top_slo_gentle": "%",
-            "top_slo_moderate": "%",
-            "top_slo_strong": "%",
-            "top_slo_steep": "%",
-            "top_slo_very_steep": "%",
+            "top_slo_flat": "percent",
+            "top_slo_gentle": "percent",
+            "top_slo_moderate": "percent",
+            "top_slo_strong": "percent",
+            "top_slo_steep": "percent",
+            "top_slo_very_steep": "percent",
             "cli_prec_mean": "mm/day",
             "cli_pet_ou_mean": "mm/day",
             "cli_pet_pe_mean": "mm/day",
@@ -797,12 +783,12 @@ class CamelsFr(Camels):
             "hyd_q_date_qmna": "dimensionless",
             "hym_q_date_start": "dimensionless",
             "hym_q_date_end": "dimensionless",
-            "hym_q_na_period": "%",
-            "hym_q_na_total": "%",
+            "hym_q_na_period": "percent",
+            "hym_q_na_total": "percent",
             "hym_q_n_year": "dimensionless",
-            "hym_q_questionable": "%",
-            "hym_q_unqualified": "%",
-            "hym_q_anomaly_inrae": "%",
+            "hym_q_questionable": "percent",
+            "hym_q_unqualified": "percent",
+            "hym_q_anomaly_inrae": "percent",
             "hym_q_low_uncertainty_inrae": "dimensionless",
         }
 
@@ -811,11 +797,6 @@ class CamelsFr(Camels):
             if var_name in ds_from_df.data_vars:
                 ds_from_df[var_name].attrs["units"] = units_dict[var_name]
 
-        # Assign categorical mappings to the variables in the Dataset
-        for column in ds_from_df.data_vars:
-            if column in categorical_mappings:
-                mapping_str = categorical_mappings[column]
-                ds_from_df[column].attrs["category_mapping"] = str(mapping_str)
         return ds_from_df
 
     def cache_forcing_xrdataset(self):

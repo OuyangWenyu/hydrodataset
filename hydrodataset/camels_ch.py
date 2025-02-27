@@ -85,7 +85,7 @@ class CamelsCh(Camels):
             "landcover",
             "soil",
             "topographic",
-            "catchments", #this file static_attributes\CAMELS_CH_catchments_attributes.csv should be exported manually from catchment_delineations\CAMELS_CH_catchments.shp to replace the static_attributes\CAMELS_CH_sub_catchment_attributes.csv file, for the reason that the sub file do not contain all stations.
+            "catchment",   #this file static_attributes\CAMELS_CH_catchments_attributes.csv should be exported manually from catchment_delineations\CAMELS_CH_catchments.shp to replace the static_attributes\CAMELS_CH_sub_catchment_attributes.csv file, for the reason that the sub file do not contain all stations.
         ]
         gauge_id_file = attr_dir.joinpath("CAMELS_CH_hydrology_attributes_obs.csv")
 
@@ -400,18 +400,7 @@ class CamelsCh(Camels):
             ["p_mean"],
             is_return_dict=False,
         )
-        if unit in ["mm/d", "mm/day"]:
-            converted_data = data
-        elif unit in ["mm/h", "mm/hour"]:
-            converted_data = data / 24
-        elif unit in ["mm/3h", "mm/3hour"]:
-            converted_data = data / 8
-        elif unit in ["mm/8d", "mm/8day"]:
-            converted_data = data * 8
-        else:
-            raise ValueError(
-                "unit must be one of ['mm/d', 'mm/day', 'mm/h', 'mm/hour', 'mm/3h', 'mm/3hour', 'mm/8d', 'mm/8day']"
-            )
+        converted_data = self.unit_convert_mean_prcp(data)
         return converted_data
 
     def cache_forcing_np_json(self):
@@ -423,7 +412,7 @@ class CamelsCh(Camels):
         In addition, we need a document to explain the meaning of all dimensions.
 
         """
-        cache_npy_file = CACHE_DIR.joinpath("camels_ch_forcing.npy")  # "C:\Users\xxxx\AppData\Local\hydro\Cache\camels_ch_forcing.json"
+        cache_npy_file = CACHE_DIR.joinpath("camels_ch_forcing.npy")
         json_file = CACHE_DIR.joinpath("camels_ch_forcing.json")
         variables = self.get_relevant_cols()
         basins = self.sites["gauge_id"].values
@@ -493,10 +482,15 @@ class CamelsCh(Camels):
         attr_all, var_lst_all, var_dict, f_dict = self.read_attr_all()
         attrs_df = pd.DataFrame(data=attr_all[0:,0:],columns=var_lst_all)
 
+        # delete the repetitive attribute item, "country".
+        duplicate_columns = attrs_df.columns[attrs_df.columns.duplicated()]
+        if duplicate_columns.size > 0:
+            attrs_df = attrs_df.loc[:, ~attrs_df.columns.duplicated()]
+
         # unify id to basin
         attrs_df.index.name = "basin"
         # We use xarray dataset to cache all data
-        ds_from_df = attrs_df.to_xarray()    # todo: for duplicate variables, why no bug?
+        ds_from_df = attrs_df.to_xarray()
         units_dict = {
             "ind_start_date": "dimensionless",
             "ind_end_date": "dimensionless",
@@ -514,19 +508,19 @@ class CamelsCh(Camels):
             "low_prec_timing": "season",
             "geo_porosity": "dimensionless",
             "geo_log10_permeability": "log10(m^2)",
-            "unconsol_sediments": "%",
-            "siliciclastic_sedimentary": "%",
-            "mixed_sedimentary": "%",
-            "carbonate_sedimentary": "%",
-            "pyroclastic": "%",
-            "acid_volcanic": "%",
-            "basic_volcanic": "%",
-            "acid_plutonic": "%",
-            "intermediate_plutonic": "%",
-            "basic_plutonic": "%",
-            "metamorphics": "%",
-            "water_geo": "%",
-            "ice_geo": "%",
+            "unconsol_sediments": "percent",
+            "siliciclastic_sedimentary": "percent",
+            "mixed_sedimentary": "percent",
+            "carbonate_sedimentary": "percent",
+            "pyroclastic": "percent",
+            "acid_volcanic": "percent",
+            "basic_volcanic": "percent",
+            "acid_plutonic": "percent",
+            "intermediate_plutonic": "percent",
+            "basic_plutonic": "percent",
+            "metamorphics": "percent",
+            "water_geo": "percent",
+            "ice_geo": "percent",
             "glac_area": "km^2",
             "glac_vol": "km^3",
             "glac_mass": "MT (10^6 metric tons)",
@@ -539,22 +533,22 @@ class CamelsCh(Camels):
             "hp_max_power": "MW",
             "num_reservoir": "dimensionless",
             "reservoir_cap": "ML",
-            "reservoir_he": "%",
-            "reservoir_fs": "%",
-            "reservoir_irr": "%",
-            "reservoir_nousedata": "%",
-            "reservoir_year_first": "%",
-            "reservoir_year_last": "%",
-            "unconsol_coarse_perc": "%",
-            "unconsol_medium_perc": "%",
-            "unconsol_fine_perc": "%",
-            "unconsol_imperm_perc": "%",
-            "hardrock_perc": "%",
-            "hardrock_imperm_perc": "%",
-            "karst_perc": "%",
-            "water_perc": "%",
-            "null_perc": "%",
-            "ext_area_perc": "%",
+            "reservoir_he": "percent",
+            "reservoir_fs": "percent",
+            "reservoir_irr": "percent",
+            "reservoir_nousedata": "percent",
+            "reservoir_year_first": "percent",
+            "reservoir_year_last": "percent",
+            "unconsol_coarse_perc": "percent",
+            "unconsol_medium_perc": "percent",
+            "unconsol_fine_perc": "percent",
+            "unconsol_imperm_perc": "percent",
+            "hardrock_perc": "percent",
+            "hardrock_imperm_perc": "percent",
+            "karst_perc": "percent",
+            "water_perc": "percent",
+            "null_perc": "percent",
+            "ext_area_perc": "percent",
             "sign_start_date": "dimensionless",
             "sign_end_date": "dimensionless",
             "sign_number_of_years": "dimensionless",
@@ -571,51 +565,51 @@ class CamelsCh(Camels):
             "low_q_freq": "d/yr",
             "low_q_dur": "d",
             "zero_q_freq": "dimensionless",
-            "crop_perc": "%",
-            "grass_perc": "%",
-            "scrub_perc": "%",
-            "dwood_perc": "%",
-            "mixed_wood_perc": "%",
-            "ewood_perc": "%",
-            "wetlands_perc": "%",
-            "inwater_perc": "%",
-            "ice_perc": "%",
-            "loose_rock_perc": "%",
-            "rock_perc": "%",
-            "urban_perc": "%",
+            "crop_perc": "percent",
+            "grass_perc": "percent",
+            "scrub_perc": "percent",
+            "dwood_perc": "percent",
+            "mixed_wood_perc": "percent",
+            "ewood_perc": "percent",
+            "wetlands_perc": "percent",
+            "inwater_perc": "percent",
+            "ice_perc": "percent",
+            "loose_rock_perc": "percent",
+            "rock_perc": "percent",
+            "urban_perc": "percent",
             "dom_land_cover": "dimensionless",
-            "sand_perc": "%",
-            "sand_perc_5": "%",
-            "sand_perc_25": "%",
-            "sand_perc_50": "%",
-            "sand_perc_75": "%",
-            "sand_perc_90": "%",
-            "sand_perc_skewness": "%",
-            "sand_perc_missing": "%",
-            "silt_perc": "%",
-            "silt_perc_5": "%",
-            "silt_perc_25": "%",
-            "silt_perc_50": "%",
-            "silt_perc_75": "%",
-            "silt_perc_90": "%",
-            "silt_perc_skewness": "%",
-            "silt_perc_missing": "%",
-            "clay_perc": "%",
-            "clay_perc_5": "%",
-            "clay_perc_25": "%",
-            "clay_perc_50": "%",
-            "clay_perc_75": "%",
-            "clay_perc_90": "%",
-            "clay_perc_skewness": "%",
-            "clay_perc_missing": "%",
-            "organic_perc": "%",
-            "organic_perc_5": "%",
-            "organic_perc_25": "%",
-            "organic_perc_50": "%",
-            "organic_perc_75": "%",
-            "organic_perc_90": "%",
-            "organic_perc_skewness": "%",
-            "organic_perc_missing": "%",
+            "sand_perc": "percent",
+            "sand_perc_5": "percent",
+            "sand_perc_25": "percent",
+            "sand_perc_50": "percent",
+            "sand_perc_75": "percent",
+            "sand_perc_90": "percent",
+            "sand_perc_skewness": "percent",
+            "sand_perc_missing": "percent",
+            "silt_perc": "percent",
+            "silt_perc_5": "percent",
+            "silt_perc_25": "percent",
+            "silt_perc_50": "percent",
+            "silt_perc_75": "percent",
+            "silt_perc_90": "percent",
+            "silt_perc_skewness": "percent",
+            "silt_perc_missing": "percent",
+            "clay_perc": "percent",
+            "clay_perc_5": "percent",
+            "clay_perc_25": "percent",
+            "clay_perc_50": "percent",
+            "clay_perc_75": "percent",
+            "clay_perc_90": "percent",
+            "clay_perc_skewness": "percent",
+            "clay_perc_missing": "percent",
+            "organic_perc": "percent",
+            "organic_perc_5": "percent",
+            "organic_perc_25": "percent",
+            "organic_perc_50": "percent",
+            "organic_perc_75": "percent",
+            "organic_perc_90": "percent",
+            "organic_perc_skewness": "percent",
+            "organic_perc_missing": "percent",
             "bulk_dens": "g/cm^3",
             "bulk_dens_5": "g/cm^3",
             "bulk_dens_25": "g/cm^3",
@@ -640,14 +634,14 @@ class CamelsCh(Camels):
             "root_depth_90": "m",
             "root_depth_skewness": "m",
             "root_depth_missing": "m",
-            "coarse_fragm_perc": "%",
-            "coarse_fragm_perc_5": "%",
-            "coarse_fragm_perc_25": "%",
-            "coarse_fragm_perc_50": "%",
-            "coarse_fragm_perc_75": "%",
-            "coarse_fragm_perc_90": "%",
-            "coarse_fragm_perc_skewness": "%",
-            "coarse_fragm_perc_missing": "%",
+            "coarse_fragm_perc": "percent",
+            "coarse_fragm_perc_5": "percent",
+            "coarse_fragm_perc_25": "percent",
+            "coarse_fragm_perc_50": "percent",
+            "coarse_fragm_perc_75": "percent",
+            "coarse_fragm_perc_90": "percent",
+            "coarse_fragm_perc_skewness": "percent",
+            "coarse_fragm_perc_missing": "percent",
             "porosity": "dimensionless",
             "porosity_5": "dimensionless",
             "porosity_25": "dimensionless",
@@ -664,7 +658,7 @@ class CamelsCh(Camels):
             "conductivity_90": "cm/h",
             "conductivity_skewness": "cm/h",
             "conductivity_missing": "cm/h",
-            "country": "dimensionless", #
+            "country": "dimensionless",
             "gauge_name": "dimensionless",
             "water_body_name": "dimensionless",
             "id6": "dimensionless",
@@ -684,13 +678,11 @@ class CamelsCh(Camels):
             "elev_percentile90": "m.a.s.l.",
             "elev_max": "m.a.s.l.",
             "slope_mean": "degree",
-            "flat_area_perc": "%",
-            "steep_area_perc": "%",
+            "flat_area_perc": "percent",
+            "steep_area_perc": "percent",
             "ID6": "dimensionless",
-            "gauge_name": "dimensionless",
             "water_body": "dimensionless",
             "type": "dimensionless",
-            "country": "dimensionless",
             "Shape_Leng": "m",
             "Shape_Area": "m^2",
             "ORIG_FID": "dimensionless",
