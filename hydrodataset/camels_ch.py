@@ -776,7 +776,6 @@ class CamelsCh(Camels):
         Save all data in a netcdf file in the cache directory
 
         """
-
         warnings.warn("Check you units of all variables")
         ds_attr = self.cache_attributes_xrdataset()
         ds_attr.to_netcdf(CACHE_DIR.joinpath("camelsch_attributes.nc"))

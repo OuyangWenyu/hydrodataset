@@ -476,7 +476,7 @@ forcings = camelsdk.read_relevant_cols(
     gage_ids[:5],
     ["1989-01-02", "2023-12-31"],
     var_lst = ["precipitation","temperature","pet","DKM_dtp","DKM_eta",
-               "DKM_wcr","DKM_sdr","DKM_sre","DKM_gwh","Qdkm","DKM_irr","Abstraction"]
+               "DKM_wcr","DKM_sdr","DKM_sre","DKM_gwh","DKM_irr","Abstraction"]
 )
 print(forcings)
 streamflow = camelsdk.read_target_cols(
@@ -543,7 +543,6 @@ print(forcings)
 streamflow = camelsind.read_target_cols(
     gage_ids[:5],
     ["1980-01-01", "2020-12-31"],
-        # ["1980,1,1", "2020,12,31"],
         target_cols=["streamflow_observed"],
 )
 print(streamflow)

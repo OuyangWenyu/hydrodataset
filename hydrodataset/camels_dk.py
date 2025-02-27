@@ -408,18 +408,7 @@ class CamelsDk(Camels):
             ["p_mean"],
             is_return_dict=False,
         )
-        if unit in ["mm/d", "mm/day"]:
-            converted_data = data
-        elif unit in ["mm/h", "mm/hour"]:
-            converted_data = data / 24
-        elif unit in ["mm/3h", "mm/3hour"]:
-            converted_data = data / 8
-        elif unit in ["mm/8d", "mm/8day"]:
-            converted_data = data * 8
-        else:
-            raise ValueError(
-                "unit must be one of ['mm/d', 'mm/day', 'mm/h', 'mm/hour', 'mm/3h', 'mm/3hour', 'mm/8d', 'mm/8day']"
-            )
+        converted_data = self.unit_convert_mean_prcp(data)
         return converted_data
 
     def cache_forcing_np_json(self):

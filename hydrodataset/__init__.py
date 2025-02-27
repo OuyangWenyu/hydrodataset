@@ -87,6 +87,7 @@ from .camels_ch import *
 from .camels_de import *
 from .camels_dk import *
 from .camels_fr import *
+from .camels_gb import *
 from .camels_ind import *
 from .camels_se import *
 from .multi_datasets import *
