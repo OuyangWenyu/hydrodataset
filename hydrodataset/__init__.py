@@ -84,6 +84,7 @@ REGIONS = CAMELS_REGIONS + LAMAH_REGIONS + MOPEX_REGIONS
 from .hydro_dataset import *
 from .camels import *
 from .camels_ch import *
+from .camels_cl import *
 from .camels_de import *
 from .camels_dk import *
 from .camels_fr import *
