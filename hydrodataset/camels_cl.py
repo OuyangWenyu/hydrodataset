@@ -176,7 +176,7 @@ class CamelsCl(Camels):
         station_ids = self.sites.columns.values
         # for 7-digit id, replace the space with 0 to get a 8-digit id
         cl_station_ids = [
-            station_id.split(" ")[-1].zfill(8) for station_id in station_ids    # todo: ValueError: ' 1001001' is not in list, there is a space in the head of gauge_id.
+            station_id.split(" ")[-1].zfill(8) for station_id in station_ids
         ]
         return np.array(cl_station_ids)
 
@@ -297,7 +297,7 @@ class CamelsCl(Camels):
             [c, ind1, ind2] = np.intersect1d(date, t_range_list, return_indices=True)
             station_ids = [id_.zfill(8) for id_ in forcing_data.columns.values]
             assert all(x < y for x, y in zip(station_ids, station_ids[1:]))
-            ind3 = [station_ids.index(tmp) for tmp in gage_id_lst]  # todo: ValueError: ' 1001001' is not in list, there is a space in the head of gauge_id.
+            ind3 = [station_ids.index(tmp) for tmp in gage_id_lst]
             # to guarantee the sequence is not changed we don't use np.intersect1d
             chosen_data = forcing_data.iloc[ind1, ind3].replace(
                 "\s+", np.nan, regex=True
