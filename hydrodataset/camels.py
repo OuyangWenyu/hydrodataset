@@ -1887,12 +1887,15 @@ class Camels(HydroDataset):
     def cache_xrdataset(self):
         """Save all data in a netcdf file in the cache directory"""
         warnings.warn("Check you units of all variables")
+        filename = "camels" + self.region.lower()
+        filename_attributes = filename +"_attributes.nc"
+        filename_timeseries = filename + "_timeseries.nc"
         ds_attr = self.cache_attributes_xrdataset()
-        ds_attr.to_netcdf(CACHE_DIR.joinpath("camelsus_attributes.nc"))
+        ds_attr.to_netcdf(CACHE_DIR.joinpath(filename_attributes))
         ds_streamflow = self.cache_streamflow_xrdataset()
         ds_forcing = self.cache_forcing_xrdataset()
         ds = xr.merge([ds_streamflow, ds_forcing])
-        ds.to_netcdf(CACHE_DIR.joinpath("camelsus_timeseries.nc"))
+        ds.to_netcdf(CACHE_DIR.joinpath(filename_timeseries))
 
     def read_ts_xrdataset(
         self,

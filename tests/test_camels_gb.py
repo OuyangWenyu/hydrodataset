@@ -6,7 +6,7 @@ def test_read_forcing():
     print(gage_ids)
     forcings = camelsgb.read_relevant_cols(
         gage_ids[:5],
-        ["1970-10-01", "2015-09-30"],
+        ["1970-10-01", "2015-10-01"],
 		var_lst = ["precipitation", "pet", "temperature", "peti", "humidity", "shortwave_rad", "longwave_rad", "windspeed"]
     )
     print(forcings)
@@ -16,7 +16,7 @@ def test_read_streamflow():
     gage_ids = camelsgb.read_object_ids()
     streamflow = camelsgb.read_target_cols(
         gage_ids[:5],
-        ["1970-10-01", "2015-09-30"],
+        ["1970-10-01", "2015-10-01"],
 		target_cols = ["discharge_spec", "discharge_vol",],
     )
     print(streamflow)

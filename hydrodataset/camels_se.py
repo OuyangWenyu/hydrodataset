@@ -176,7 +176,7 @@ class CamelsSe(Camels):
         gage_id
             the station id
         t_range
-            the time range, for example, ["1961-01-01", "2020-12-31"]
+            the time range, for example, ["1961-01-01", "2021-01-01"]
         var_type
             flow type: "Qobs_m3s", "Qobs_mm"
             forcing type: "Pobs_mm","Tobs_C"
@@ -224,7 +224,7 @@ class CamelsSe(Camels):
         gage_id_lst
             station ids
         t_range
-            the time range, for example, ["1961-01-01", "2020-12-31"]
+            the time range, for example, ["1961-01-01", "2021-01-01"]
         target_cols
             the default is None, but we need at least one default target.
             For CAMELS-SE, it's ["Qobs_m3s"]
@@ -272,7 +272,7 @@ class CamelsSe(Camels):
         gage_id_lst
             station ids
         t_range
-            the time range, for example, ["1961-01-01", "2020-12-31"]
+            the time range, for example, ["1961-01-01", "2021-01-01"]
         var_lst
             forcing variable type: "Pobs_mm","Tobs_C"
         forcing_type
@@ -382,20 +382,7 @@ class CamelsSe(Camels):
             ["Pmean_mm_year"],
             is_return_dict=False,
         )
-        if unit in ["mm/d", "mm/day"]:
-            converted_data = data
-        elif unit in ["mm/h", "mm/hour"]:
-            converted_data = data / 24
-        elif unit in ["mm/3h", "mm/3hour"]:
-            converted_data = data / 8
-        elif unit in ["mm/8d", "mm/8day"]:
-            converted_data = data * 8
-        elif unit in ["mm/y", "mm/year"]: # the added unit transform for year
-            converted_data = data / 365   #todo: whether or not to consider the leap year
-        else:
-            raise ValueError(
-                "unit must be one of ['mm/d', 'mm/day', 'mm/h', 'mm/hour', 'mm/3h', 'mm/3hour', 'mm/8d', 'mm/8day', 'mm/y', 'mm/year']"
-            )
+        converted_data = self.unit_convert_mean_prcp(data)
         return converted_data
 
 
@@ -412,7 +399,7 @@ class CamelsSe(Camels):
         json_file = CACHE_DIR.joinpath("camels_se_forcing.json")
         variables = self.get_relevant_cols()
         basins = self.sites["ID"].values
-        t_range = ["1961-01-01", "2020-12-31"]
+        t_range = ["1961-01-01", "2021-01-01"]
         times = [
             hydro_time.t2str(tmp)
             for tmp in hydro_time.t_range_days(t_range).tolist()
@@ -442,7 +429,7 @@ class CamelsSe(Camels):
         json_file = CACHE_DIR.joinpath("camels_se_streamflow.json")
         variables = self.get_target_cols()
         basins = self.sites["ID"].values
-        t_range = ["1961-01-01", "2020-12-31"]
+        t_range = ["1961-01-01", "2021-01-01"]
         times = [
             hydro_time.t2str(tmp) for tmp in hydro_time.t_range_days(t_range).tolist()
         ]
@@ -524,7 +511,6 @@ class CamelsSe(Camels):
             "Bedrock_percentage": "percent",
             "Postglacial_sand_and_gravel_percentage": "percent",
             "Till_percentage": "percent",
-            "Water_percentage": "percent",  # todo：
             "Peat_percentage": "percent",
             "Silt_percentage": "percent",
             "Clayey_till_and_clay_till_percentage": "percent",
@@ -603,7 +589,7 @@ class CamelsSe(Camels):
                     streamflow[:, :, 0],
                     {"units": self.streamflow_unit},
                 ),
-                "ET": (    # todo: the ET use the Qobs_mm streamflow? why?
+                "ET": (
                     ["basin", "time"],
                     streamflow[:, :, 1],
                     {"units": "mm/day"},
@@ -614,18 +600,3 @@ class CamelsSe(Camels):
                 "time": times,
             },
         )
-
-    def cache_xrdataset(self):
-        """
-        Save all data in a netcdf file in the cache directory
-
-        """
-
-        warnings.warn("Check you units of all variables")
-        ds_attr = self.cache_attributes_xrdataset()
-        ds_attr.to_netcdf(CACHE_DIR.joinpath("camelsse_attributes.nc"))
-        ds_streamflow = self.cache_streamflow_xrdataset()
-        ds_forcing = self.cache_forcing_xrdataset()
-        ds = xr.merge([ds_streamflow, ds_forcing])
-        ds.to_netcdf(CACHE_DIR.joinpath("camelsse_timeseries.nc"))
-

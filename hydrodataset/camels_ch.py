@@ -183,7 +183,7 @@ class CamelsCh(Camels):
         gage_id
             the station id
         t_range
-            the time range, for example, ["1981-01-01","2020-12-31"]
+            the time range, for example, ["1981-01-01","2021-01-01"]
         var_type
             flow type: "discharge_vol(m3/s)", "discharge_spec(mm/d)"
             forcing type: "waterlevel(m)", "precipitation(mm/d)", "temperature_min(degC)", "temperature_mean(degC)", "temperature_max(degC)", "rel_sun_dur(%)", "swe(mm)"
@@ -223,7 +223,7 @@ class CamelsCh(Camels):
         gage_id_lst
             station ids
         t_range
-            the time range, for example, ["1981-01-01","2020-12-31"]
+            the time range, for example, ["1981-01-01","2021-01-01"]
         target_cols
             the default is None, but we need at least one default target.
             For CAMELS-CH, it's ["discharge_vol(m3/s)"]
@@ -271,7 +271,7 @@ class CamelsCh(Camels):
         gage_id_lst
             station ids
         t_range
-            the time range, for example, ["1981-01-01","2020-12-31"]
+            the time range, for example, ["1981-01-01","2021-01-01"]
         var_lst
             forcing variable type: "waterlevel(m)", "precipitation(mm/d)", "temperature_min(degC)", "temperature_mean(degC)", "temperature_max(degC)", "rel_sun_dur(%)", "swe(mm)"
         forcing_type
@@ -416,7 +416,7 @@ class CamelsCh(Camels):
         json_file = CACHE_DIR.joinpath("camels_ch_forcing.json")
         variables = self.get_relevant_cols()
         basins = self.sites["gauge_id"].values
-        t_range = ["1981-01-01","2020-12-31"]
+        t_range = ["1981-01-01","2021-01-01"]
         times = [
             hydro_time.t2str(tmp)
             for tmp in hydro_time.t_range_days(t_range).tolist()
@@ -447,7 +447,7 @@ class CamelsCh(Camels):
         json_file = CACHE_DIR.joinpath("camels_ch_streamflow.json")
         variables = self.get_target_cols()
         basins = self.sites["gauge_id"].values
-        t_range = ["1981-01-01","2020-12-31"]
+        t_range = ["1981-01-01","2021-01-01"]
         times = [
             hydro_time.t2str(tmp) for tmp in hydro_time.t_range_days(t_range).tolist()
         ]
@@ -759,7 +759,7 @@ class CamelsCh(Camels):
                     streamflow[:, :, 0],
                     {"units": self.streamflow_unit},
                 ),
-                "ET": (     # todo: where the ET data comes from?
+                "ET": (
                     ["basin", "time"],
                     streamflow[:, :, 1],
                     {"units": "mm/day"},
@@ -771,15 +771,3 @@ class CamelsCh(Camels):
             },
         )
 
-    def cache_xrdataset(self):
-        """
-        Save all data in a netcdf file in the cache directory
-
-        """
-        warnings.warn("Check you units of all variables")
-        ds_attr = self.cache_attributes_xrdataset()
-        ds_attr.to_netcdf(CACHE_DIR.joinpath("camelsch_attributes.nc"))
-        ds_streamflow = self.cache_streamflow_xrdataset()
-        ds_forcing = self.cache_forcing_xrdataset()
-        ds = xr.merge([ds_streamflow, ds_forcing])
-        ds.to_netcdf(CACHE_DIR.joinpath("camelsch_timeseries.nc"))

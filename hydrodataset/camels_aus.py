@@ -768,7 +768,7 @@ class CamelsAus(Camels):
                     streamflow[:, :, 0],
                     {"units": self.streamflow_unit},
                 ),
-                "ET": (     # todo: where the ET data comes from?
+                "ET": (
                     ["basin", "time"],
                     streamflow[:, :, 1],
                     {"units": "mm/day"},
@@ -779,16 +779,3 @@ class CamelsAus(Camels):
                 "time": times,
             },
         )
-
-    def cache_xrdataset(self):
-        """
-        Save all data in a netcdf file in the cache directory
-
-        """
-        warnings.warn("Check you units of all variables")
-        ds_attr = self.cache_attributes_xrdataset()
-        ds_attr.to_netcdf(CACHE_DIR.joinpath("camelsaus_attributes.nc"))
-        ds_streamflow = self.cache_streamflow_xrdataset()
-        ds_forcing = self.cache_forcing_xrdataset()
-        ds = xr.merge([ds_streamflow, ds_forcing])
-        ds.to_netcdf(CACHE_DIR.joinpath("camelsaus_timeseries.nc"))

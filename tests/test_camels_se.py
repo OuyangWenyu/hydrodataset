@@ -6,7 +6,7 @@ def test_read_forcing():
     print(gage_ids)
     forcings = camelsse.read_relevant_cols(
         gage_ids[:5],
-        ["1961-01-01", "2020-12-31"],
+        ["1961-01-01", "2021-01-01"],
 		var_lst = ["Pobs_mm", "Tobs_C"]
     )
     print(forcings)
@@ -16,7 +16,7 @@ def test_read_streamflow():
     gage_ids = camelsse.read_object_ids()
     streamflow = camelsse.read_target_cols(
         gage_ids[:5],
-        ["1961-01-01", "2020-12-31"],
+        ["1961-01-01", "2021-01-01"],
 		target_cols = ["Qobs_m3s", "Qobs_mm"],
     )
     print(streamflow)

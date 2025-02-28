@@ -169,7 +169,7 @@ class CamelsGb(Camels):
         gage_id
             the station id
         t_range
-            the time range, for example, ["1970-10-01", "2015-09-30"]
+            the time range, for example, ["1970-10-01", "2015-10-01"]
         var_type
             flow type: "discharge_spec" or "discharge_vol"
             forcing type: "precipitation", "pet", "temperature", "peti", "humidity", "shortwave_rad", "longwave_rad",
@@ -210,7 +210,7 @@ class CamelsGb(Camels):
         gage_id_lst
             station ids
         t_range
-            the time range, for example, ["1970-10-01", "2015-09-30"]
+            the time range, for example, ["1970-10-01", "2015-10-01"]
         target_cols
             the default is None, but we need at least one default target.
             For CAMELS-GB, it's ["discharge_spec"]
@@ -258,7 +258,7 @@ class CamelsGb(Camels):
         gage_id_lst
             station ids
         t_range
-            the time range, for example, ["1970-10-01", "2015-09-30"]
+            the time range, for example, ["1970-10-01", "2015-10-01"]
         var_lst
             forcing variable types
         forcing_type
@@ -312,7 +312,7 @@ class CamelsGb(Camels):
         return out, var_lst, var_dict, f_dict
 
     def read_area(self, gage_id_lst) -> np.ndarray:
-        return self.read_constant_cols(gage_id_lst, ["area"], is_return_dict=False)  # todo: area
+        return self.read_constant_cols(gage_id_lst, ["area"], is_return_dict=False)
 
     def read_mean_prcp(self, gage_id_lst, unit="mm/d") -> xr.Dataset:
         """Read mean precipitation data
@@ -334,18 +334,7 @@ class CamelsGb(Camels):
             ["p_mean"],
             is_return_dict=False,
         )
-        if unit in ["mm/d", "mm/day"]:
-            converted_data = data
-        elif unit in ["mm/h", "mm/hour"]:
-            converted_data = data / 24
-        elif unit in ["mm/3h", "mm/3hour"]:
-            converted_data = data / 8
-        elif unit in ["mm/8d", "mm/8day"]:
-            converted_data = data * 8
-        else:
-            raise ValueError(
-                "unit must be one of ['mm/d', 'mm/day', 'mm/h', 'mm/hour', 'mm/3h', 'mm/3hour', 'mm/8d', 'mm/8day']"
-            )
+        converted_data = self.unit_convert_mean_prcp(data)
         return converted_data
 
     def cache_forcing_np_json(self):
@@ -361,7 +350,7 @@ class CamelsGb(Camels):
         json_file = CACHE_DIR.joinpath("camels_gb_forcing.json")
         variables = self.get_relevant_cols()
         basins = self.sites["gauge_id"].values
-        t_range = ["1970-10-01", "2015-09-30"]
+        t_range = ["1970-10-01", "2015-10-01"]
         times = [
             hydro_time.t2str(tmp)
             for tmp in hydro_time.t_range_days(t_range).tolist()
@@ -391,7 +380,7 @@ class CamelsGb(Camels):
         json_file = CACHE_DIR.joinpath("camels_gb_streamflow.json")
         variables = self.get_target_cols()
         basins = self.sites["gauge_id"].values
-        t_range = ["1970-10-01", "2015-09-30"]
+        t_range = ["1970-10-01", "2015-10-01"]
         times = [
             hydro_time.t2str(tmp) for tmp in hydro_time.t_range_days(t_range).tolist()
         ]
@@ -659,16 +648,3 @@ class CamelsGb(Camels):
                 "time": times,
             },
         )
-
-    def cache_xrdataset(self):
-        """
-        Save all data in a netcdf file in the cache directory
-
-        """
-        warnings.warn("Check you units of all variables")
-        ds_attr = self.cache_attributes_xrdataset()
-        ds_attr.to_netcdf(CACHE_DIR.joinpath("camelsgb_attributes.nc"))
-        ds_streamflow = self.cache_streamflow_xrdataset()
-        ds_forcing = self.cache_forcing_xrdataset()
-        ds = xr.merge([ds_streamflow, ds_forcing])
-        ds.to_netcdf(CACHE_DIR.joinpath("camelsgb_timeseries.nc"))

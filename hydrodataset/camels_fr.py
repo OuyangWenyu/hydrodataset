@@ -202,7 +202,7 @@ class CamelsFr(Camels):
         gage_id
             the station id
         t_range
-            the time range, for example, ["1970-01-01", "2021-12-31"]
+            the time range, for example, ["1970-01-01", "2022-01-01"]
         var_type
             flow type: "tsd_q_l", "tsd_q_mm"
             forcing type: "tsd_prec","tsd_prec_solid_frac","tsd_temp","tsd_pet_ou","tsd_pet_pe","tsd_pet_pm","tsd_wind",
@@ -243,7 +243,7 @@ class CamelsFr(Camels):
         gage_id_lst
             station ids
         t_range
-            the time range, for example, ["1970-01-01", "2021-12-31"]
+            the time range, for example, ["1970-01-01", "2022-01-01"]
         target_cols
             the default is None, but we need at least one default target.
             For CAMELS-FR, it's ["tsd_q_l"]
@@ -291,7 +291,7 @@ class CamelsFr(Camels):
         gage_id_lst
             station ids
         t_range
-            the time range, for example, ["1970-01-01", "2021-12-31"]
+            the time range, for example, ["1970-01-01", "2022-01-01"]
         var_lst
             forcing variable type: "tsd_prec","tsd_prec_solid_frac","tsd_temp","tsd_pet_ou","tsd_pet_pe","tsd_pet_pm","tsd_wind",
             "tsd_humid","tsd_rad_dli","tsd_rad_ssi","tsd_swi_gr","tsd_swi_isba","tsd_swe_isba","tsd_temp_min","tsd_temp_max"
@@ -410,18 +410,7 @@ class CamelsFr(Camels):
             ["cli_prec_mean"],
             is_return_dict=False,
         )
-        if unit in ["mm/d", "mm/day"]:
-            converted_data = data
-        elif unit in ["mm/h", "mm/hour"]:
-            converted_data = data / 24
-        elif unit in ["mm/3h", "mm/3hour"]:
-            converted_data = data / 8
-        elif unit in ["mm/8d", "mm/8day"]:
-            converted_data = data * 8
-        else:
-            raise ValueError(
-                "unit must be one of ['mm/d', 'mm/day', 'mm/h', 'mm/hour', 'mm/3h', 'mm/3hour', 'mm/8d', 'mm/8day']"
-            )
+        converted_data = self.unit_convert_mean_prcp(data)
         return converted_data
 
     def cache_forcing_np_json(self):
@@ -437,7 +426,7 @@ class CamelsFr(Camels):
         json_file = CACHE_DIR.joinpath("camels_fr_forcing.json")
         variables = self.get_relevant_cols()
         basins = self.sites["sta_code_h3"].values
-        t_range = ["1970-01-01", "2021-12-31"]
+        t_range = ["1970-01-01", "2022-01-01"]
         times = [
             hydro_time.t2str(tmp)
             for tmp in hydro_time.t_range_days(t_range).tolist()
@@ -467,7 +456,7 @@ class CamelsFr(Camels):
         json_file = CACHE_DIR.joinpath("camels_fr_streamflow.json")
         variables = self.get_target_cols()
         basins = self.sites["sta_code_h3"].values
-        t_range = ["1970-01-01", "2021-12-31"]
+        t_range = ["1970-01-01", "2022-01-01"]
         times = [
             hydro_time.t2str(tmp) for tmp in hydro_time.t_range_days(t_range).tolist()
         ]
@@ -874,17 +863,3 @@ class CamelsFr(Camels):
                 "time": times,
             },
         )
-
-    def cache_xrdataset(self):
-        """
-        Save all data in a netcdf file in the cache directory
-
-        """
-
-        warnings.warn("Check you units of all variables")
-        ds_attr = self.cache_attributes_xrdataset()
-        ds_attr.to_netcdf(CACHE_DIR.joinpath("camelsfr_attributes.nc"))
-        ds_streamflow = self.cache_streamflow_xrdataset()
-        ds_forcing = self.cache_forcing_xrdataset()
-        ds = xr.merge([ds_streamflow, ds_forcing])
-        ds.to_netcdf(CACHE_DIR.joinpath("camelsfr_timeseries.nc"))

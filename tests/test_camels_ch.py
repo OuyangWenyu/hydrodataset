@@ -6,7 +6,7 @@ def test_read_forcing():
     print(gage_ids)
     forcings = camelsch.read_relevant_cols(
         gage_ids[:5],
-        ["1981-01-01","2020-12-31"],
+        ["1981-01-01","2021-01-01"],
         var_lst=["waterlevel(m)", "precipitation(mm/d)", "temperature_min(degC)", "temperature_mean(degC)", "temperature_max(degC)", "rel_sun_dur(%)", "swe(mm)"]
     )
     print(forcings)
@@ -16,7 +16,7 @@ def test_read_streamflow():
     gage_ids = camelsch.read_object_ids()
     streamflow = camelsch.read_target_cols(
         gage_ids[:5],
-        ["1981-01-01","2020-12-31"],
+        ["1981-01-01","2021-01-01"],
         target_cols=["discharge_vol(m3/s)", "discharge_spec(mm/d)"],
     )
     print(streamflow)

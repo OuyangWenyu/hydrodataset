@@ -6,7 +6,7 @@ def test_read_forcing():
     print(gage_ids)
     forcings = camelsde.read_relevant_cols(
         gage_ids[:5],
-        ["1951-01-01", "2020-12-31"],
+        ["1951-01-01", "2021-01-01"],
 		var_lst = ["water_level", "precipitation_mean", "precipitation_min", "precipitation_median", "precipitation_max",
            "precipitation_stdev", "humidity_mean", "humidity_min", "humidity_median"]
     )
@@ -17,7 +17,7 @@ def test_read_streamflow():
     gage_ids = camelsde.read_object_ids()
     streamflow = camelsde.read_target_cols(
         gage_ids[:5],
-        ["1951-01-01", "2020-12-31"],
+        ["1951-01-01", "2021-01-01"],
 		target_cols = ["discharge_vol", "discharge_spec"],
     )
     print(streamflow)

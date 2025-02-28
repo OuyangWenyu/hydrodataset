@@ -6,7 +6,7 @@ def test_read_forcing():
     print(gage_ids)
     forcings = camelsdk.read_relevant_cols(
         gage_ids[:5],
-        ["1989-01-02", "2023-12-31"],
+        ["1989-01-02", "2024-01-02"],
 		var_lst = ["precipitation","temperature","pet","DKM_dtp","DKM_eta","DKM_wcr","DKM_sdr","DKM_sre","DKM_gwh","DKM_irr","Abstraction"]
     )
     print(forcings)
@@ -16,7 +16,7 @@ def test_read_streamflow():
     gage_ids = camelsdk.read_object_ids()
     streamflow = camelsdk.read_target_cols(
         gage_ids[:5],
-        ["1989-01-02", "2023-12-31"],
+        ["1989-01-02", "2024-01-02"],
 		target_cols = ["Qobs"],
     )
     print(streamflow)

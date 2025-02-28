@@ -190,7 +190,7 @@ class CamelsDe(Camels):
         gage_id
             the station id
         t_range
-            the time range, for example, ["1951-01-01", "2020-12-31"]
+            the time range, for example, ["1951-01-01", "2021-01-01"]
         var_type
             flow type: "discharge_vol", "discharge_spec"
             forcing type: "water_level", "precipitation_mean", "precipitation_min", "precipitation_median",
@@ -233,7 +233,7 @@ class CamelsDe(Camels):
         gage_id_lst
             station ids
         t_range
-            the time range, for example, ["1951-01-01", "2020-12-31"]
+            the time range, for example, ["1951-01-01", "2021-01-01"]
         target_cols
             the default is None, but we need at least one default target.
             For CAMELS-DE, it's ["discharge_vol"]
@@ -281,7 +281,7 @@ class CamelsDe(Camels):
         gage_id_lst
             station ids
         t_range
-            the time range, for example, ["1951-01-01", "2020-12-31"]
+            the time range, for example, ["1951-01-01", "2021-01-01"]
         var_lst
             forcing variable type: "water_level", "precipitation_mean", "precipitation_min", "precipitation_median",
             "precipitation_max", "precipitation_stdev", "humidity_mean", "humidity_min", "humidity_median",
@@ -410,7 +410,7 @@ class CamelsDe(Camels):
         json_file = CACHE_DIR.joinpath("camels_de_forcing.json")
         variables = self.get_relevant_cols()
         basins = self.sites["gauge_id"].values
-        t_range = ["1951-01-01", "2020-12-31"]
+        t_range = ["1951-01-01", "2021-01-01"]
         times = [
             hydro_time.t2str(tmp)
             for tmp in hydro_time.t_range_days(t_range).tolist()
@@ -440,7 +440,7 @@ class CamelsDe(Camels):
         json_file = CACHE_DIR.joinpath("camels_de_streamflow.json")
         variables = self.get_target_cols()
         basins = self.sites["gauge_id"].values
-        t_range = ["1951-01-01", "2020-12-31"]
+        t_range = ["1951-01-01", "2021-01-01"]
         times = [
             hydro_time.t2str(tmp) for tmp in hydro_time.t_range_days(t_range).tolist()
         ]
@@ -472,7 +472,6 @@ class CamelsDe(Camels):
         import pint_xarray
 
         attr_all, var_lst_all, var_dict, f_dict = self.read_attr_all()
-
         attrs_df = pd.DataFrame(data=attr_all[0:, 0:], columns=var_lst_all)
 
         # unify id to basin
@@ -578,15 +577,14 @@ class CamelsDe(Camels):
             "gauge_northing": "m",
             "gauge_elev_metadata": "m.a.s.l.",
             "area_metadata": "km^2",
-            "gauge_elev": "m a.s.l.",
+            "gauge_elev": "m.a.s.l.",
             "area": "km^2",
-            "elev_mean": "m a.s.l.",
-            "elev_min": "m a.s.l.",
-            "elev_5": "m a.s.l.",
-            "elev_50": "m a.s.l.",
-            "elev_95": "m a.s.l.",
-            "elev_max": "m a.s.l.",
-            "elev_max": "m a.s.l.",  # todo:
+            "elev_mean": "m.a.s.l.",
+            "elev_min": "m.a.s.l.",
+            "elev_5": "m.a.s.l.",
+            "elev_50": "m.a.s.l.",
+            "elev_95": "m.a.s.l.",
+            "elev_max": "m.a.s.l.",
         }
 
         # Assign units to the variables in the Dataset
@@ -671,17 +669,3 @@ class CamelsDe(Camels):
                 "time": times,
             },
         )
-
-    def cache_xrdataset(self):
-        """
-        Save all data in a netcdf file in the cache directory
-
-        """
-
-        warnings.warn("Check you units of all variables")
-        ds_attr = self.cache_attributes_xrdataset()
-        ds_attr.to_netcdf(CACHE_DIR.joinpath("camelsde_attributes.nc"))
-        ds_streamflow = self.cache_streamflow_xrdataset()
-        ds_forcing = self.cache_forcing_xrdataset()
-        ds = xr.merge([ds_streamflow, ds_forcing])
-        ds.to_netcdf(CACHE_DIR.joinpath("camelsde_timeseries.nc"))
