@@ -245,7 +245,6 @@ class Camels(HydroDataset):
         data_folder = self.data_source_description["CAMELS_ATTR_DIR"]
         return self._get_constant_cols_some(data_folder, "camels_", ".txt", ";")
 
-
     def _get_constant_cols_some(self, data_folder, arg1, arg2, sep):
         var_dict = {}
         var_lst = []
@@ -1120,7 +1119,7 @@ class Camels(HydroDataset):
             converted_data = p_mean / 8
         elif unit in ["mm/8d", "mm/8day"]:
             converted_data = p_mean * 8
-        elif unit in ["mm/y", "mm/year"]:  # the added unit transform for year
+        elif unit in ["mm/y", "mm/year"]:
             converted_data = data * 365  # todo: whether or not to consider the leap year
         else:
             raise ValueError(
@@ -1128,18 +1127,18 @@ class Camels(HydroDataset):
             )
         return converted_data
 
-    def unit_convert_streamflow_m3tofoot3(self, flow):
+    def unit_convert_streamflow_m3tofoot3(self, Q):
         """
         convert the streamflow uint, m^3/s -> foot^3/s
         Parameters
         ----------
-        flow
+        Q
         m^3/s.
         Returns
         -------
-        flow_foot
+        Q_foot
         foot^3/s.
         """
-        flow_foot = flow * 35.314666721489
+        Q_foot = flow * 35.314666721489
         return flow_foot
 
