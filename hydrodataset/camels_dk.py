@@ -265,7 +265,7 @@ class CamelsDk(Camels):
                 y[k, :, j] = data_obs
         # Keep unit of streamflow unified: we use ft3/s here
         # other units are m3/s -> ft3/s
-        y = y * 35.314666721489
+        y = self.unit_convert_streamflow_m3tofoot3(y)
         return y
 
     def read_relevant_cols(

@@ -252,7 +252,7 @@ class CamelsCh(Camels):
                 y[k, :, j] = data_obs
         # Keep unit of streamflow unified: we use ft3/s here
         # other units are m3/s -> ft3/s
-        y = y * 35.314666721489
+        y = self.unit_convert_streamflow_m3tofoot3(y)
         return y
 
     def read_relevant_cols(
@@ -368,7 +368,7 @@ class CamelsCh(Camels):
             When we need to know what a factorized value represents, we need return a tuple;
             otherwise just return an array
         """
-        attr_all, var_lst_all, var_dict, f_dict = self.read_attr_all() #
+        attr_all, var_lst_all, var_dict, f_dict = self.read_attr_all()  # todo:
         ind_var = [var_lst_all.index(var) for var in var_lst]
         id_lst_all = self.read_object_ids()
         # Notice the sequence of station ids ! Some id_lst_all are not sorted, so don't use np.intersect1d

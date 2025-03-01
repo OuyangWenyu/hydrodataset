@@ -381,74 +381,6 @@ class Camels(HydroDataset):
             else obs
         )
 
-    def read_br_gage_flow(self, gage_id, t_range, flow_type):
-        """
-        Read gage's streamflow from CAMELS-BR
-
-        Parameters
-        ----------
-        gage_id
-            the station id
-        t_range
-            the time range, for example, ["1990-01-01", "2000-01-01"]
-        flow_type
-            "streamflow_m3s" or "streamflow_mm_selected_catchments" or "streamflow_simulated"
-
-        Returns
-        -------
-        np.array
-            streamflow data of one station for a given time range
-        """
-        logging.debug("reading %s streamflow data", gage_id)
-        dir_ = [
-            str(flow_dir)
-            for flow_dir in self.data_source_description["CAMELS_FLOW_DIR"]
-            if flow_type in str(flow_dir)
-        ][0]
-        if flow_type == "streamflow_mm_selected_catchments":
-            flow_type = "streamflow_mm"
-        elif flow_type == "streamflow_simulated":
-            flow_type = "simulated_streamflow"
-        gage_file = os.path.join(dir_, gage_id + "_" + flow_type + ".txt")
-        data_temp = pd.read_csv(gage_file, sep=r"\s+")
-        obs = data_temp.iloc[:, 3].values
-        obs[obs < 0] = np.nan
-        df_date = data_temp[["year", "month", "day"]]
-        date = pd.to_datetime(df_date).values.astype("datetime64[D]")
-        return time_intersect_dynamic_data(obs, date, t_range)
-
-    def read_gb_gage_flow_forcing(self, gage_id, t_range, var_type):
-        """
-        Read gage's streamflow or forcing from CAMELS-GB
-
-        Parameters
-        ----------
-        gage_id
-            the station id
-        t_range
-            the time range, for example, ["1990-01-01", "2000-01-01"]
-        var_type
-            flow type: "discharge_spec" or "discharge_vol"
-            forcing type: "precipitation", "pet", "temperature", "peti", "humidity", "shortwave_rad", "longwave_rad",
-                          "windspeed"
-
-        Returns
-        -------
-        np.array
-            streamflow or forcing data of one station for a given time range
-        """
-        logging.debug("reading %s streamflow data", gage_id)
-        gage_file = os.path.join(
-            self.data_source_description["CAMELS_FLOW_DIR"],
-            "CAMELS_GB_hydromet_timeseries_" + gage_id + "_19701001-20150930.csv",
-        )
-        data_temp = pd.read_csv(gage_file, sep=",")
-        obs = data_temp[var_type].values
-        if var_type in ["discharge_spec", "discharge_vol"]:
-            obs[obs < 0] = np.nan
-        date = pd.to_datetime(data_temp["date"]).values.astype("datetime64[D]")
-        return time_intersect_dynamic_data(obs, date, t_range)
-
     def read_target_cols(
         self,
         gage_id_lst: Union[list, np.array] = None,
@@ -471,8 +403,6 @@ class Camels(HydroDataset):
         target_cols
             the default is None, but we neea at least one default target.
             For CAMELS-US, it is ["usgsFlow"];
-            for CAMELS-AUS, it's ["streamflow_mmd"]
-            for CAMELS-AUS, it's ["streamflow_m3s"]
         kwargs
             some other params if needed
 
@@ -504,10 +434,6 @@ class Camels(HydroDataset):
                     y[k, :, j] = data_obs
 
         # Keep unit of streamflow unified: we use ft3/s here
-        # unit of flow in AUS is MegaLiter/day -> m3/s
-        if self.region != "US":
-            # other units are m3/s -> ft3/s
-            y = y * 35.314666721489
         return y
 
     def _read_augmented_camels_streamflow(self, gage_id_lst, t_range, t_range_list, k):
@@ -651,42 +577,6 @@ class Camels(HydroDataset):
             out[ind2, k] = data_temp[ind].values[ind1]
         return out
 
-    def read_br_basin_forcing(self, gage_id, t_range, var_type) -> np.array:
-        """
-        Read one forcing data for a basin in CAMELS_BR
-
-        Parameters
-        ----------
-        gage_id
-            basin id
-        t_range
-            the time range, for example, ["1995-01-01", "2005-01-01"]
-        var_type
-            the forcing variable type
-
-        Returns
-        -------
-        np.array
-            one type forcing data of a basin in a given time range
-        """
-        dir_ = [
-            str(_dir)
-            for _dir in self.data_source_description["CAMELS_FORCING_DIR"]
-            if var_type in str(_dir)
-        ][0]
-        if var_type in [
-            "temperature_min_cpc",
-            "temperature_mean_cpc",
-            "temperature_max_cpc",
-        ]:
-            var_type = var_type[:-4]
-        gage_file = os.path.join(dir_, gage_id + "_" + var_type + ".txt")
-        data_temp = pd.read_csv(gage_file, sep=r"\s+")
-        obs = data_temp.iloc[:, 3].values
-        df_date = data_temp[["year", "month", "day"]]
-        date = pd.to_datetime(df_date).values.astype("datetime64[D]")
-        return time_intersect_dynamic_data(obs, date, t_range)
-
     def read_relevant_cols(
         self,
         gage_id_lst: list = None,
@@ -827,7 +717,7 @@ class Camels(HydroDataset):
         var_lst
             attribute variable types
         is_return_dict
-            if true, return var_dict and f_dict for CAMELS_US
+            if true, return var_dict and f_dict for CAMELS-US
         Returns
         -------
         Union[tuple, np.array]
@@ -1237,3 +1127,19 @@ class Camels(HydroDataset):
                 "unit must be one of ['mm/d', 'mm/day', 'mm/h', 'mm/hour', 'mm/3h', 'mm/3hour', 'mm/8d', 'mm/8day', 'mm/y', 'mm/year']"
             )
         return converted_data
+
+    def unit_convert_streamflow_m3tofoot3(self, flow):
+        """
+        convert the streamflow uint, m^3/s -> foot^3/s
+        Parameters
+        ----------
+        flow
+        m^3/s.
+        Returns
+        -------
+        flow_foot
+        foot^3/s.
+        """
+        flow_foot = flow * 35.314666721489
+        return flow_foot
+

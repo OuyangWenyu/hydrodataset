@@ -285,7 +285,7 @@ class CamelsAus(Camels):
                 y = y / 84.6
         # Keep unit of streamflow unified: we use ft3/s here
         # other units are m3/s -> ft3/s
-        y = y * 35.314666721489
+        y = self.unit_convert_streamflow_m3tofoot3(y)
         return y
 
     def read_relevant_cols(
@@ -293,7 +293,7 @@ class CamelsAus(Camels):
         gage_id_lst: list = None,
         t_range: list = None,
         var_lst: list = None,
-        forcing_type="daymet",  #
+        forcing_type="AWAP",
         **kwargs,
     ) -> np.ndarray:
         """
