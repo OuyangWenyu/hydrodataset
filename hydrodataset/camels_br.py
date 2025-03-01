@@ -324,7 +324,8 @@ class CamelsBr(Camels):
         t_range
             the time range, for example, ["1995-01-01", "2005-01-01"]
         var_type
-            the forcing variable type
+            the forcing variable type, "precipitation_chirps", "precipitation_mswep", "precipitation_cpc", "evapotransp_gleam", "evapotransp_mgb",
+                   "potential_evapotransp_gleam", "temperature_min_cpc", "temperature_mean_cpc", "temperature_max_cpc"
 
         Returns
         -------
@@ -369,7 +370,7 @@ class CamelsBr(Camels):
         var_lst
             forcing variable types
         forcing_type
-            now only for CAMELS-US, there are three types: daymet, nldas, maurer
+            now only for CAMELS-BR, there are only one type: observation
         Returns
         -------
         np.array

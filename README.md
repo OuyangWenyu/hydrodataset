@@ -246,7 +246,7 @@ Now the dataset zoo list includes:
 | 3          | **HYSETS**  | HYSETS dataset for North America                                              |
 | 4          | **Caravan** | Caravan dataset for global                                                    |
 
-For CAMELS-CH/DE/DK/SE, we didn't finish reading functions yet, but we will finish them soon.
+For CAMELS-ES, we didn't finish reading functions yet, but we will finish them soon.
 
 We highly recommend you to use [xarray](http://xarray.pydata.org/en/stable/) to read the data, as it is a powerful tool for handling multi-dimensional data. Then, you can see the units of all variables in the xarray dataset. For US, we provide full support for reading attributes, forcing, and streamflow data with such a cache-reading support, so that you can read them quickly after the first time you read them.
 

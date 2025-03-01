@@ -306,9 +306,12 @@ class CamelsAus(Camels):
         t_range
             the time range, for example, ["1990-01-01", "2010-01-01"]
         var_lst
-            forcing variable types
+            forcing variable types, "precipitation_AWAP", "precipitation_SILO", "precipitation_var_AWAP", "et_morton_actual_SILO", "et_morton_point_SILO",
+                   "et_morton_wet_SILO", "et_short_crop_SILO", "et_tall_crop_SILO", "evap_morton_lake_SILO", "evap_pan_SILO", "evap_syn_SILO",
+                   "solarrad_AWAP", "tmax_AWAP", "tmin_AWAP", "vprp_AWAP", "mslp_SILO", "radiation_SILO", "rh_tmax_SILO", "rh_tmin_SILO", "tmax_SILO",
+                   "tmin_SILO", "vp_deficit_SILO", "vp_SILO",
         forcing_type
-            now only for CAMELS-US, there are three types: daymet, nldas, maurer
+            now only for CAMELS-AUS, there are two types: AWAP, SILO
         Returns
         -------
         np.array

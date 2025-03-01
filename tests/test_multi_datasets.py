@@ -12,8 +12,14 @@ def camels_path():
     return [
         os.path.join(ROOT_DIR, "camels", "camels_aus"),
         os.path.join(ROOT_DIR, "camels", "camels_br"),
+        os.path.join(ROOT_DIR, "camels", "camels_ch"),
         os.path.join(ROOT_DIR, "camels", "camels_cl"),
+        os.path.join(ROOT_DIR, "camels", "camels_de"),
+        os.path.join(ROOT_DIR, "camels", "camels_dk"),
+        os.path.join(ROOT_DIR, "camels", "camels_fr"),
         os.path.join(ROOT_DIR, "camels", "camels_gb"),
+        os.path.join(ROOT_DIR, "camels", "camels_ind"),
+        os.path.join(ROOT_DIR, "camels", "camels_se"),
         os.path.join(ROOT_DIR, "camels", "camels_us"),
         os.path.join(ROOT_DIR, "lamah_ce"),
     ]
@@ -25,7 +31,7 @@ def multi_datasets(camels_path):
         camels_path,
         download=False,
         datasets=["CAMELS", "CAMELS", "CAMELS", "CAMELS", "CAMELS", "LamaH"],
-        regions=["AUS", "BR", "CL", "GB", "US", "CE"],
+        regions=["AUS", "BR", "CH", "CL", "DE", "DK", "FR", "GB", "IND", "SE", "US", "AUS_v2"],
     )
 
 

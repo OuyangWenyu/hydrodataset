@@ -273,7 +273,7 @@ class CamelsCl(Camels):
         t_range
             the time range, for example, ["1995-01-01", "2015-01-01"]
         var_lst
-            forcing variable types
+            forcing variable types, "precip_cr2met", "precip_chirps", "precip_mswep", "precip_tmpa", "tmin_cr2met", "tmax_cr2met", "tmean_cr2met", "pet_8d_modis", "pet_hargreaves", "swe",
         forcing_type
             support for CAMELS-CL, there are only one type: observation
         Returns
@@ -402,18 +402,7 @@ class CamelsCl(Camels):
         data = self.read_constant_cols(
             gage_id_lst, ["p_mean_cr2met"], is_return_dict=False
         )
-        if unit in ["mm/d", "mm/day"]:
-            converted_data = data
-        elif unit in ["mm/h", "mm/hour"]:
-            converted_data = data / 24
-        elif unit in ["mm/3h", "mm/3hour"]:
-            converted_data = data / 8
-        elif unit in ["mm/8d", "mm/8day"]:
-            converted_data = data * 8
-        else:
-            raise ValueError(
-                "unit must be one of ['mm/d', 'mm/day', 'mm/h', 'mm/hour', 'mm/3h', 'mm/3hour', 'mm/8d', 'mm/8day']"
-            )
+        converted_data = self.unit_convert_mean_prcp(data)
         return converted_data
 
     def cache_forcing_np_json(self):
