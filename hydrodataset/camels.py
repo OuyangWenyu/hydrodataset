@@ -1054,7 +1054,9 @@ class Camels(HydroDataset):
     ):
         if var_lst is None:
             return None
-        camels_tsnc = CACHE_DIR.joinpath("camelsus_timeseries.nc")
+        filename = "camels" + self.region.lower()
+        filename = filename + "_timeseries.nc"
+        camels_tsnc = CACHE_DIR.joinpath(filename)
         if not os.path.isfile(camels_tsnc):
             self.cache_xrdataset()
         ts = xr.open_dataset(camels_tsnc)
@@ -1066,11 +1068,13 @@ class Camels(HydroDataset):
     def read_attr_xrdataset(self, gage_id_lst=None, var_lst=None, **kwargs):
         if var_lst is None or len(var_lst) == 0:
             return None
+        filename = "camels" + self.region.lower()
+        filename = filename + "_attributes.nc"
         try:
-            attr = xr.open_dataset(CACHE_DIR.joinpath("camelsus_attributes.nc"))
+            attr = xr.open_dataset(CACHE_DIR.joinpath(filename))
         except FileNotFoundError:
             attr = self.cache_attributes_xrdataset()
-            attr.to_netcdf(CACHE_DIR.joinpath("camelsus_attributes.nc"))
+            attr.to_netcdf(CACHE_DIR.joinpath(filename))
         if "all_number" in list(kwargs.keys()) and kwargs["all_number"]:
             attr_num = map_string_vars(attr)
             return attr_num[var_lst].sel(basin=gage_id_lst)
