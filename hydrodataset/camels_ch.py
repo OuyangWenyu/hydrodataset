@@ -137,13 +137,13 @@ class CamelsCh(Camels):
         """
         return np.array(
             [
-                "waterlevel(m)",
-                "precipitation(mm/d)",
-                "temperature_min(degC)",
-                "temperature_mean(degC)",
-                "temperature_max(degC)",
-                "rel_sun_dur(%)",
-                "swe(mm)",
+                "waterlevel",
+                "precipitation",
+                "temperature_min",
+                "temperature_mean",
+                "temperature_max",
+                "rel_sun_dur",
+                "swe",
             ]
         )
 
@@ -345,7 +345,7 @@ class CamelsCh(Camels):
                 k = k + 1
             out_lst.append(out_temp)
         out = np.concatenate(out_lst, 1)
-        return out, var_lst, var_dict, f_dict  #
+        return out, var_lst, var_dict, f_dict
 
     def read_constant_cols(
         self, gage_id_lst=None, var_lst=None, is_return_dict=False, **kwargs

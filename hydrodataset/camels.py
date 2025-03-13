@@ -644,12 +644,6 @@ class Camels(HydroDataset):
         sep_ = ";"
         for key in key_lst:
             data_file = os.path.join(data_folder, camels_str + key + ".txt")
-            if self.region == "GB":
-                data_file = os.path.join(
-                    data_folder, camels_str + key + "_attributes.csv"
-                )
-            elif self.region == "CC":
-                data_file = os.path.join(data_folder, key + ".csv")
             data_temp = pd.read_csv(data_file, sep=sep_)
             var_lst_temp = list(data_temp.columns[1:])
             var_dict[key] = var_lst_temp
@@ -1143,6 +1137,6 @@ class Camels(HydroDataset):
         Q_foot
         foot^3/s.
         """
-        Q_foot = flow * 35.314666721489
-        return flow_foot
+        Q_foot = Q * 35.314666721489
+        return Q_foot
 
