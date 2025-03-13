@@ -402,7 +402,7 @@ class CamelsCl(Camels):
         data = self.read_constant_cols(
             gage_id_lst, ["p_mean_cr2met"], is_return_dict=False
         )
-        converted_data = self.unit_convert_mean_prcp(data)
+        converted_data = self.unit_convert_mean_prcp(data, unit="mm/d")
         return converted_data
 
     def cache_forcing_np_json(self):
