@@ -137,13 +137,13 @@ class CamelsCh(Camels):
         """
         return np.array(
             [
-                "waterlevel",
-                "precipitation",
-                "temperature_min",
-                "temperature_mean",
-                "temperature_max",
-                "rel_sun_dur",
-                "swe",
+                "waterlevel(m)",
+                "precipitation(mm/d)",
+                "temperature_min(degC)",
+                "temperature_mean(degC)",
+                "temperature_max(degC)",
+                "rel_sun_dur(%)",
+                "swe(mm)",
             ]
         )
 
@@ -368,7 +368,7 @@ class CamelsCh(Camels):
             When we need to know what a factorized value represents, we need return a tuple;
             otherwise just return an array
         """
-        attr_all, var_lst_all, var_dict, f_dict = self.read_attr_all()  # todo:
+        attr_all, var_lst_all, var_dict, f_dict = self.read_attr_all()
         ind_var = [var_lst_all.index(var) for var in var_lst]
         id_lst_all = self.read_object_ids()
         # Notice the sequence of station ids ! Some id_lst_all are not sorted, so don't use np.intersect1d
@@ -400,7 +400,7 @@ class CamelsCh(Camels):
             ["p_mean"],
             is_return_dict=False,
         )
-        converted_data = self.unit_convert_mean_prcp(data)
+        converted_data = self.unit_convert_mean_prcp(data, unit="mm/d")
         return converted_data
 
     def cache_forcing_np_json(self):

@@ -7,7 +7,13 @@ def test_read_forcing():
     forcings = camelsch.read_relevant_cols(
         gage_ids[:5],
         ["1981-01-01","2021-01-01"],
-        var_lst=["waterlevel", "precipitation", "temperature_min", "temperature_mean", "temperature_max", "rel_sun_dur", "swe",]
+        var_lst=["waterlevel(m)",
+                 "precipitation(mm/d)",
+                 "temperature_min(degC)",
+                 "temperature_mean(degC)",
+                 "temperature_max(degC)",
+                 "rel_sun_dur(%)",
+                 "swe(mm)",]
     )
     print(forcings)
 
@@ -17,7 +23,7 @@ def test_read_streamflow():
     streamflow = camelsch.read_target_cols(
         gage_ids[:5],
         ["1981-01-01","2021-01-01"],
-        target_cols=["discharge_vol", "discharge_spec"],
+        target_cols=["discharge_vol(m3/s)", "discharge_spec(mm/d)"],
     )
     print(streamflow)
 
@@ -41,6 +47,7 @@ def test_cache_streamflow():
 def test_cache_attributes():
     camelsch = CamelsCh()
     cacheatributes = camelsch.cache_attributes_xrdataset()
+
 def test_cache_xrdataset():
     camelsch = CamelsCh()
     cachexrdataset = camelsch.cache_xrdataset()

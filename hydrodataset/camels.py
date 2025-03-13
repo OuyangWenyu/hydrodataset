@@ -1097,7 +1097,7 @@ class Camels(HydroDataset):
             variables_list.append(name_)
         return variables_list
 
-    def unit_convert_mean_prcp(self, p_mean):
+    def unit_convert_mean_prcp(self, p_mean, unit="mm/d"): -> xr.Dataset:
         """
         convert the mean precipitation uint to mm/d
         Parameters
