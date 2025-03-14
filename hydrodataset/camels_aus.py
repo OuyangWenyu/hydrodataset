@@ -416,7 +416,7 @@ class CamelsAus(Camels):
         return (out, var_dict, f_dict) if is_return_dict else out
 
     def read_area(self, gage_id_lst) -> np.ndarray:
-        return self.read_constant_cols(
+        return self.read_attr_xrdataset(
             gage_id_lst, ["catchment_area"], is_return_dict=False
         )
 
@@ -435,7 +435,7 @@ class CamelsAus(Camels):
         xr.Dataset
             mean precipitation data
         """
-        data = self.read_constant_cols(
+        data = self.read_attr_xrdataset(
             gage_id_lst,
             ["p_mean"],
             is_return_dict=False,
