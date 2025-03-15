@@ -488,7 +488,10 @@ class CamelsFr(Camels):
         import pint_xarray
 
         attr_all, var_lst_all, var_dict, f_dict = self.read_attr_all()
-        attrs_df = pd.DataFrame(data=attr_all[0:, 0:], columns=var_lst_all)
+        gage_dict = self.sites
+        gage_id_key = "gauge_id"
+        gage = gage_dict[gage_id_key].values
+        attrs_df = pd.DataFrame(data=attr_all[0:, 0:], index=gage, columns=var_lst_all)
 
         # unify id to basin
         attrs_df.index.name = "basin"

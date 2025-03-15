@@ -570,9 +570,9 @@ class CamelsCh(Camels):
             "zero_q_freq": "dimensionless",
             "crop_perc": "percent",
             "grass_perc": "percent",
-            "scrub_perc": "percent",
+            "scrub_perc": "percent",  # note: this field in original data file is different with its in data description pdf file, choose the former for convenience.
             "dwood_perc": "percent",
-            "mixed_wood_perc": "percent",
+            "mixed_wood_perc": "percent",  # note: this field in original data file is different with its in data description pdf file, choose the former for convenience.
             "ewood_perc": "percent",
             "wetlands_perc": "percent",
             "inwater_perc": "percent",
