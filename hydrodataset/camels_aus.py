@@ -518,12 +518,10 @@ class CamelsAus(Camels):
         import pint_xarray
 
         attr_all, var_lst_all, var_dict, f_dict = self.read_attr_all_in_one_file()
-        attrs_df = pd.DataFrame(data=attr_all[0:,0:],columns=var_lst_all)
-
-        # # delete the repetitive attribute item, "country".
-        # duplicate_columns = attrs_df.columns[attrs_df.columns.duplicated()]
-        # if duplicate_columns.size > 0:
-        #     attrs_df = attrs_df.loc[:, ~attrs_df.columns.duplicated()]
+        gage_dict = self.sites
+        gage_id_key = "gauge_id"
+        gage = gage_dict[gage_id_key].values
+        attrs_df = pd.DataFrame(data=attr_all[0:, 0:], index=gage, columns=var_lst_all)
 
         # unify id to basin
         attrs_df.index.name = "basin"
