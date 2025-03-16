@@ -469,7 +469,7 @@ class CamelsGb(Camels):
             "slope_fdc": "dimensionless",
             "baseflow_index": "dimensionless",
             "baseflow_index_ceh": "dimensionless",
-            "hfd_mean": "days since 1st October",
+            "hfd_mean": "days",  # the original unit of this field is "days since 1st October",   ValueError: Failed to decode variable 'hfd_mean': unable to decode time units 'days since 1st October' with 'the default calendar'.
             "Q5": "mm/day",
             "Q95": "mm/day",
             "high_q_freq": "days/yr",

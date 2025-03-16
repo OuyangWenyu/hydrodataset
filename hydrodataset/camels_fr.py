@@ -85,7 +85,7 @@ class CamelsFr(Camels):
             "human_influences_dams",
             "hydrogeology",
             "land_cover",
-            # "site_general",   # metadata   "sit_area_hydro", hydrological catchment area
+            # "site_general",   # metadata   "sit_area_hydro", hydrological catchment area    # todo: add area
             # "soil_general",
             # "soil_quantiles",
             "station_general",  # metadata
@@ -489,7 +489,7 @@ class CamelsFr(Camels):
 
         attr_all, var_lst_all, var_dict, f_dict = self.read_attr_all()
         gage_dict = self.sites
-        gage_id_key = "gauge_id"
+        gage_id_key = "sta_code_h3"
         gage = gage_dict[gage_id_key].values
         attrs_df = pd.DataFrame(data=attr_all[0:, 0:], index=gage, columns=var_lst_all)
 
@@ -497,7 +497,7 @@ class CamelsFr(Camels):
         attrs_df.index.name = "basin"
         # We use xarray dataset to cache all data
         ds_from_df = attrs_df.to_xarray()
-        units_dict = {
+        units_dict = {  # todo: area
             "geo_dom_class": "dimensionless",
             "geo_su": "percent",
             "geo_ss": "percent",
@@ -681,7 +681,7 @@ class CamelsFr(Camels):
             "top_slo_ori_sw": "percent",
             "top_slo_ori_w": "percent",
             "top_slo_ori_nw": "percent",
-            "top_drainage_density": "km km^2",
+            "top_drainage_density": "km/km^2",
             "top_mor_form_factor_horton": "dimensionless",
             "top_mor_form_factor_square": "dimensionless",
             "top_mor_shape_factor": "dimensionless",
