@@ -85,10 +85,10 @@ class CamelsFr(Camels):
             "human_influences_dams",
             "hydrogeology",
             "land_cover",
-            # "site_general",   # metadata   "sit_area_hydro", hydrological catchment area    # todo: add area
+            # "site_general",   # metadata   "sit_area_hydro", hydrological catchment area
             # "soil_general",
             # "soil_quantiles",
-            "station_general",  # metadata
+            "station_general",  # metadata   "sta_area_snap"  topographic catchment area (INRAE's own computation)
             "topography_general",
             # "topography_quantiles",
             "climatic_statistics",      # time_series_statistics
@@ -388,7 +388,7 @@ class CamelsFr(Camels):
         return (out, var_dict, f_dict) if is_return_dict else out
 
     def read_area(self, gage_id_lst) -> np.ndarray:
-        return self.read_attr_xrdataset(gage_id_lst, ["sit_area_hydro"], is_return_dict=False)
+        return self.read_attr_xrdataset(gage_id_lst, ["sta_area_snap"], is_return_dict=False)
 
     def read_mean_prcp(self, gage_id_lst, unit="mm/d") -> xr.Dataset:
         """Read mean precipitation data
@@ -497,7 +497,7 @@ class CamelsFr(Camels):
         attrs_df.index.name = "basin"
         # We use xarray dataset to cache all data
         ds_from_df = attrs_df.to_xarray()
-        units_dict = {  # todo: area
+        units_dict = {
             "geo_dom_class": "dimensionless",
             "geo_su": "percent",
             "geo_ss": "percent",
@@ -782,6 +782,41 @@ class CamelsFr(Camels):
             "hym_q_unqualified": "percent",
             "hym_q_anomaly_inrae": "percent",
             "hym_q_low_uncertainty_inrae": "dimensionless",
+            # "sit_label": "dimensionless",       # "site_general"
+            # "sit_mnemonic": "dimensionless",
+            # "sit_label_usual": "dimensionless",
+            # "sit_label_add": "dimensionless",
+            # "sit_type": "dimensionless",
+            # "sit_type_add": "dimensionless",
+            # "sta_code_h2": "dimensionless",
+            # "sit_test_site": "dimensionless",
+            # "sit_comment": "dimensionless",
+            # "sit_city": "dimensionless",
+            # "sit_latitude": "°N or m",  # degree N
+            # "sit_longitude": "°E or m",
+            # "sit_crs": "dimensionless",
+            # "sit_zone_hydro": "dimensionless",
+            # "sit_section": "dimensionless",
+            # "sit_entity": "dimensionless",
+            # "sit_waterbody": "dimensionless",
+            # "sit_watercourse_acc": "dimensionless",
+            # "sit_altitude": "m.a.s.l.",
+            # "sit_altitude_datum": "dimensionless",
+            # "sit_area_hydro": "km^2",
+            # "sit_area_topo": "km^2",
+            # "sit_tz": "dimensionless",
+            # "sit_kp_up": "m",
+            # "sit_kp_down": "m",
+            # "sit_flood_duration": "dimensionless",
+            # "sit_status": "dimensionless",
+            # "sit_publication_rights": "dimensionless",
+            # "sit_month1_low_water": "dimensionless",
+            # "sit_month1_year": "dimensionless",
+            # "sit_impact": "dimensionless",
+            # "sit_section_vigilance": "dimensionless",
+            # "sit_date_start": "dimensionless",
+            # "sit_comment_impact_gene": "dimensionless",
+            # "sit_date_update": "dimensionless",
         }
 
         # Assign units to the variables in the Dataset
