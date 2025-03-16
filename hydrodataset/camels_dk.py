@@ -652,7 +652,7 @@ class CamelsDk(Camels):
             "catch_outlet_lat": "degree",
             "catch_flow_dir": "dimensionless",
             "catch_accum_number": "dimensionless",
-            "catch_area": "m2",
+            "catch_area": "m^2",
             "gauged_type": "dimensionless",
             "gauge_record_pct": "percent",
             "dem_mean": "m",

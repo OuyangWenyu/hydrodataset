@@ -462,7 +462,7 @@ class CamelsSe(Camels):
 
         attr_all, var_lst_all, var_dict, f_dict = self.read_attr_all()
         gage_dict = self.sites
-        gage_id_key = "gauge_id"
+        gage_id_key = "ID"
         gage = gage_dict[gage_id_key].values
         attrs_df = pd.DataFrame(data=attr_all[0:, 0:], index=gage, columns=var_lst_all)
 
@@ -504,7 +504,7 @@ class CamelsSe(Camels):
             "Latitude_WGS84": "degree N",
             "Longitude_WGS84": "degree E",
             "Area_km2": "km^2",
-            "Elevation_mabsl": "m a.s.l.",
+            "Elevation_mabsl": "m.a.s.l.",
             "Slope_mean_degree": "degree",
             "DOR": "percent",
             "RegVol_m3": "m^3",
@@ -549,7 +549,7 @@ class CamelsSe(Camels):
         )
         variables = forcing_dict["variable"]
 
-        units = ["m^3/s", "mm/day", "mm/day", "°C",]
+        units = ["mm/day", "°C",]
         return xr.Dataset(
             data_vars={
                 **{
