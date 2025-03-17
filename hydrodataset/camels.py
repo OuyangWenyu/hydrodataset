@@ -1137,6 +1137,21 @@ class Camels(HydroDataset):
         Q_foot
         foot^3/s.
         """
-        Q_foot = Q * 35.314666721489
+        Q_foot = 35.314666721489 * Q
+        return Q_foot
+
+    def unit_convert_streamflow_Ltofoot3(self, Q):
+        """
+        convert the streamflow uint, L/s -> foot^3/s
+        Parameters
+        ----------
+        Q
+        L/s.
+        Returns
+        -------
+        Q_foot
+        foot^3/s.
+        """
+        Q_foot = 0.035315 * Q
         return Q_foot
 

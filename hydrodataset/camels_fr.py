@@ -271,8 +271,8 @@ class CamelsFr(Camels):
                 )
                 y[k, :, j] = data_obs
         # Keep unit of streamflow unified: we use ft3/s here
-        # other units are m3/s -> ft3/s
-        y = self.unit_convert_streamflow_m3tofoot3(y)
+        # unit conversion  L/s -> ft3/s
+        y = self.unit_convert_streamflow_Ltofoot3(y)
         return y
 
     def read_relevant_cols(
@@ -847,7 +847,7 @@ class CamelsFr(Camels):
         )
         variables = forcing_dict["variable"]
 
-        units = ["L/s", "mm/day", "-", "-", "-", "-", "-", "mm/day", "-", "°C", "mm/day", "mm/day", "mm/day", "m/s", "g/kg", "J/cm^2", "J/cm^2", "-", "-", "mm/day", "°C", "°C"]
+        units = ["mm/day", "-", "°C", "mm/day", "mm/day", "mm/day", "m/s", "g/kg", "J/cm^2", "J/cm^2", "-", "-", "mm/day", "°C", "°C"]
         return xr.Dataset(
             data_vars={
                 **{
