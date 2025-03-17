@@ -158,6 +158,30 @@ class CamelsAus(Camels):
         """
         all readable forcing types in CAMELS-AUS
 
+        "precipitation_AWAP",
+        "precipitation_SILO",
+        "precipitation_var_AWAP",
+        "et_morton_actual_SILO",
+        "et_morton_point_SILO",
+        "et_morton_wet_SILO",
+        "et_short_crop_SILO",
+        "et_tall_crop_SILO",
+        "evap_morton_lake_SILO",
+        "evap_pan_SILO",
+        "evap_syn_SILO",
+        "solarrad_AWAP",
+        "tmax_AWAP",
+        "tmin_AWAP",
+        "vprp_AWAP",
+        "mslp_SILO",
+        "radiation_SILO",
+        "rh_tmax_SILO",
+        "rh_tmin_SILO",
+        "tmax_SILO",
+        "tmin_SILO",
+        "vp_deficit_SILO",
+        "vp_SILO",
+
         Returns
         -------
         np.array
@@ -519,7 +543,7 @@ class CamelsAus(Camels):
 
         attr_all, var_lst_all, var_dict, f_dict = self.read_attr_all_in_one_file()
         gage_dict = self.sites
-        gage_id_key = "gauge_id"
+        gage_id_key = "station_id"
         gage = gage_dict[gage_id_key].values
         attrs_df = pd.DataFrame(data=attr_all[0:, 0:], index=gage, columns=var_lst_all)
 
