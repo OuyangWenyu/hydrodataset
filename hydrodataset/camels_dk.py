@@ -330,7 +330,8 @@ class CamelsDk(Camels):
         var_dict = {}
         var_lst = []
         out_lst = []
-        gage_dict = self.sites
+        gage = self.read_object_ids()
+        n_gage = len(gage)
         camels_str = "CAMELS_DK_"
         sep_ = ","
         for key in key_lst:
@@ -340,8 +341,6 @@ class CamelsDk(Camels):
             var_dict[key] = var_lst_temp
             var_lst.extend(var_lst_temp)
             k = 0
-            gage_id_key = "catch_id"
-            n_gage = len(gage_dict[gage_id_key].values)
             out_temp = np.full([n_gage, len(var_lst_temp)], np.nan)
             for field in var_lst_temp:
                 if is_string_dtype(data_temp[field]):
@@ -423,7 +422,7 @@ class CamelsDk(Camels):
         cache_npy_file = CACHE_DIR.joinpath("camels_dk_forcing.npy")
         json_file = CACHE_DIR.joinpath("camels_dk_forcing.json")
         variables = self.get_relevant_cols()
-        basins = self.sites["catch_id"].values
+        basins = self.read_object_ids()
         t_range = ["1989-01-02", "2024-01-02"]
         times = [
             hydro_time.t2str(tmp)
@@ -453,7 +452,7 @@ class CamelsDk(Camels):
         cache_npy_file = CACHE_DIR.joinpath("camels_dk_streamflow.npy")
         json_file = CACHE_DIR.joinpath("camels_dk_streamflow.json")
         variables = self.get_target_cols()
-        basins = self.sites["catch_id"].values
+        basins = self.read_object_ids()
         t_range = ["1989-01-02", "2024-01-02"]
         times = [
             hydro_time.t2str(tmp) for tmp in hydro_time.t_range_days(t_range).tolist()
@@ -486,9 +485,7 @@ class CamelsDk(Camels):
         import pint_xarray
 
         attr_all, var_lst_all, var_dict, f_dict = self.read_attr_all()
-        gage_dict = self.sites
-        gage_id_key = "catch_id"
-        gage = gage_dict[gage_id_key].values
+        gage = self.read_object_ids()
         attrs_df = pd.DataFrame(data=attr_all[0:, 0:], index=gage, columns=var_lst_all)
 
         # unify id to basin

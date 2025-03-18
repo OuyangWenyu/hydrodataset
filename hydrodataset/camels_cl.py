@@ -416,8 +416,7 @@ class CamelsCl(Camels):
         cache_npy_file = CACHE_DIR.joinpath("camels_cl_forcing.npy")
         json_file = CACHE_DIR.joinpath("camels_cl_forcing.json")
         variables = self.get_relevant_cols()
-        basins_ = self.sites.columns.values
-        basins = [basin.split(" ")[-1].zfill(8) for basin in basins_]       # fill the gauge_id to 8-digit
+        basins = self.read_object_ids()
         t_range = ["1995-01-01", "2015-01-01"]
         times = [
             hydro_time.t2str(tmp)
@@ -451,9 +450,7 @@ class CamelsCl(Camels):
         import pint_xarray
 
         attr_all, var_lst_all, var_dict, f_dict = self.read_attr_all_in_one_file()
-        gage_dict = self.sites
-        gage_id_key = "gauge_id"
-        gage = gage_dict[gage_id_key].values
+        gage = self.read_object_ids()
         attrs_df = pd.DataFrame(data=attr_all[0:, 0:], index=gage, columns=var_lst_all)
 
         # unify id to basin
@@ -582,8 +579,7 @@ class CamelsCl(Camels):
         cache_npy_file = CACHE_DIR.joinpath("camels_cl_streamflow.npy")
         json_file = CACHE_DIR.joinpath("camels_cl_streamflow.json")
         variables = self.get_target_cols()
-        basins_ = self.sites.columns.values
-        basins = [basin.split(" ")[-1].zfill(8) for basin in basins_]       # fill the gauge_id to 8-digit
+        basins = self.read_object_ids()
         t_range = ["1995-01-01", "2015-01-01"]
         times = [
             hydro_time.t2str(tmp) for tmp in hydro_time.t_range_days(t_range).tolist()

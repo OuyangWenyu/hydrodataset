@@ -479,7 +479,7 @@ class CamelsAus(Camels):
         cache_npy_file = CACHE_DIR.joinpath("camels_aus_forcing.npy")
         json_file = CACHE_DIR.joinpath("camels_aus_forcing.json")
         variables = self.get_relevant_cols()
-        basins = self.sites["station_id"].values
+        basins = self.read_object_ids()
         t_range = ["1990-01-01", "2010-01-01"]
         times = [
             hydro_time.t2str(tmp)
@@ -509,7 +509,7 @@ class CamelsAus(Camels):
         cache_npy_file = CACHE_DIR.joinpath("camels_aus_streamflow.npy")
         json_file = CACHE_DIR.joinpath("camels_aus_streamflow.json")
         variables = self.get_target_cols()
-        basins = self.sites["station_id"].values
+        basins = self.read_object_ids()
         t_range = ["1990-01-01", "2010-01-01"]
         times = [
             hydro_time.t2str(tmp) for tmp in hydro_time.t_range_days(t_range).tolist()
@@ -542,9 +542,7 @@ class CamelsAus(Camels):
         import pint_xarray
 
         attr_all, var_lst_all, var_dict, f_dict = self.read_attr_all_in_one_file()
-        gage_dict = self.sites
-        gage_id_key = "station_id"
-        gage = gage_dict[gage_id_key].values
+        gage = self.read_object_ids()
         attrs_df = pd.DataFrame(data=attr_all[0:, 0:], index=gage, columns=var_lst_all)
 
         # unify id to basin
