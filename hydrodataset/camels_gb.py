@@ -43,6 +43,7 @@ class CamelsGb(Camels):
             the default is CAMELS-GB
         """
         super().__init__(data_path, download, region)
+        self.gauge_id_tag = "gauge_id"
 
     def set_data_source_describe(self) -> collections.OrderedDict:
         """
@@ -111,7 +112,7 @@ class CamelsGb(Camels):
             basic info of gages
         """
         camels_file = self.data_source_description["CAMELS_GAUGE_FILE"]
-        return pd.read_csv(camels_file, sep=",", dtype={"gauge_id": str})
+        return pd.read_csv(camels_file, sep=",", dtype={self.gauge_id_tag: str})
 
     def get_constant_cols(self) -> np.ndarray:
         """
@@ -286,8 +287,6 @@ class CamelsGb(Camels):
         var_dict = {}
         var_lst = []
         out_lst = []
-        gage = self.read_object_ids()
-        n_gage = len(gage)
         camels_str = "CAMELS_GB_"
         sep_ = ","
         for key in key_lst:
@@ -297,7 +296,7 @@ class CamelsGb(Camels):
             var_dict[key] = var_lst_temp
             var_lst.extend(var_lst_temp)
             k = 0
-            out_temp = np.full([n_gage, len(var_lst_temp)], np.nan)
+            out_temp = np.full([self.n_gage, len(var_lst_temp)], np.nan)
             for field in var_lst_temp:
                 if is_string_dtype(data_temp[field]):
                     value, ref = pd.factorize(data_temp[field], sort=True)
@@ -348,7 +347,7 @@ class CamelsGb(Camels):
         cache_npy_file = CACHE_DIR.joinpath("camels_gb_forcing.npy")
         json_file = CACHE_DIR.joinpath("camels_gb_forcing.json")
         variables = self.get_relevant_cols()
-        basins = self.read_object_ids()
+        basins = self.gage
         t_range = ["1970-10-01", "2015-10-01"]
         times = [
             hydro_time.t2str(tmp)
@@ -378,7 +377,7 @@ class CamelsGb(Camels):
         cache_npy_file = CACHE_DIR.joinpath("camels_gb_streamflow.npy")
         json_file = CACHE_DIR.joinpath("camels_gb_streamflow.json")
         variables = self.get_target_cols()
-        basins = self.read_object_ids()
+        basins = self.gage
         t_range = ["1970-10-01", "2015-10-01"]
         times = [
             hydro_time.t2str(tmp) for tmp in hydro_time.t_range_days(t_range).tolist()
@@ -411,8 +410,8 @@ class CamelsGb(Camels):
         import pint_xarray
 
         attr_all, var_lst_all, var_dict, f_dict = self.read_attr_all()
-        gage = self.read_object_ids()
-        attrs_df = pd.DataFrame(data=attr_all[0:, 0:], index=gage, columns=var_lst_all)
+        basins = self.gage
+        attrs_df = pd.DataFrame(data=attr_all[0:, 0:], index=basins, columns=var_lst_all)
 
         # unify id to basin
         attrs_df.index.name = "basin"

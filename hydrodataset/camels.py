@@ -113,8 +113,8 @@ class Camels(HydroDataset):
         self.data_source_description = self.set_data_source_describe()
         if download:
             self.download_data_source()
-        self.sites = self.read_site_info()
         self.gauge_id_tag = "gauge_id"
+        self.sites = self.read_site_info()
         self.gage = self.read_object_ids()
         self.n_gage = len(self.gage)  # basin number
 

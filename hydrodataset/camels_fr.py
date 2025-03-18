@@ -41,6 +41,7 @@ class CamelsFr(Camels):
             the default is CAMELS-FR
         """
         super().__init__(data_path,download,region)
+        self.gauge_id_tag = "sta_code_h3"
 
     def set_data_source_describe(self) -> collections.OrderedDict:
         """
@@ -121,7 +122,7 @@ class CamelsFr(Camels):
             basic info of gages
         """
         camels_file = self.data_source_description["CAMELS_GAUGE_FILE"]
-        return pd.read_csv(camels_file,sep=";",dtype={"sta_code_h3": str})
+        return pd.read_csv(camels_file,sep=";",dtype={self.gauge_id_tag: str})
 
     def get_constant_cols(self) -> np.ndarray:
         """
@@ -176,22 +177,6 @@ class CamelsFr(Camels):
             streamflow types
         """
         return np.array(["tsd_q_l", "tsd_q_mm"])
-
-    def read_object_ids(self, **kwargs) -> np.ndarray:
-        """
-        read station ids
-
-        Parameters
-        ----------
-        **kwargs
-            optional params if needed
-
-        Returns
-        -------
-        np.array
-            gage/station ids
-        """
-        return self.sites["sta_code_h3"].values
 
     def read_fr_gage_flow_forcing(self, gage_id, t_range, var_type):
         """
@@ -325,8 +310,6 @@ class CamelsFr(Camels):
         var_dict = {}
         var_lst = []
         out_lst = []
-        gage = self.read_object_ids()
-        n_gage = len(gage)
         camels_str = "CAMELS_FR_"
         sep_ = ";"
         for key in key_lst:
@@ -343,7 +326,7 @@ class CamelsFr(Camels):
             var_lst.extend(var_lst_temp)
             k = 0
             print(len(var_lst_temp))
-            out_temp = np.full([n_gage, len(var_lst_temp)], np.nan)
+            out_temp = np.full([self.n_gage, len(var_lst_temp)], np.nan)
             for field in var_lst_temp:
                 if is_string_dtype(data_temp[field]):
                     value, ref = pd.factorize(data_temp[field], sort=True)
@@ -379,7 +362,7 @@ class CamelsFr(Camels):
         """
         attr_all, var_lst_all, var_dict, f_dict = self.read_attr_all()
         ind_var = [var_lst_all.index(var) for var in var_lst]
-        id_lst_all = self.read_object_ids()
+        id_lst_all = self.gage
         # Notice the sequence of station ids ! Some id_lst_all are not sorted, so don't use np.intersect1d
         ind_grid = [id_lst_all.tolist().index(tmp) for tmp in gage_id_lst]
         temp = attr_all[ind_grid, :]
@@ -424,7 +407,7 @@ class CamelsFr(Camels):
         cache_npy_file = CACHE_DIR.joinpath("camels_fr_forcing.npy")
         json_file = CACHE_DIR.joinpath("camels_fr_forcing.json")
         variables = self.get_relevant_cols()
-        basins = self.read_object_ids()
+        basins = self.gage
         t_range = ["1970-01-01", "2022-01-01"]
         times = [
             hydro_time.t2str(tmp)
@@ -454,7 +437,7 @@ class CamelsFr(Camels):
         cache_npy_file = CACHE_DIR.joinpath("camels_fr_streamflow.npy")
         json_file = CACHE_DIR.joinpath("camels_fr_streamflow.json")
         variables = self.get_target_cols()
-        basins = self.read_object_ids()
+        basins = self.gage
         t_range = ["1970-01-01", "2022-01-01"]
         times = [
             hydro_time.t2str(tmp) for tmp in hydro_time.t_range_days(t_range).tolist()
@@ -487,8 +470,8 @@ class CamelsFr(Camels):
         import pint_xarray
 
         attr_all, var_lst_all, var_dict, f_dict = self.read_attr_all()
-        gage = self.read_object_ids()
-        attrs_df = pd.DataFrame(data=attr_all[0:, 0:], index=gage, columns=var_lst_all)
+        basins = self.gage
+        attrs_df = pd.DataFrame(data=attr_all[0:, 0:], index=basins, columns=var_lst_all)
 
         # unify id to basin
         attrs_df.index.name = "basin"

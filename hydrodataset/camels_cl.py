@@ -43,6 +43,7 @@ class CamelsCl(Camels):
             the default is CAMELS-CL
         """
         super().__init__(data_path, download, region)
+        self.gauge_id_tag = "gauge_id"
 
     def set_data_source_describe(self) -> collections.OrderedDict:
         """
@@ -335,8 +336,7 @@ class CamelsCl(Camels):
         var_lst = self.get_constant_cols().tolist()
         data_temp = all_attr[var_lst]
         # for factorized data, we need factorize all gages' data to keep the factorized number same all the time
-        n_gage = len(self.read_object_ids())
-        out = np.full([n_gage, len(var_lst)], np.nan)
+        out = np.full([self.n_gage, len(var_lst)], np.nan)
         f_dict = {}
         k = 0
         for field in var_lst:
@@ -373,7 +373,7 @@ class CamelsCl(Camels):
         """
         attr_all, var_lst_all, var_dict, f_dict = self.read_attr_all_in_one_file()
         ind_var = [var_lst_all.index(var) for var in var_lst]
-        id_lst_all = self.read_object_ids()
+        id_lst_all = self.gage
         # Notice the sequence of station ids ! Some id_lst_all are not sorted, so don't use np.intersect1d
         ind_grid = [id_lst_all.tolist().index(tmp) for tmp in gage_id_lst]
         temp = attr_all[ind_grid, :]
@@ -416,7 +416,7 @@ class CamelsCl(Camels):
         cache_npy_file = CACHE_DIR.joinpath("camels_cl_forcing.npy")
         json_file = CACHE_DIR.joinpath("camels_cl_forcing.json")
         variables = self.get_relevant_cols()
-        basins = self.read_object_ids()
+        basins = self.gage
         t_range = ["1995-01-01", "2015-01-01"]
         times = [
             hydro_time.t2str(tmp)
@@ -450,8 +450,8 @@ class CamelsCl(Camels):
         import pint_xarray
 
         attr_all, var_lst_all, var_dict, f_dict = self.read_attr_all_in_one_file()
-        gage = self.read_object_ids()
-        attrs_df = pd.DataFrame(data=attr_all[0:, 0:], index=gage, columns=var_lst_all)
+        basins = self.gage
+        attrs_df = pd.DataFrame(data=attr_all[0:, 0:], index=basins, columns=var_lst_all)
 
         # unify id to basin
         attrs_df.index.name = "basin"
@@ -579,7 +579,7 @@ class CamelsCl(Camels):
         cache_npy_file = CACHE_DIR.joinpath("camels_cl_streamflow.npy")
         json_file = CACHE_DIR.joinpath("camels_cl_streamflow.json")
         variables = self.get_target_cols()
-        basins = self.read_object_ids()
+        basins = self.gage
         t_range = ["1995-01-01", "2015-01-01"]
         times = [
             hydro_time.t2str(tmp) for tmp in hydro_time.t_range_days(t_range).tolist()
