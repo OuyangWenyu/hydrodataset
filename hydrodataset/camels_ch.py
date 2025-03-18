@@ -41,6 +41,7 @@ class CamelsCh(Camels):
             the default is CAMELS-CH
         """
         super().__init__(data_path,download,region)
+        self.gauge_id_tag = "gauge_id"
 
     def set_data_source_describe(self) -> collections.OrderedDict:
         """
@@ -110,7 +111,7 @@ class CamelsCh(Camels):
             basic info of gages
         """
         camels_file = self.data_source_description["CAMELS_GAUGE_FILE"]
-        return pd.read_csv(camels_file,sep=",",header=1,dtype={"gauge_id": str})
+        return pd.read_csv(camels_file,sep=",",header=1,dtype={self.gauge_id_tag: str})
 
     def get_constant_cols(self) -> np.ndarray:
         """
@@ -158,21 +159,6 @@ class CamelsCh(Camels):
         """
         return np.array(["discharge_vol(m3/s)", "discharge_spec(mm/d)"])
 
-    def read_object_ids(self, **kwargs) -> np.ndarray:
-        """
-        read station ids
-
-        Parameters
-        ----------
-        **kwargs
-            optional params if needed
-
-        Returns
-        -------
-        np.array
-            gage/station ids
-        """
-        return self.sites["gauge_id"].values
 
     def read_ch_gage_flow_forcing(self, gage_id, t_range, var_type):
         """
@@ -316,8 +302,6 @@ class CamelsCh(Camels):
         var_dict = {}
         var_lst = []
         out_lst = []
-        gage = self.read_object_ids()
-        n_gage = len(gage)
         camels_str = "CAMELS_CH_"
         sep_ = ","
         for key in key_lst:
@@ -333,7 +317,7 @@ class CamelsCh(Camels):
             var_dict[key] = var_lst_temp
             var_lst.extend(var_lst_temp)
             k = 0
-            out_temp = np.full([n_gage, len(var_lst_temp)], np.nan)
+            out_temp = np.full([self.n_gage, len(var_lst_temp)], np.nan)
             for field in var_lst_temp:
                 if is_string_dtype(data_temp[field]):
                     value, ref = pd.factorize(data_temp[field], sort=True) # Encode the object as an enumerated type or categorical variable.
@@ -369,7 +353,7 @@ class CamelsCh(Camels):
         """
         attr_all, var_lst_all, var_dict, f_dict = self.read_attr_all()
         ind_var = [var_lst_all.index(var) for var in var_lst]
-        id_lst_all = self.read_object_ids()
+        id_lst_all = self.gage
         # Notice the sequence of station ids ! Some id_lst_all are not sorted, so don't use np.intersect1d
         ind_grid = [id_lst_all.tolist().index(tmp) for tmp in gage_id_lst]
         temp = attr_all[ind_grid, :]
@@ -414,7 +398,7 @@ class CamelsCh(Camels):
         cache_npy_file = CACHE_DIR.joinpath("camels_ch_forcing.npy")
         json_file = CACHE_DIR.joinpath("camels_ch_forcing.json")
         variables = self.get_relevant_cols()
-        basins = self.read_object_ids()
+        basins = self.gage
         t_range = ["1981-01-01","2021-01-01"]
         times = [
             hydro_time.t2str(tmp)
@@ -445,7 +429,7 @@ class CamelsCh(Camels):
         cache_npy_file = CACHE_DIR.joinpath("camels_ch_streamflow.npy")
         json_file = CACHE_DIR.joinpath("camels_ch_streamflow.json")
         variables = self.get_target_cols()
-        basins = self.read_object_ids()
+        basins = self.gage
         t_range = ["1981-01-01","2021-01-01"]
         times = [
             hydro_time.t2str(tmp) for tmp in hydro_time.t_range_days(t_range).tolist()
@@ -479,8 +463,8 @@ class CamelsCh(Camels):
         import pint_xarray
 
         attr_all, var_lst_all, var_dict, f_dict = self.read_attr_all()
-        gage = self.read_object_ids()
-        attrs_df = pd.DataFrame(data=attr_all[0:,0:],index=gage,columns=var_lst_all)
+        basins = self.gage
+        attrs_df = pd.DataFrame(data=attr_all[0:,0:],index=basins,columns=var_lst_all)
 
         # delete the repetitive attribute item, "country".
         duplicate_columns = attrs_df.columns[attrs_df.columns.duplicated()]

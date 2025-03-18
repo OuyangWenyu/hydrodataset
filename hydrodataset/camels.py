@@ -114,6 +114,9 @@ class Camels(HydroDataset):
         if download:
             self.download_data_source()
         self.sites = self.read_site_info()
+        self.gauge_id_tag = "gauge_id"
+        self.gage = self.read_object_ids()
+        self.n_gage = len(self.gage)  # basin number
 
     def get_name(self):
         return "CAMELS_" + self.region
@@ -297,7 +300,7 @@ class Camels(HydroDataset):
         np.array
             gage/station ids
         """
-        return self.sites["gauge_id"].values
+        return self.sites[self.gauge_id_tag].values
 
     def read_usgs_gage(self, usgs_id, t_range):
         """
