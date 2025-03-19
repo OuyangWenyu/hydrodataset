@@ -87,6 +87,7 @@ class Camels(HydroDataset):
         data_path=os.path.join("camels", "camels_us"),
         download=False,
         region: str = "US",
+        gauge_id_tag: str = "gauge_id"
     ):
         """
         Initialization for CAMELS series dataset
@@ -113,7 +114,7 @@ class Camels(HydroDataset):
         self.data_source_description = self.set_data_source_describe()
         if download:
             self.download_data_source()
-        self.gauge_id_tag = "gauge_id"
+        self.gauge_id_tag = gauge_id_tag
         self.sites = self.read_site_info()
         self.gage = self.read_object_ids()
         self.n_gage = len(self.gage)  # basin number

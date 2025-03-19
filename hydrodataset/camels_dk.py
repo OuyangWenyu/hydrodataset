@@ -24,6 +24,7 @@ class CamelsDk(Camels):
         data_path = os.path.join("camels","camels_dk"),
         download = False,
         region: str = "DK",
+        gauge_id_tag: str ="catch_id",
     ):
         """
         Initialization for CAMELS-DK dataset
@@ -40,8 +41,7 @@ class CamelsDk(Camels):
         region
             the default is CAMELS-DK
         """
-        super().__init__(data_path,download,region)
-        self.gauge_id_tag = "catch_id"
+        super().__init__(data_path,download,region,gauge_id_tag)
 
     def set_data_source_describe(self) -> collections.OrderedDict:
         """

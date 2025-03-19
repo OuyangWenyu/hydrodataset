@@ -24,6 +24,7 @@ class CamelsFr(Camels):
         data_path = os.path.join("camels","camels_fr"),
         download = False,
         region: str = "FR",
+        gauge_id_tag: str ="sta_code_h3",
     ):
         """
         Initialization for CAMELS-FR dataset
@@ -40,8 +41,7 @@ class CamelsFr(Camels):
         region
             the default is CAMELS-FR
         """
-        super().__init__(data_path,download,region)
-        self.gauge_id_tag = "sta_code_h3"
+        super().__init__(data_path,download,region,gauge_id_tag)
 
     def set_data_source_describe(self) -> collections.OrderedDict:
         """
