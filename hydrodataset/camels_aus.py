@@ -2,16 +2,14 @@ import os
 import collections
 import pandas as pd
 import numpy as np
-from pathlib import Path
 from typing import Union
 from pandas.api.types import is_string_dtype, is_numeric_dtype
 from tqdm import tqdm
 import xarray as xr
-from hydroutils import hydro_time, hydro_file
-from hydrodataset import CACHE_DIR, HydroDataset, CAMELS_REGIONS
+from hydroutils import hydro_time
+from hydrodataset import CACHE_DIR, CAMELS_REGIONS
 from hydrodataset.camels import Camels
 import json
-import warnings
 
 CAMELS_NO_DATASET_ERROR_LOG = (
     "We cannot read this dataset now. Please check if you choose correctly:\n"
