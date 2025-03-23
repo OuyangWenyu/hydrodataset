@@ -46,5 +46,13 @@ def test_cache_xrdataset():
     camelsdk = CamelsDk()
     cachexrdataset = camelsdk.cache_xrdataset()
 
+def test_read_area_meanprcp():
+    camelsdk = CamelsDk()
+    gage_ids = camelsdk.read_object_ids()
+    areas = camelsdk.read_area(gage_ids[:5])
+    mean_prcp = camelsdk.read_mean_prcp(gage_ids[:5])
+    print(areas.values)
+    print(mean_prcp.values)
+
 
 

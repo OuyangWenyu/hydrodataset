@@ -87,7 +87,7 @@ class Camels(HydroDataset):
         data_path=os.path.join("camels", "camels_us"),
         download=False,
         region: str = "US",
-        gauge_id_tag: str = "gauge_id"
+        gauge_id_tag: str = "gauge_id",
         area_tag: str = "area_gages2",  # str or str list?
         meanprcp_unit_tag: list = ["p_mean", "mm/d"],
     ):
@@ -737,10 +737,10 @@ class Camels(HydroDataset):
         return (out, var_dict, f_dict) if is_return_dict else out
 
     def read_area(self, gage_id_lst) -> np.ndarray:
-        return self.read_attr_xrdataset(gage_id_lst, self.area_tag,, is_return_dict=False)
+        return self.read_attr_xrdataset(gage_id_lst, self.area_tag, is_return_dict=False)
 
 
-    def read_mean_prcp(self, gage_id_lst, unit=self.meanprcp_unit_tag[1]) -> xr.Dataset:
+    def read_mean_prcp(self, gage_id_lst) -> xr.Dataset:
         """Read mean precipitation data
 
         Parameters
@@ -767,7 +767,8 @@ class Camels(HydroDataset):
             self.meanprcp_unit_tag[0],
             is_return_dict=False,
         )
-        converted_data = unit_convert_mean_prcp(data,unit)
+        unit = self.meanprcp_unit_tag[1]
+        converted_data = self.unit_convert_mean_prcp(data,unit)
         return converted_data
 
     def cache_forcing_np_json(self):

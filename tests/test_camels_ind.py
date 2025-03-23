@@ -48,3 +48,11 @@ def test_cache_attributes():
 def test_cache_xrdataset():
     camelsind = CamelsInd()
     cachexrdataset = camelsind.cache_xrdataset()
+
+def test_read_area_meanprcp():
+    camelsind = CamelsInd()
+    gage_ids = camelsind.read_object_ids()
+    areas = camelsind.read_area(gage_ids[:5])
+    mean_prcp = camelsind.read_mean_prcp(gage_ids[:5])
+    print(areas.values)
+    print(mean_prcp.values)

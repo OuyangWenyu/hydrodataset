@@ -48,3 +48,12 @@ def test_cache_attributes():
 def test_cache_xrdataset():
     camelaus = CamelsAus()
     cachexrdataset = camelaus.cache_xrdataset()
+
+
+def test_read_area_meanprcp():
+    camelsaus = CamelsAus()
+    gage_ids = camelsaus.read_object_ids()
+    areas = camelsaus.read_area(gage_ids[:5])
+    mean_prcp = camelsaus.read_mean_prcp(gage_ids[:5])
+    print(areas.values)
+    print(mean_prcp.values)

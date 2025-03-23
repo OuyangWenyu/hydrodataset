@@ -46,4 +46,10 @@ def test_cache_xrdataset():
     camelsgb = CamelsGb()
     cachexrdataset = camelsgb.cache_xrdataset()
 
-
+def test_read_area_meanprcp():
+    camelsgb = CamelsGb()
+    gage_ids = camelsgb.read_object_ids()
+    areas = camelsgb.read_area(gage_ids[:5])
+    mean_prcp = camelsgb.read_mean_prcp(gage_ids[:5])
+    print(areas.values)
+    print(mean_prcp.values)

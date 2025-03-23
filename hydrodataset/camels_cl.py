@@ -380,28 +380,6 @@ class CamelsCl(Camels):
         out = temp[:, ind_var]
         return (out, var_dict, f_dict) if is_return_dict else out
 
-    def read_mean_prcp(self, gage_id_lst, unit="mm/d") -> xr.Dataset:
-        """Read mean precipitation data
-
-        Parameters
-        ----------
-        gage_id_lst : list
-            station ids
-        unit : str, optional
-            the unit of mean_prcp, by default "mm/d"
-
-        Returns
-        -------
-        xr.Dataset
-            mean precipitation data
-        """
-        # there are different p_mean values for different forcings, here we chose p_mean_cr2met now
-        data = self.read_attr_xrdataset(
-            gage_id_lst, ["p_mean_cr2met"], is_return_dict=False
-        )
-        converted_data = self.unit_convert_mean_prcp(data, unit="mm/d")
-        return converted_data
-
     def cache_forcing_np_json(self):
         """
         Save all basin-forcing data in a numpy array file in the cache directory.

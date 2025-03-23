@@ -51,3 +51,11 @@ def test_cache_attributes():
 def test_cache_xrdataset():
     camelsch = CamelsCh()
     cachexrdataset = camelsch.cache_xrdataset()
+
+def test_read_area_meanprcp():
+    camelsch = CamelsCh()
+    gage_ids = camelsch.read_object_ids()
+    areas = camelsch.read_area(gage_ids[:5])
+    mean_prcp = camelsch.read_mean_prcp(gage_ids[:5])
+    print(areas.values)
+    print(mean_prcp.values)
