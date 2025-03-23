@@ -25,6 +25,8 @@ class CamelsDe(Camels):
         download = False,
         region: str = "DE",
         gauge_id_tag: str ="gauge_id",
+        area_tag: str = "area",
+        meanprcp_unit_tag: list = ["p_mean", "mm/d"],
     ):
         """
         Initialization for CAMELS-DE dataset
@@ -41,7 +43,7 @@ class CamelsDe(Camels):
         region
             the default is CAMELS-DE
         """
-        super().__init__(data_path,download,region,gauge_id_tag)
+        super().__init__(data_path,download,region,gauge_id_tag,area_tag,meanprcp_unit_tag)
 
     def set_data_source_describe(self) -> collections.OrderedDict:
         """
@@ -352,9 +354,6 @@ class CamelsDe(Camels):
         temp = attr_all[ind_grid, :]
         out = temp[:, ind_var]
         return (out, var_dict, f_dict) if is_return_dict else out
-
-    def read_area(self, gage_id_lst) -> np.ndarray:
-        return self.read_attr_xrdataset(gage_id_lst, ["area"], is_return_dict=False)
 
     def read_mean_prcp(self, gage_id_lst, unit="mm/d") -> xr.Dataset:
         """Read mean precipitation data

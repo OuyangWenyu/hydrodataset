@@ -88,6 +88,8 @@ class Camels(HydroDataset):
         download=False,
         region: str = "US",
         gauge_id_tag: str = "gauge_id"
+        area_tag: str = "area_gages2",  # str or str list?
+        meanprcp_unit_tag: list = ["p_mean", "mm/d"],
     ):
         """
         Initialization for CAMELS series dataset
@@ -118,6 +120,8 @@ class Camels(HydroDataset):
         self.sites = self.read_site_info()
         self.gage = self.read_object_ids()
         self.n_gage = len(self.gage)  # basin number
+        self.area_tag = area_tag
+        self.meanprcp_unit_tag = meanprcp_unit_tag  # [mean_prce,unit]
 
     def get_name(self):
         return "CAMELS_" + self.region
@@ -733,10 +737,10 @@ class Camels(HydroDataset):
         return (out, var_dict, f_dict) if is_return_dict else out
 
     def read_area(self, gage_id_lst) -> np.ndarray:
-        return self.read_attr_xrdataset(gage_id_lst, ["area_gages2"])
+        return self.read_attr_xrdataset(gage_id_lst, self.area_tag,, is_return_dict=False)
 
 
-    def read_mean_prcp(self, gage_id_lst, unit="mm/d") -> xr.Dataset:
+    def read_mean_prcp(self, gage_id_lst, unit=self.meanprcp_unit_tag[1]) -> xr.Dataset:
         """Read mean precipitation data
 
         Parameters
@@ -760,10 +764,10 @@ class Camels(HydroDataset):
         """
         data = self.read_attr_xrdataset(
             gage_id_lst,
-            ["p_mean"],
+            self.meanprcp_unit_tag[0],
             is_return_dict=False,
         )
-        converted_data = self.unit_convert_mean_prcp(data)
+        converted_data = unit_convert_mean_prcp(data,unit)
         return converted_data
 
     def cache_forcing_np_json(self):
@@ -1101,7 +1105,7 @@ class Camels(HydroDataset):
             variables_list.append(name_)
         return variables_list
 
-    def unit_convert_mean_prcp(self, p_mean, unit="mm/d") -> xr.Dataset:
+    def unit_convert_mean_prcp(self, p_mean, unit) -> xr.Dataset:
         """
         convert the mean precipitation uint to mm/d
         Parameters
