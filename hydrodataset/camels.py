@@ -1126,11 +1126,11 @@ class Camels(HydroDataset):
             converted_data = p_mean / 8
         elif unit in ["mm/8d", "mm/8day"]:
             converted_data = p_mean * 8
-        elif unit in ["mm/y", "mm/year"]:
+        elif unit in ["mm/yr", "mm/year"]:
             converted_data = data * 365  # todo: whether or not to consider the leap year
         else:
             raise ValueError(
-                "unit must be one of ['mm/d', 'mm/day', 'mm/h', 'mm/hour', 'mm/3h', 'mm/3hour', 'mm/8d', 'mm/8day', 'mm/y', 'mm/year']"
+                "unit must be one of ['mm/d', 'mm/day', 'mm/h', 'mm/hour', 'mm/3h', 'mm/3hour', 'mm/8d', 'mm/8day', 'mm/yr', 'mm/year']"
             )
         return converted_data
 

@@ -28,7 +28,7 @@ class CamelsSe(Camels):
         region: str = "SE",
         gauge_id_tag: str = "ID",
         area_tag: str = "Area_km2",
-        meanprcp_unit_tag: list = ["Pmean_mm_year", "mm/d"],
+        meanprcp_unit_tag: list = ["Pmean_mm_year", "mm/yr"],
     ):
         """
         Initialization for CAMELS-SE dataset

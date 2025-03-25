@@ -77,6 +77,10 @@ class CamelsDk(Camels):
             "Ungauged_catchments",
         )
         flow_dir = [flow_dir1, flow_dir2]
+        # flow_dir = camels_db.joinpath(
+        #         "Dynamics",
+        #         "Gauged_catchments",
+        #     )
         forcing_dir = flow_dir
         # attr
         attr_dir = camels_db.joinpath(
@@ -91,7 +95,7 @@ class CamelsDk(Camels):
             "topography",
         ]
         gauge_id_file = attr_dir.joinpath("CAMELS_DK_climate.csv")
-
+        # gauge_id_file = forcing_dir
         return collections.OrderedDict(
             CAMELS_DIR = camels_db,
             CAMELS_FLOW_DIR = flow_dir,
@@ -112,7 +116,14 @@ class CamelsDk(Camels):
             basic info of gages
         """
         camels_file = self.data_source_description["CAMELS_GAUGE_FILE"]
+        # filename = os.listdir(camels_file)
+        # site_list = []
+        # for name in filename:
+        #     name_ = name.split("_")[-1]
+        #     site = name_.split(".")[0]
+        #     site_list.append(site)
         return pd.read_csv(camels_file,sep=",",dtype={self.gauge_id_tag: str})
+        # return pd.DataFrame(site_list, columns=["catch_id"])
 
     def get_constant_cols(self) -> np.ndarray:
         """
@@ -200,7 +211,7 @@ class CamelsDk(Camels):
         data_temp = pd.read_csv(gage_file, sep=",")
 
         obs = data_temp[var_type].values
-        if var_type in ["Qobs","Qdkm"]:
+        if var_type in ["Qobs", "Qdkm"]:
             obs[obs < 0] = np.nan
         date = pd.to_datetime(data_temp["time"]).values.astype("datetime64[D]")
         return time_intersect_dynamic_data(obs, date, t_range)
@@ -412,7 +423,7 @@ class CamelsDk(Camels):
         json_file = CACHE_DIR.joinpath("camels_dk_streamflow.json")
         variables = self.get_target_cols()
         basins = self.gage
-        t_range = ["1989-01-02", "2024-01-02"]
+        t_range = ["1989-01-02", "2024-01-01"]
         times = [
             hydro_time.t2str(tmp) for tmp in hydro_time.t_range_days(t_range).tolist()
         ]
