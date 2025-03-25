@@ -24,8 +24,8 @@ class CamelsAus(Camels):
         download=False,
         region: str = "AUS",
         gauge_id_tag: str ="station_id",
-        area_tag: str = "catchment_area",
-        meanprcp_unit_tag: list = ["p_mean", "mm/d"],
+        area_tag: list = ["catchment_area"],
+        meanprcp_unit_tag: list = [["p_mean"], "mm/d"],
     ):
         """
         Initialization for CAMELS-AUS dataset

@@ -25,8 +25,8 @@ class CamelsDe(Camels):
         download = False,
         region: str = "DE",
         gauge_id_tag: str ="gauge_id",
-        area_tag: str = "area",
-        meanprcp_unit_tag: list = ["p_mean", "mm/d"],
+        area_tag: list = ["area"],
+        meanprcp_unit_tag: list = [["p_mean"], "mm/d"],
     ):
         """
         Initialization for CAMELS-DE dataset

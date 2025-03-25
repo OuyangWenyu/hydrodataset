@@ -25,8 +25,8 @@ class CamelsInd(Camels):
         download = False,
         region: str = "IND",
         gauge_id_tag: str="gauge_id",
-        area_tag: str="cwc_area",
-        meanprcp_unit_tag: list = ["p_mean", "mm/d"],
+        area_tag: list = ["cwc_area"],
+        meanprcp_unit_tag: list = [["p_mean"], "mm/d"],
     ):
         """
         Initialization for CAMELS-IND dataset

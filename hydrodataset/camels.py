@@ -88,8 +88,8 @@ class Camels(HydroDataset):
         download=False,
         region: str = "US",
         gauge_id_tag: str = "gauge_id",
-        area_tag: str = "area_gages2",  # str or str list?
-        meanprcp_unit_tag: list = ["p_mean", "mm/d"],
+        area_tag: list = ["area_gages2",],
+        meanprcp_unit_tag: list = [["p_mean"], "mm/d"],
     ):
         """
         Initialization for CAMELS series dataset
@@ -740,7 +740,7 @@ class Camels(HydroDataset):
         return self.read_attr_xrdataset(gage_id_lst, self.area_tag, is_return_dict=False)
 
 
-    def read_mean_prcp(self, gage_id_lst) -> xr.Dataset:
+    def read_mean_prcp(self, gage_id_lst, unit) -> xr.Dataset:
         """Read mean precipitation data
 
         Parameters
@@ -767,7 +767,7 @@ class Camels(HydroDataset):
             self.meanprcp_unit_tag[0],
             is_return_dict=False,
         )
-        unit = self.meanprcp_unit_tag[1]
+        # unit = self.meanprcp_unit_tag[1]
         converted_data = self.unit_convert_mean_prcp(data,unit)
         return converted_data
 

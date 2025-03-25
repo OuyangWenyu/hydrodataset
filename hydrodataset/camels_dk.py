@@ -25,8 +25,8 @@ class CamelsDk(Camels):
         download = False,
         region: str = "DK",
         gauge_id_tag: str ="catch_id",
-        area_tag: str = "catch_area",
-        meanprcp_unit_tag: list = ["p_mean", "mm/d"],
+        area_tag: list = ["catch_area"],
+        meanprcp_unit_tag: list = [["p_mean"], "mm/d"],
     ):
         """
         Initialization for CAMELS-DK dataset

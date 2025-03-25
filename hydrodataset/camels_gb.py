@@ -25,8 +25,8 @@ class CamelsGb(Camels):
         download=False,
         region: str = "GB",
         gauge_id_tag: str ="gauge_id",
-        area_tag: str ="area",
-        meanprcp_unit_tag: list = ["p_mean", "mm/d"],
+        area_tag: list = ["area"],
+        meanprcp_unit_tag: list = [["p_mean"], "mm/d"],
     ):
         """
         Initialization for CAMELS-GB dataset

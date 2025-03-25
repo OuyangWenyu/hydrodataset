@@ -25,8 +25,8 @@ class CamelsCl(Camels):
         download=False,
         region: str = "CL",
         gauge_id_tag: str ="gauge_id",
-        area_tag: str ="area",
-        meanprcp_unit_tag: list = ["p_mean_cr2met", "mm/d"],
+        area_tag: list = ["area"],
+        meanprcp_unit_tag: list = [["p_mean_cr2met"], "mm/d"],
     ):
         """
         Initialization for CAMELS-CL dataset

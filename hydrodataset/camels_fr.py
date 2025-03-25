@@ -25,8 +25,8 @@ class CamelsFr(Camels):
         download = False,
         region: str = "FR",
         gauge_id_tag: str ="sta_code_h3",
-        area_tag: str = "sta_area_snap",
-        meanprcp_unit_tag: list = ["cli_prec_mean", "mm/d"],
+        area_tag: list = ["sta_area_snap"],
+        meanprcp_unit_tag: list = [["cli_prec_mean"], "mm/d"],
     ):
         """
         Initialization for CAMELS-FR dataset
