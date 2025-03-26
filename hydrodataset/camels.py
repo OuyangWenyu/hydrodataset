@@ -305,7 +305,7 @@ class Camels(HydroDataset):
         np.array
             gage/station ids
         """
-        return self.sites[self.gauge_id_tag].values
+        return self.sites[self.gauge_id_tag].values.tolist()
 
     def read_usgs_gage(self, usgs_id, t_range):
         """
@@ -740,7 +740,7 @@ class Camels(HydroDataset):
         return self.read_attr_xrdataset(gage_id_lst, self.area_tag, is_return_dict=False)
 
 
-    def read_mean_prcp(self, gage_id_lst, unit) -> xr.Dataset:
+    def read_mean_prcp(self, gage_id_lst, unit=None) -> xr.Dataset:
         """Read mean precipitation data
 
         Parameters
@@ -767,7 +767,8 @@ class Camels(HydroDataset):
             self.meanprcp_unit_tag[0],
             is_return_dict=False,
         )
-        # unit = self.meanprcp_unit_tag[1]
+        if unit == None:
+            unit = self.meanprcp_unit_tag[1]
         converted_data = self.unit_convert_mean_prcp(data,unit)
         return converted_data
 

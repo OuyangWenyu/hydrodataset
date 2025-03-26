@@ -330,7 +330,7 @@ class CamelsGb(Camels):
         data_info = collections.OrderedDict(
             {
                 "dim": ["basin", "time", "variable"],
-                "basin": basins.tolist(),
+                "basin": basins,
                 "time": times,
                 "variable": variables.tolist(),
             }
@@ -338,7 +338,7 @@ class CamelsGb(Camels):
         with open(json_file, "w") as FP:
             json.dump(data_info, FP, indent=4)
         data = self.read_relevant_cols(
-            gage_id_lst=basins.tolist(),
+            gage_id_lst=basins,
             t_range=t_range,
             var_lst=variables.tolist(),
         )
@@ -359,7 +359,7 @@ class CamelsGb(Camels):
         data_info = collections.OrderedDict(
             {
                 "dim": ["basin", "time", "variable"],
-                "basin": basins.tolist(),
+                "basin": basins,
                 "time": times,
                 "variable": variables.tolist(),
             }

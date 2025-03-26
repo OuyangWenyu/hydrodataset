@@ -57,5 +57,5 @@ def test_read_area_meanprcp():
     gage_ids = camelsch.read_object_ids()
     areas = camelsch.read_area(gage_ids[:5])
     mean_prcp = camelsch.read_mean_prcp(gage_ids[:5])
-    print(areas.values)
-    print(mean_prcp.values)
+    print(areas.area.data)
+    print(mean_prcp.p_mean.data)

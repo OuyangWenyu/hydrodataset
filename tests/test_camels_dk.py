@@ -60,4 +60,19 @@ def test_read_gage_id():
     print(gage_ids)
 
 
+def test_read_gauge_id():
+    """
+    read the gages id of gauged catchments
+    """
+    import os
+    camels_file = "D:\minio\waterism\datasets-origin\camels\camels_dk\Dynamics\Gauged_catchments"
+    filename = os.listdir(camels_file)
+    site_list = []
+    for name in filename:
+        name_ = name.split("_")[-1]
+        site = name_.split(".")[0]
+        site_list.append(site)
+    print(site_list)
+
+
 

@@ -375,7 +375,7 @@ class CamelsDk(Camels):
         ind_var = [var_lst_all.index(var) for var in var_lst]
         id_lst_all = self.gage
         # Notice the sequence of station ids ! Some id_lst_all are not sorted, so don't use np.intersect1d
-        ind_grid = [id_lst_all.tolist().index(tmp) for tmp in gage_id_lst]
+        ind_grid = [id_lst_all.index(tmp) for tmp in gage_id_lst]
         temp = attr_all[ind_grid, :]
         out = temp[:, ind_var]
         return (out, var_dict, f_dict) if is_return_dict else out
@@ -401,7 +401,7 @@ class CamelsDk(Camels):
         data_info = collections.OrderedDict(
             {
                 "dim": ["basin", "time", "variable"],
-                "basin": basins.tolist(),
+                "basin": basins,
                 "time": times,
                 "variable": variables.tolist(),
             }
@@ -409,7 +409,7 @@ class CamelsDk(Camels):
         with open(json_file, "w") as FP:
             json.dump(data_info, FP, indent=4)
         data = self.read_relevant_cols(
-            gage_id_lst=basins.tolist(),
+            gage_id_lst=basins,
             t_range=t_range,
             var_lst=variables.tolist(),
         )
@@ -430,7 +430,7 @@ class CamelsDk(Camels):
         data_info = collections.OrderedDict(
             {
                 "dim": ["basin", "time", "variable"],
-                "basin": basins.tolist(),
+                "basin": basins,
                 "time": times,
                 "variable": variables.tolist(),
             }
