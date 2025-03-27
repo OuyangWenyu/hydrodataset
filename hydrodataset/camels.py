@@ -784,7 +784,7 @@ class Camels(HydroDataset):
         cache_npy_file = CACHE_DIR.joinpath("camels_daymet_forcing.npy")
         json_file = CACHE_DIR.joinpath("camels_daymet_forcing.json")
         variables = self.get_relevant_cols()
-        basins = self.sites["gauge_id"].values
+        basins = self.gage
         daymet_t_range = ["1980-01-01", "2015-01-01"]
         times = [
             hydro_time.t2str(tmp)
@@ -793,7 +793,7 @@ class Camels(HydroDataset):
         data_info = collections.OrderedDict(
             {
                 "dim": ["basin", "time", "variable"],
-                "basin": basins.tolist(),
+                "basin": basins,
                 "time": times,
                 "variable": variables.tolist(),
             }
@@ -801,7 +801,7 @@ class Camels(HydroDataset):
         with open(json_file, "w") as FP:
             json.dump(data_info, FP, indent=4)
         data = self.read_relevant_cols(
-            gage_id_lst=basins.tolist(),
+            gage_id_lst=basins,
             t_range=daymet_t_range,
             var_lst=variables.tolist(),
         )
@@ -815,7 +815,7 @@ class Camels(HydroDataset):
         cache_npy_file = CACHE_DIR.joinpath("camels_streamflow.npy")
         json_file = CACHE_DIR.joinpath("camels_streamflow.json")
         variables = self.get_target_cols()
-        basins = self.sites["gauge_id"].values
+        basins = self.gage
         t_range = ["1980-01-01", "2015-01-01"]
         times = [
             hydro_time.t2str(tmp) for tmp in hydro_time.t_range_days(t_range).tolist()
@@ -823,7 +823,7 @@ class Camels(HydroDataset):
         data_info = collections.OrderedDict(
             {
                 "dim": ["basin", "time", "variable"],
-                "basin": basins.tolist(),
+                "basin": basins,
                 "time": times,
                 "variable": variables.tolist(),
             }
