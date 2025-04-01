@@ -90,6 +90,7 @@ class Camels(HydroDataset):
         gauge_id_tag: str = "gauge_id",
         area_tag: list = ["area_gages2",],
         meanprcp_unit_tag: list = [["p_mean"], "mm/d"],
+        time_range: list = ["1980-01-01", "2015-01-01"],
     ):
         """
         Initialization for CAMELS series dataset
@@ -122,6 +123,7 @@ class Camels(HydroDataset):
         self.n_gage = len(self.gage)  # basin number
         self.area_tag = area_tag
         self.meanprcp_unit_tag = meanprcp_unit_tag  # [mean_prce,unit]
+        self.time_range = time_range
 
     def get_name(self):
         return "CAMELS_" + self.region

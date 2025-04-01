@@ -26,6 +26,7 @@ class CamelsAus(Camels):
         gauge_id_tag: str ="station_id",
         area_tag: list = ["catchment_area"],
         meanprcp_unit_tag: list = [["p_mean"], "mm/d"],
+        time_range: list = ["1990-01-01", "2010-01-01"],
     ):
         """
         Initialization for CAMELS-AUS dataset
@@ -42,7 +43,7 @@ class CamelsAus(Camels):
         region
             the default is CAMELS-AUS
         """
-        super().__init__(data_path, download, region, gauge_id_tag, area_tag, meanprcp_unit_tag)
+        super().__init__(data_path, download, region, gauge_id_tag, area_tag, meanprcp_unit_tag,time_range)
 
     def set_data_source_describe(self) -> collections.OrderedDict:
         """
@@ -436,7 +437,7 @@ class CamelsAus(Camels):
         json_file = CACHE_DIR.joinpath("camels_aus_forcing.json")
         variables = self.get_relevant_cols()
         basins = self.gage
-        t_range = ["1990-01-01", "2010-01-01"]
+        t_range = self.time_range
         times = [
             hydro_time.t2str(tmp)
             for tmp in hydro_time.t_range_days(t_range).tolist()
@@ -466,7 +467,7 @@ class CamelsAus(Camels):
         json_file = CACHE_DIR.joinpath("camels_aus_streamflow.json")
         variables = self.get_target_cols()
         basins = self.gage
-        t_range = ["1990-01-01", "2010-01-01"]
+        t_range = self.time_range
         times = [
             hydro_time.t2str(tmp) for tmp in hydro_time.t_range_days(t_range).tolist()
         ]
