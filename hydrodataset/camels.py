@@ -90,7 +90,12 @@ class Camels(HydroDataset):
         gauge_id_tag: str = "gauge_id",
         area_tag: list = ["area_gages2",],
         meanprcp_unit_tag: list = [["p_mean"], "mm/d"],
-        time_range: list = ["1980-01-01", "2015-01-01"],
+        time_range: dict = {
+            "daymet": ["1980-01-01", "2015-01-01"],
+            "maurer": ["1980-01-01", "2015-01-01"],
+            "nldas": ["1980-01-01", "2015-01-01"],
+        },
+        b_nestedness: bool = False,
     ):
         """
         Initialization for CAMELS series dataset
@@ -107,6 +112,8 @@ class Camels(HydroDataset):
         region
             the default is CAMELS(-US), since it's the first CAMELS dataset.
             All are included in CAMELS_REGIONS
+        b_nestedness: bool
+            catchment nestedness information, by default False
         """
         super().__init__(data_path)
         if region not in CAMELS_REGIONS:
@@ -124,6 +131,7 @@ class Camels(HydroDataset):
         self.area_tag = area_tag
         self.meanprcp_unit_tag = meanprcp_unit_tag  # [mean_prce,unit]
         self.time_range = time_range
+        self.b_nestedness = b_nestedness
 
     def get_name(self):
         return "CAMELS_" + self.region
@@ -166,6 +174,7 @@ class Camels(HydroDataset):
         attr_dir = camels_db
         gauge_id_file = attr_dir.joinpath("camels_name.txt")
         attr_key_lst = ["topo", "clim", "hydro", "vege", "soil", "geol"]
+        nestedness_information_file = None
         base_url = "https://gdex.ucar.edu/dataset/camels"
         download_url_lst = [
             f"{base_url}/file/basin_set_full_res.zip",
@@ -189,6 +198,7 @@ class Camels(HydroDataset):
             CAMELS_ATTR_DIR=attr_dir,
             CAMELS_ATTR_KEY_LST=attr_key_lst,
             CAMELS_GAUGE_FILE=gauge_id_file,
+            CAMELS_NESTEDNESS_FILE=nestedness_information_file,
             CAMELS_BASINS_SHP_FILE=camels_shp_file,
             CAMELS_DOWNLOAD_URL_LST=download_url_lst,
         )
@@ -787,10 +797,10 @@ class Camels(HydroDataset):
         json_file = CACHE_DIR.joinpath("camels_daymet_forcing.json")
         variables = self.get_relevant_cols()
         basins = self.gage
-        daymet_t_range = ["1980-01-01", "2015-01-01"]
+        t_range = self.time_range["daymet"]
         times = [
             hydro_time.t2str(tmp)
-            for tmp in hydro_time.t_range_days(daymet_t_range).tolist()
+            for tmp in hydro_time.t_range_days(t_range).tolist()
         ]
         data_info = collections.OrderedDict(
             {
@@ -804,7 +814,7 @@ class Camels(HydroDataset):
             json.dump(data_info, FP, indent=4)
         data = self.read_relevant_cols(
             gage_id_lst=basins,
-            t_range=daymet_t_range,
+            t_range=t_range,
             var_lst=variables.tolist(),
         )
         np.save(cache_npy_file, data)
@@ -818,7 +828,7 @@ class Camels(HydroDataset):
         json_file = CACHE_DIR.joinpath("camels_streamflow.json")
         variables = self.get_target_cols()
         basins = self.gage
-        t_range = ["1980-01-01", "2015-01-01"]
+        t_range = self.time_range["daymet"]
         times = [
             hydro_time.t2str(tmp) for tmp in hydro_time.t_range_days(t_range).tolist()
         ]
@@ -1038,6 +1048,14 @@ class Camels(HydroDataset):
             attrs={"forcing_type": "daymet"},
         )
 
+    def cache_nestedness_xrdataset(self):
+        """Save basin nestedness information data"""
+        nestedness_file = os.path.join(self.data_source_description["CAMELS_NESTEDNESS_FILE"])
+        data_temp = pd.read_csv(nestedness_file, sep=";")
+        var_lst_temp = list(data_temp.columns[1:])
+        out_temp = np.full([self.n_gage, len(var_lst_temp)], np.nan)
+        for var in var_lst_temp:
+
     def cache_xrdataset(self):
         """Save all data in a netcdf file in the cache directory"""
         warnings.warn("Check you units of all variables")
@@ -1048,7 +1066,11 @@ class Camels(HydroDataset):
         ds_attr.to_netcdf(CACHE_DIR.joinpath(filename_attributes))
         ds_streamflow = self.cache_streamflow_xrdataset()
         ds_forcing = self.cache_forcing_xrdataset()
-        ds = xr.merge([ds_streamflow, ds_forcing])
+        if self.b_nestedness:
+            ds_nestedness = self.cache_nestedness_xrdataset()
+            ds = xr.merge([ds_streamflow, ds_forcing, ds_nestedness])
+        else:
+            ds = xr.merge([ds_streamflow, ds_forcing])
         ds.to_netcdf(CACHE_DIR.joinpath(filename_timeseries))
 
     def read_ts_xrdataset(

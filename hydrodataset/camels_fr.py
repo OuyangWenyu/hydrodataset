@@ -27,6 +27,10 @@ class CamelsFr(Camels):
         gauge_id_tag: str ="sta_code_h3",
         area_tag: list = ["sta_area_snap"],
         meanprcp_unit_tag: list = [["cli_prec_mean"], "mm/d"],
+        time_range: dict = {
+            "observation": ["1970-01-01", "2022-01-01"],
+        },
+        b_nestedness: bool = True,
     ):
         """
         Initialization for CAMELS-FR dataset
@@ -43,7 +47,7 @@ class CamelsFr(Camels):
         region
             the default is CAMELS-FR
         """
-        super().__init__(data_path,download,region,gauge_id_tag,area_tag,meanprcp_unit_tag)
+        super().__init__(data_path,download,region,gauge_id_tag,area_tag,meanprcp_unit_tag,time_range,b_nestedness)
 
     def set_data_source_describe(self) -> collections.OrderedDict:
         """
@@ -103,7 +107,10 @@ class CamelsFr(Camels):
             "hydrometry_statistics",
         ]
         gauge_id_file = attr_dir1.joinpath("CAMELS_FR_geology_attributes.csv")
-
+        nestedness_information_file = camels_db.joinpath(
+            "CAMELS_FR_geography",
+            "CAMELS_FR_catchment_nestedness_information.csv",
+        )
         return collections.OrderedDict(
             CAMELS_DIR = camels_db,
             CAMELS_FLOW_DIR = flow_dir,
@@ -111,6 +118,7 @@ class CamelsFr(Camels):
             CAMELS_ATTR_DIR = attr_dir,
             CAMELS_ATTR_KEY_LST = attr_key_lst,
             CAMELS_GAUGE_FILE = gauge_id_file,
+            CAMELS_NESTEDNESSING_FILE = nestedness_information_file,
             CAMELS_BASINS_SHP = camels_shp_file,
         )
 
@@ -384,7 +392,7 @@ class CamelsFr(Camels):
         json_file = CACHE_DIR.joinpath("camels_fr_forcing.json")
         variables = self.get_relevant_cols()
         basins = self.gage
-        t_range = ["1970-01-01", "2022-01-01"]
+        t_range = self.time_range["observation"]
         times = [
             hydro_time.t2str(tmp)
             for tmp in hydro_time.t_range_days(t_range).tolist()
@@ -414,7 +422,7 @@ class CamelsFr(Camels):
         json_file = CACHE_DIR.joinpath("camels_fr_streamflow.json")
         variables = self.get_target_cols()
         basins = self.gage
-        t_range = ["1970-01-01", "2022-01-01"]
+        t_range = self.time_range["observation"]
         times = [
             hydro_time.t2str(tmp) for tmp in hydro_time.t_range_days(t_range).tolist()
         ]

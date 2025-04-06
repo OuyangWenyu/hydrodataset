@@ -28,6 +28,10 @@ class CamelsSe(Camels):
         gauge_id_tag: str = "ID",
         area_tag: list = ["Area_km2"],
         meanprcp_unit_tag: list = [["Pmean_mm_year"], "mm/yr"],
+        time_range: dict = {
+            "observation": ["1961-01-01", "2021-01-01"],
+        },
+        b_nestedness: bool = False,
     ):
         """
         Initialization for CAMELS-SE dataset
@@ -44,7 +48,7 @@ class CamelsSe(Camels):
         region
             the default is CAMELS-SE
         """
-        super().__init__(data_path,download,region,gauge_id_tag,area_tag,meanprcp_unit_tag)
+        super().__init__(data_path,download,region,gauge_id_tag,area_tag,meanprcp_unit_tag,time_range,b_nestedness)
 
     def set_data_source_describe(self) -> collections.OrderedDict:
         """
@@ -355,7 +359,7 @@ class CamelsSe(Camels):
         json_file = CACHE_DIR.joinpath("camels_se_forcing.json")
         variables = self.get_relevant_cols()
         basins = self.gage
-        t_range = ["1961-01-01", "2021-01-01"]
+        t_range = self.time_range["observation"]
         times = [
             hydro_time.t2str(tmp)
             for tmp in hydro_time.t_range_days(t_range).tolist()
@@ -385,7 +389,7 @@ class CamelsSe(Camels):
         json_file = CACHE_DIR.joinpath("camels_se_streamflow.json")
         variables = self.get_target_cols()
         basins = self.gage
-        t_range = ["1961-01-01", "2021-01-01"]
+        t_range = self.time_range["observation"]
         times = [
             hydro_time.t2str(tmp) for tmp in hydro_time.t_range_days(t_range).tolist()
         ]
