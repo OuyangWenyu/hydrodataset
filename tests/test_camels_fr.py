@@ -47,6 +47,7 @@ def test_cache_attributes():
 def test_cache_xrdataset():
     camelsfr = CamelsFr()
     cachexrdataset = camelsfr.cache_xrdataset()
+    print(cachexrdataset)
 
 def test_read_area_meanprcp():
     camelsfr = CamelsFr()
@@ -59,5 +60,6 @@ def test_read_area_meanprcp():
 def test_cache_nestedness_xrdataset():
     camelsfr = CamelsFr()
     cachenestedness = camelsfr.cache_nestedness_xrdataset()
+    print(cachenestedness)
 
 

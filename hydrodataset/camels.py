@@ -1067,7 +1067,7 @@ class Camels(HydroDataset):
             ds = xr.merge([ds_streamflow, ds_forcing, ds_nestedness])
         else:
             ds = xr.merge([ds_streamflow, ds_forcing])
-        ds.to_netcdf(CACHE_DIR.joinpath(filename_timeseries))
+        ds.to_netcdf(CACHE_DIR.joinpath(filename_timeseries))  # unable to infer dtype on variable 'nestedness'; object array contains mixed native types: int, str, bool, float
 
     def read_ts_xrdataset(
         self,

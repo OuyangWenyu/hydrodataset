@@ -926,27 +926,25 @@ class CamelsFr(Camels):
         """
         nestedness_file = self.data_source_description["CAMELS_NESTEDNESS_FILE"]
         data_temp = pd.read_csv(nestedness_file, sep=";")
-        var_lst_temp = data_temp.columns[1:]
-        out_temp = np.array
-        k = 0
-        for field in var_lst_temp:
-            out_temp.append(data_temp[field].values)
-
-            k = k + 1
+        # var_lst_temp = data_temp.columns[1:]
+        # k = 0
+        # for field in var_lst_temp:
+        #     out_temp.append(data_temp[field].values)
+        #
+        #     k = k + 1
 
         basins = list(data_temp[self.gauge_id_tag])
-        # data_temp.set_index(self.gauge_id_tag, inplace=True)
-        # data_temp.index.name = "basin"
-        # field = list(data_temp.columns[:])
+        data_temp.set_index(self.gauge_id_tag, inplace=True)
+        data_temp.index.name = "basin"
+        field = list(data_temp.columns[:])
 
-        return xr.Dataset(
-            data_vars = {
-                "nestedness": out_temp
-            },
-            coords = {
+        return xr.DataArray(
+            data=data_temp,
+            coords={
                 "basin": basins,
-                "columns": var_lst_temp[-1],
-            }
+                "field": field,
+            },
+            name="nestedness",
         )
 
     def read_nestedness_xrdataset(
