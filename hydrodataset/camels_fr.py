@@ -926,16 +926,44 @@ class CamelsFr(Camels):
         """
         nestedness_file = self.data_source_description["CAMELS_NESTEDNESS_FILE"]
         data_temp = pd.read_csv(nestedness_file, sep=";")
+        var_lst_temp = data_temp.columns[1:]
+        out_temp = np.array
+        k = 0
+        for field in var_lst_temp:
+            out_temp.append(data_temp[field].values)
+
+            k = k + 1
+
         basins = list(data_temp[self.gauge_id_tag])
-        data_temp.set_index(self.gauge_id_tag, inplace=True)
-        data_temp.index.name = "basin"
-        field = list(data_temp.columns[:])
+        # data_temp.set_index(self.gauge_id_tag, inplace=True)
+        # data_temp.index.name = "basin"
+        # field = list(data_temp.columns[:])
+
         return xr.Dataset(
             data_vars = {
-                "nestedness": data_temp.iat[:,-1]
+                "nestedness": out_temp
             },
             coords = {
                 "basin": basins,
-                "columns": field[-1],
+                "columns": var_lst_temp[-1],
             }
         )
+
+    def read_nestedness_xrdataset(
+        self,
+        gage_id_lst: list = None,
+        var: str = None,
+        **kwargs,
+    ):
+        if var is None:
+            return None
+        filename = "camels" + self.region.lower()
+        filename = filename + "_timeseries.nc"
+        camels_tsnc = CACHE_DIR.joinpath(filename)
+        if not os.path.isfile(camels_tsnc):
+            self.cache_xrdataset()
+        ts = xr.open_dataset(camels_tsnc)
+        all_vars = ts.data_vars
+        if any(var not in ts.variables):
+            raise ValueError(f"var_lst must all be in {all_vars}")
+        return ts[var].sel(basin=gage_id_lst)
