@@ -118,7 +118,7 @@ class CamelsFr(Camels):
             CAMELS_ATTR_DIR = attr_dir,
             CAMELS_ATTR_KEY_LST = attr_key_lst,
             CAMELS_GAUGE_FILE = gauge_id_file,
-            CAMELS_NESTEDNESSING_FILE = nestedness_information_file,
+            CAMELS_NESTEDNESS_FILE = nestedness_information_file,
             CAMELS_BASINS_SHP = camels_shp_file,
         )
 
@@ -912,4 +912,30 @@ class CamelsFr(Camels):
                 "basin": basins,
                 "time": times,
             },
+        )
+
+    def cache_nestedness_xrdataset(self):
+        """Save basin nestedness information data
+        sta_code_h3: station code
+        nes_is_nested: flag indicating whether the catchment is nested or not
+        nes_n_station_ds: number of stations downstream
+        nes_next_station_ds: sta_code_h3 of the closest downstream station
+        nes_n_nested_within: number of sub-catchments within the catchment
+        nes_dist_ds: hydraulic distance (theoretical horizontal stream length) from the actual stream-gauge station to the next downstream station
+        nes_station_nested_within: sta_code_h3 of all sub-catchments within this catchment
+        """
+        nestedness_file = self.data_source_description["CAMELS_NESTEDNESS_FILE"]
+        data_temp = pd.read_csv(nestedness_file, sep=";")
+        basins = list(data_temp[self.gauge_id_tag])
+        data_temp.set_index(self.gauge_id_tag, inplace=True)
+        data_temp.index.name = "basin"
+        field = list(data_temp.columns[:])
+        return xr.Dataset(
+            data_vars = {
+                "nestedness": data_temp.iat[:,-1]
+            },
+            coords = {
+                "basin": basins,
+                "columns": field[-1],
+            }
         )

@@ -56,4 +56,8 @@ def test_read_area_meanprcp():
     print(areas.values)
     print(mean_prcp.values)
 
+def test_cache_nestedness_xrdataset():
+    camelsfr = CamelsFr()
+    cachenestedness = camelsfr.cache_nestedness_xrdataset()
+
 

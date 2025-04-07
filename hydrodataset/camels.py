@@ -1050,11 +1050,7 @@ class Camels(HydroDataset):
 
     def cache_nestedness_xrdataset(self):
         """Save basin nestedness information data"""
-        nestedness_file = os.path.join(self.data_source_description["CAMELS_NESTEDNESS_FILE"])
-        data_temp = pd.read_csv(nestedness_file, sep=";")
-        var_lst_temp = list(data_temp.columns[1:])
-        out_temp = np.full([self.n_gage, len(var_lst_temp)], np.nan)
-        for var in var_lst_temp:
+        return self.b_nestedness
 
     def cache_xrdataset(self):
         """Save all data in a netcdf file in the cache directory"""
