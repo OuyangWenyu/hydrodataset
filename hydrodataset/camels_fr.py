@@ -914,7 +914,7 @@ class CamelsFr(Camels):
             },
         )
 
-    def cache_nestedness_xrdataset(self):
+    def cache_nestedness_df(self):
         """Save basin nestedness information data
         sta_code_h3: station code
         nes_is_nested: flag indicating whether the catchment is nested or not
@@ -926,42 +926,21 @@ class CamelsFr(Camels):
         """
         nestedness_file = self.data_source_description["CAMELS_NESTEDNESS_FILE"]
         data_temp = pd.read_csv(nestedness_file, sep=";")
-        # var_lst_temp = data_temp.columns[1:]
-        # k = 0
-        # for field in var_lst_temp:
-        #     out_temp.append(data_temp[field].values)
-        #
-        #     k = k + 1
-
-        basins = list(data_temp[self.gauge_id_tag])
         data_temp.set_index(self.gauge_id_tag, inplace=True)
         data_temp.index.name = "basin"
-        field = list(data_temp.columns[:])
+        return data_temp
 
-        return xr.DataArray(
-            data=data_temp,
-            coords={
-                "basin": basins,
-                "field": field,
-            },
-            name="nestedness",
-        )
-
-    def read_nestedness_xrdataset(
+    def read_nestedness_csv(
         self,
         gage_id_lst: list = None,
-        var: str = None,
         **kwargs,
     ):
-        if var is None:
-            return None
         filename = "camels" + self.region.lower()
-        filename = filename + "_timeseries.nc"
-        camels_tsnc = CACHE_DIR.joinpath(filename)
-        if not os.path.isfile(camels_tsnc):
+        filename = filename + "_nestedness.csv"
+        camels_ntcsv = CACHE_DIR.joinpath(filename)
+        if (not os.path.isfile(camels_ntcsv)) and self.b_nestedness:
             self.cache_xrdataset()
-        ts = xr.open_dataset(camels_tsnc)
-        all_vars = ts.data_vars
-        if any(var not in ts.variables):
-            raise ValueError(f"var_lst must all be in {all_vars}")
-        return ts[var].sel(basin=gage_id_lst)
+        nt = pd.read_csv(camels_ntcsv, sep=";")
+        nt.set_index("basin", inplace=True)
+        nestedness = nt.loc[gage_id_lst]
+        return nestedness

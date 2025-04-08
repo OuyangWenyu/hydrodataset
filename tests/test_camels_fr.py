@@ -44,6 +44,11 @@ def test_cache_attributes():
     camelsfr = CamelsFr()
     cacheatributes = camelsfr.cache_attributes_xrdataset()
 
+def test_cache_nestedness_df():
+    camelsfr = CamelsFr()
+    cachenestedness = camelsfr.cache_nestedness_df()
+    print(cachenestedness)
+
 def test_cache_xrdataset():
     camelsfr = CamelsFr()
     cachexrdataset = camelsfr.cache_xrdataset()
@@ -57,9 +62,9 @@ def test_read_area_meanprcp():
     print(areas.values)
     print(mean_prcp.values)
 
-def test_cache_nestedness_xrdataset():
+def test_read_nestedness_csv():
     camelsfr = CamelsFr()
-    cachenestedness = camelsfr.cache_nestedness_xrdataset()
-    print(cachenestedness)
-
+    gage_ids = camelsfr.gage
+    nestedness = camelsfr.read_nestedness_csv(gage_ids[:5])
+    print(nestedness)
 

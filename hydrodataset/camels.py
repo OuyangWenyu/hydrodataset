@@ -1048,7 +1048,7 @@ class Camels(HydroDataset):
             attrs={"forcing_type": "daymet"},
         )
 
-    def cache_nestedness_xrdataset(self):
+    def cache_nestedness_df(self):
         """Save basin nestedness information data"""
         return self.b_nestedness
 
@@ -1062,12 +1062,12 @@ class Camels(HydroDataset):
         ds_attr.to_netcdf(CACHE_DIR.joinpath(filename_attributes))
         ds_streamflow = self.cache_streamflow_xrdataset()
         ds_forcing = self.cache_forcing_xrdataset()
+        ds = xr.merge([ds_streamflow, ds_forcing])
+        ds.to_netcdf(CACHE_DIR.joinpath(filename_timeseries))
         if self.b_nestedness:
-            ds_nestedness = self.cache_nestedness_xrdataset()
-            ds = xr.merge([ds_streamflow, ds_forcing, ds_nestedness])
-        else:
-            ds = xr.merge([ds_streamflow, ds_forcing])
-        ds.to_netcdf(CACHE_DIR.joinpath(filename_timeseries))  # unable to infer dtype on variable 'nestedness'; object array contains mixed native types: int, str, bool, float
+            filename_nestedness = filename + "_nestedness.csv"
+            ds_nestedness = self.cache_nestedness_df()
+            ds_nestedness.to_csv(CACHE_DIR.joinpath(filename_nestedness), sep=';')
 
     def read_ts_xrdataset(
         self,
