@@ -1058,12 +1058,14 @@ class Camels(HydroDataset):
         filename = "camels" + self.region.lower()
         filename_attributes = filename +"_attributes.nc"
         filename_timeseries = filename + "_timeseries.nc"
-        ds_attr = self.cache_attributes_xrdataset()
-        ds_attr.to_netcdf(CACHE_DIR.joinpath(filename_attributes))
-        ds_streamflow = self.cache_streamflow_xrdataset()
-        ds_forcing = self.cache_forcing_xrdataset()
-        ds = xr.merge([ds_streamflow, ds_forcing])
-        ds.to_netcdf(CACHE_DIR.joinpath(filename_timeseries))
+        if not os.path.isfile(filename_attributes):
+            ds_attr = self.cache_attributes_xrdataset()
+            ds_attr.to_netcdf(CACHE_DIR.joinpath(filename_attributes))
+        if not os.path.isfile(filename_timeseries):
+            ds_streamflow = self.cache_streamflow_xrdataset()
+            ds_forcing = self.cache_forcing_xrdataset()
+            ds = xr.merge([ds_streamflow, ds_forcing])
+            ds.to_netcdf(CACHE_DIR.joinpath(filename_timeseries))
         if self.b_nestedness:
             filename_nestedness = filename + "_nestedness.csv"
             ds_nestedness = self.cache_nestedness_df()

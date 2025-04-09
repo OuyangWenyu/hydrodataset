@@ -930,11 +930,7 @@ class CamelsFr(Camels):
         data_temp.index.name = "basin"
         return data_temp
 
-    def read_nestedness_csv(
-        self,
-        gage_id_lst: list = None,
-        **kwargs,
-    ):
+    def read_nestedness_csv(self,**kwargs):
         filename = "camels" + self.region.lower()
         filename = filename + "_nestedness.csv"
         camels_ntcsv = CACHE_DIR.joinpath(filename)
@@ -942,5 +938,4 @@ class CamelsFr(Camels):
             self.cache_xrdataset()
         nt = pd.read_csv(camels_ntcsv, sep=";")
         nt.set_index("basin", inplace=True)
-        nestedness = nt.loc[gage_id_lst]
-        return nestedness
+        return nt

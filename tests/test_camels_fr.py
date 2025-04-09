@@ -64,7 +64,6 @@ def test_read_area_meanprcp():
 
 def test_read_nestedness_csv():
     camelsfr = CamelsFr()
-    gage_ids = camelsfr.gage
-    nestedness = camelsfr.read_nestedness_csv(gage_ids[:5])
+    nestedness = camelsfr.read_nestedness_csv()
     print(nestedness)
 
