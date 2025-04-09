@@ -136,6 +136,7 @@ class CamelsBr(Camels):
             "13_CAMELS_BR_temperature_max_cpc",
             "13_CAMELS_BR_temperature_max_cpc",
         )
+        nestedness_information_file = None
         return collections.OrderedDict(
             CAMELS_DIR=camels_db,
             CAMELS_FLOW_DIR=[
@@ -157,6 +158,7 @@ class CamelsBr(Camels):
             CAMELS_ATTR_DIR=attr_dir,
             CAMELS_ATTR_KEY_LST=attr_key_lst,
             CAMELS_GAUGE_FILE=gauge_id_file,
+            CAMELS_NESTEDNESS_FILE=nestedness_information_file,
             CAMELS_BASINS_SHP_FILE=camels_shp_file,
         )
 

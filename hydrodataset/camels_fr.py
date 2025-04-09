@@ -111,6 +111,7 @@ class CamelsFr(Camels):
             "CAMELS_FR_geography",
             "CAMELS_FR_catchment_nestedness_information.csv",
         )
+
         return collections.OrderedDict(
             CAMELS_DIR = camels_db,
             CAMELS_FLOW_DIR = flow_dir,

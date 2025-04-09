@@ -87,6 +87,8 @@ class CamelsCl(Camels):
         forcing_dir_pet_8d_modis = camels_db.joinpath("11_CAMELScl_pet_8d_modis")
         forcing_dir_pet_hargreaves = camels_db.joinpath("12_CAMELScl_pet_hargreaves")
         forcing_dir_swe = camels_db.joinpath("13_CAMELScl_swe")
+        nestedness_information_file = None
+
         return collections.OrderedDict(
             CAMELS_DIR=camels_db,
             CAMELS_FLOW_DIR=[flow_dir_m3s, flow_dir_mm],
@@ -104,6 +106,7 @@ class CamelsCl(Camels):
             ],
             CAMELS_ATTR_DIR=attr_dir,
             CAMELS_GAUGE_FILE=attr_file,
+            CAMELS_NESTEDNESS_FILE=nestedness_information_file,
             CAMELS_BASINS_SHP_FILE=camels_shp_file,
         )
 

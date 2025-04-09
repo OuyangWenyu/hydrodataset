@@ -16,6 +16,16 @@ CAMELS_NO_DATASET_ERROR_LOG = (
     + str(CAMELS_REGIONS)
 )
 
+camelsaus_arg = {
+    "forcing_type": "observation",
+    "gauge_id_tag": "station_id",
+    "area_tag": ["catchment_area", ],
+    "meanprcp_unit_tag": [["p_mean"], "mm/d"],
+    "time_range": {
+        "observation": ["1990-01-01", "2010-01-01"],
+    },
+    "b_nestedness": False,
+}
 
 class CamelsAus(Camels):
     def __init__(
@@ -23,13 +33,7 @@ class CamelsAus(Camels):
         data_path=os.path.join("camels", "camels_aus"),
         download=False,
         region: str = "AUS",
-        gauge_id_tag: str ="station_id",
-        area_tag: list = ["catchment_area"],
-        meanprcp_unit_tag: list = [["p_mean"], "mm/d"],
-        time_range: dict = {
-            "observation": ["1990-01-01", "2010-01-01"],
-        },
-        b_nestedness: bool = False,
+        arg: dict = camelsaus_arg,
     ):
         """
         Initialization for CAMELS-AUS dataset
@@ -46,7 +50,7 @@ class CamelsAus(Camels):
         region
             the default is CAMELS-AUS
         """
-        super().__init__(data_path, download, region, gauge_id_tag, area_tag, meanprcp_unit_tag,time_range,b_nestedness)
+        super().__init__(data_path, download, region, arg)
 
     def set_data_source_describe(self) -> collections.OrderedDict:
         """
@@ -116,6 +120,7 @@ class CamelsAus(Camels):
         attr_dir = camels_db.joinpath("04_attributes", "04_attributes")
         # forcing
         forcing_dir = camels_db.joinpath("05_hydrometeorology", "05_hydrometeorology")
+        nestedness_information_file = None
 
         return collections.OrderedDict(
             CAMELS_DIR=camels_db,
@@ -123,6 +128,7 @@ class CamelsAus(Camels):
             CAMELS_FORCING_DIR=forcing_dir,
             CAMELS_ATTR_DIR=attr_dir,
             CAMELS_GAUGE_FILE=gauge_id_file,
+            CAMELS_NESTEDNESS_FILE=nestedness_information_file,
             CAMELS_BASINS_SHP_FILE=camels_shp_file,
         )
 

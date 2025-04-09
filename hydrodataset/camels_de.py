@@ -90,6 +90,7 @@ class CamelsDe(Camels):
             "topographic",
         ]
         gauge_id_file = attr_dir.joinpath("CAMELS_DE_hydrologic_attributes.csv")
+        nestedness_information_file = None
 
         return collections.OrderedDict(
             CAMELS_DIR = camels_db,
@@ -99,6 +100,7 @@ class CamelsDe(Camels):
             CAMELS_ATTR_DIR = attr_dir,
             CAMELS_ATTR_KEY_LST = attr_key_lst,
             CAMELS_GAUGE_FILE = gauge_id_file,
+            CAMELS_NESTEDNESS_FILE=nestedness_information_file,
             CAMELS_BASINS_SHP = camels_shp_file,
         )
 

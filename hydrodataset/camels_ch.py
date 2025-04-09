@@ -17,6 +17,16 @@ CAMELS_NO_DATASET_ERROR_LOG = (
     + str(CAMELS_REGIONS)
 )
 
+camelsch_arg = {
+    "forcing_type": "observation",
+    "gauge_id_tag": "gauge_id",
+    "area_tag": ["area", ],
+    "meanprcp_unit_tag": [["p_mean"], "mm/d"],
+    "time_range": {
+        "observation": ["1981-01-01","2021-01-01"],
+    },
+    "b_nestedness": False,
+}
 
 class CamelsCh(Camels):
     def __init__(
@@ -24,13 +34,7 @@ class CamelsCh(Camels):
         data_path = os.path.join("camels","camels_ch"),
         download = False,
         region: str = "CH",
-        gauge_id_tag: str ="gauge_id",
-        area_tag: list = ["area",],
-        meanprcp_unit_tag: list = [["p_mean"], "mm/d"],
-        time_range: dict = {
-            "observation": ["1981-01-01","2021-01-01"],
-        },
-        b_nestedness: bool = False,
+        arg: dict = camelsch_arg,
     ):
         """
         Initialization for CAMELS-CH dataset
@@ -47,7 +51,7 @@ class CamelsCh(Camels):
         region
             the default is CAMELS-CH
         """
-        super().__init__(data_path,download,region, gauge_id_tag,area_tag,meanprcp_unit_tag,time_range,b_nestedness)
+        super().__init__(data_path, download, region, arg)
 
     def set_data_source_describe(self) -> collections.OrderedDict:
         """
@@ -95,6 +99,7 @@ class CamelsCh(Camels):
             "catchment",   #this file static_attributes\CAMELS_CH_catchments_attributes.csv should be exported manually from catchment_delineations\CAMELS_CH_catchments.shp to replace the static_attributes\CAMELS_CH_sub_catchment_attributes.csv file, for the reason that the sub file do not contain all stations.
         ]
         gauge_id_file = attr_dir.joinpath("CAMELS_CH_hydrology_attributes_obs.csv")
+        nestedness_information_file = None
 
         return collections.OrderedDict(
             CAMELS_DIR = camels_db,
@@ -104,6 +109,7 @@ class CamelsCh(Camels):
             CAMELS_ATTR_DIR = attr_dir,
             CAMELS_ATTR_KEY_LST = attr_key_lst,
             CAMELS_GAUGE_FILE = gauge_id_file,
+            CAMELS_NESTEDNESS_FILE=nestedness_information_file,
             CAMELS_BASINS_SHP = camels_shp_file,
         )
 

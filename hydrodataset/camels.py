@@ -80,6 +80,18 @@ def time_intersect_dynamic_data(obs: np.array, date: np.array, t_range: list):
         out = obs
     return out
 
+camels_arg = {
+    "forcing_type": "daymet",
+    "gauge_id_tag": "gauge_id",
+    "area_tag": ["area_gages2", ],
+    "meanprcp_unit_tag": [["p_mean"], "mm/d"],
+    "time_range": {
+        "daymet": ["1980-01-01", "2015-01-01"],
+        "maurer": ["1980-01-01", "2015-01-01"],
+        "nldas": ["1980-01-01", "2015-01-01"],
+    },
+    "b_nestedness": False,
+}
 
 class Camels(HydroDataset):
     def __init__(
@@ -87,15 +99,7 @@ class Camels(HydroDataset):
         data_path=os.path.join("camels", "camels_us"),
         download=False,
         region: str = "US",
-        gauge_id_tag: str = "gauge_id",
-        area_tag: list = ["area_gages2",],
-        meanprcp_unit_tag: list = [["p_mean"], "mm/d"],
-        time_range: dict = {
-            "daymet": ["1980-01-01", "2015-01-01"],
-            "maurer": ["1980-01-01", "2015-01-01"],
-            "nldas": ["1980-01-01", "2015-01-01"],
-        },
-        b_nestedness: bool = False,
+        arg: dict = camels_arg,
     ):
         """
         Initialization for CAMELS series dataset
@@ -124,14 +128,14 @@ class Camels(HydroDataset):
         self.data_source_description = self.set_data_source_describe()
         if download:
             self.download_data_source()
-        self.gauge_id_tag = gauge_id_tag
+        self.gauge_id_tag = arg["gauge_id_tag"]
         self.sites = self.read_site_info()
         self.gage = self.read_object_ids()
         self.n_gage = len(self.gage)  # basin number
-        self.area_tag = area_tag
-        self.meanprcp_unit_tag = meanprcp_unit_tag  # [mean_prce,unit]
-        self.time_range = time_range
-        self.b_nestedness = b_nestedness
+        self.area_tag = arg["area_tag"]
+        self.meanprcp_unit_tag = arg["meanprcp_unit_tag"]  # [mean_prce,unit]
+        self.time_range = arg["time_range"][arg["forcing_type"]]  # forcing_type
+        self.b_nestedness = arg["b_nestedness"]
 
     def get_name(self):
         return "CAMELS_" + self.region
