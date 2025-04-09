@@ -17,6 +17,16 @@ CAMELS_NO_DATASET_ERROR_LOG = (
     + str(CAMELS_REGIONS)
 )
 
+camelsdk_arg = {
+    "forcing_type": "observation",
+    "gauge_id_tag": "catch_id",
+    "area_tag": ["catch_area", ],
+    "meanprcp_unit_tag": [["p_mean"], "mm/d"],
+    "time_range": {
+        "observation": ["1989-01-02", "2024-01-02"],
+    },
+    "b_nestedness": False,
+}
 
 class CamelsDk(Camels):
     def __init__(
@@ -24,13 +34,7 @@ class CamelsDk(Camels):
         data_path = os.path.join("camels","camels_dk"),
         download = False,
         region: str = "DK",
-        gauge_id_tag: str ="catch_id",
-        area_tag: list = ["catch_area"],
-        meanprcp_unit_tag: list = [["p_mean"], "mm/d"],
-        time_range: dict = {
-            "observation": ["1989-01-02", "2024-01-02"],
-        },
-        b_nestedness: bool = False,
+        arg: dict = camelsdk_arg,
     ):
         """
         Initialization for CAMELS-DK dataset
@@ -47,7 +51,7 @@ class CamelsDk(Camels):
         region
             the default is CAMELS-DK
         """
-        super().__init__(data_path,download,region,gauge_id_tag,area_tag,meanprcp_unit_tag,time_range,b_nestedness)
+        super().__init__(data_path, download, region, arg)
 
     def set_data_source_describe(self) -> collections.OrderedDict:
         """
