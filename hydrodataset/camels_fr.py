@@ -52,24 +52,24 @@ class CamelsFr(Camels):
             the default is CAMELS-FR
         """
         super().__init__(data_path, download, region, arg)
+    #
+    # def set_data_source_describe(self) -> collections.OrderedDict:
+    #     """
+    #     the files in the dataset and their location in file system
+    #
+    #     Returns
+    #     -------
+    #     collections.OrderedDict
+    #         the description for a CAMELS-FR dataset
+    #     """
+    #     camels_db = self.data_source_dir
+    #
+    #     if self.region == "FR":
+    #         return self._set_data_source_camelsfr_describe(camels_db)
+    #     else:
+    #         raise NotImplementedError(CAMELS_NO_DATASET_ERROR_LOG)
 
-    def set_data_source_describe(self) -> collections.OrderedDict:
-        """
-        the files in the dataset and their location in file system
-
-        Returns
-        -------
-        collections.OrderedDict
-            the description for a CAMELS-FR dataset
-        """
-        camels_db = self.data_source_dir
-
-        if self.region == "FR":
-            return self._set_data_source_camelsfr_describe(camels_db)
-        else:
-            raise NotImplementedError(CAMELS_NO_DATASET_ERROR_LOG)
-
-    def _set_data_source_camelsfr_describe(self, camels_db):
+    def _set_data_source_camels_describe(self, camels_db):
         # shp file of basins
         camels_shp_file = camels_db.joinpath(
             "CAMELS_FR_geography",

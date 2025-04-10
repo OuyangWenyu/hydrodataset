@@ -54,3 +54,25 @@ def test_read_area_meanprcp():
     mean_prcp = camelsbr.read_mean_prcp(gage_ids[:5])
     print(areas.values)
     print(mean_prcp.values)
+
+def test_set_data_source_describe():
+    camelsbr = CamelsBr()
+    describle = camelsbr.set_data_source_describe()
+    print("\n")
+    print(describle)
+# OrderedDict([('CAMELS_DIR', WindowsPath('D:/minio/waterism/datasets-origin/camels/camels_br')),
+# ('CAMELS_FLOW_DIR', [WindowsPath('D:/minio/waterism/datasets-origin/camels/camels_br/03_CAMELS_BR_streamflow_mm_selected_catchments/03_CAMELS_BR_streamflow_mm_selected_catchments')]),
+# ('CAMELS_FORCING_DIR', [WindowsPath('D:/minio/waterism/datasets-origin/camels/camels_br/05_CAMELS_BR_precipitation_chirps/05_CAMELS_BR_precipitation_chirps'),
+# WindowsPath('D:/minio/waterism/datasets-origin/camels/camels_br/06_CAMELS_BR_precipitation_mswep/06_CAMELS_BR_precipitation_mswep'),
+# WindowsPath('D:/minio/waterism/datasets-origin/camels/camels_br/07_CAMELS_BR_precipitation_cpc/07_CAMELS_BR_precipitation_cpc'),
+# WindowsPath('D:/minio/waterism/datasets-origin/camels/camels_br/08_CAMELS_BR_evapotransp_gleam/08_CAMELS_BR_evapotransp_gleam'),
+# WindowsPath('D:/minio/waterism/datasets-origin/camels/camels_br/09_CAMELS_BR_evapotransp_mgb/09_CAMELS_BR_evapotransp_mgb'),
+# WindowsPath('D:/minio/waterism/datasets-origin/camels/camels_br/10_CAMELS_BR_potential_evapotransp_gleam/10_CAMELS_BR_potential_evapotransp_gleam'),
+# WindowsPath('D:/minio/waterism/datasets-origin/camels/camels_br/11_CAMELS_BR_temperature_min_cpc/11_CAMELS_BR_temperature_min_cpc'),
+# WindowsPath('D:/minio/waterism/datasets-origin/camels/camels_br/12_CAMELS_BR_temperature_mean_cpc/12_CAMELS_BR_temperature_mean_cpc'),
+# WindowsPath('D:/minio/waterism/datasets-origin/camels/camels_br/13_CAMELS_BR_temperature_max_cpc/13_CAMELS_BR_temperature_max_cpc')]),
+# ('CAMELS_ATTR_DIR', WindowsPath('D:/minio/waterism/datasets-origin/camels/camels_br/01_CAMELS_BR_attributes/01_CAMELS_BR_attributes')),
+# ('CAMELS_ATTR_KEY_LST', ['climate', 'geology', 'human_intervention', 'hydrology', 'land_cover', 'quality_check', 'soil', 'topography']),
+# ('CAMELS_GAUGE_FILE', WindowsPath('D:/minio/waterism/datasets-origin/camels/camels_br/01_CAMELS_BR_attributes/01_CAMELS_BR_attributes/camels_br_topography.txt')),
+# ('CAMELS_NESTEDNESS_FILE', None),
+# ('CAMELS_BASINS_SHP_FILE', WindowsPath('D:/minio/waterism/datasets-origin/camels/camels_br/14_CAMELS_BR_catchment_boundaries/14_CAMELS_BR_catchment_boundaries/camels_br_catchments.shp'))])

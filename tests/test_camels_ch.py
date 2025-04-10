@@ -68,16 +68,10 @@ def test_set_data_source_describe():
     print(describle)
     # OrderedDict([('CAMELS_DIR', WindowsPath('D:/minio/waterism/datasets-origin/camels/camels_ch')), (
     # 'CAMELS_FLOW_DIR', WindowsPath('D:/minio/waterism/datasets-origin/camels/camels_ch/timeseries/observation_based')),
-    #              ('CAMELS_FORCING_DIR',
-    #               WindowsPath('D:/minio/waterism/datasets-origin/camels/camels_ch/timeseries/observation_based')),
-    #              ('CAMELS_FORCING_TYPE', ['observation', 'simulation']), ('CAMELS_ATTR_DIR', WindowsPath(
-    #         'D:/minio/waterism/datasets-origin/camels/camels_ch/static_attributes')), ('CAMELS_ATTR_KEY_LST',
-    #                                                                                    ['climate', 'geology', 'glacier',
-    #                                                                                     'humaninfluence',
-    #                                                                                     'hydrogeology', 'hydrology',
-    #                                                                                     'landcover', 'soil',
-    #                                                                                     'topographic', 'catchment']), (
-    #              'CAMELS_GAUGE_FILE', WindowsPath(
-    #                  'D:/minio/waterism/datasets-origin/camels/camels_ch/static_attributes/CAMELS_CH_hydrology_attributes_obs.csv')),
-    #              ('CAMELS_NESTEDNESS_FILE', None), ('CAMELS_BASINS_SHP', WindowsPath(
-    #         'D:/minio/waterism/datasets-origin/camels/camels_ch/catchment_delineations/CAMELS_CH_sub_catchments.shp'))])
+    # ('CAMELS_FORCING_DIR',WindowsPath('D:/minio/waterism/datasets-origin/camels/camels_ch/timeseries/observation_based')),
+    # ('CAMELS_FORCING_TYPE', ['observation', 'simulation']), ('CAMELS_ATTR_DIR', WindowsPath(
+    # 'D:/minio/waterism/datasets-origin/camels/camels_ch/static_attributes')),
+    # ('CAMELS_ATTR_KEY_LST',['climate', 'geology', 'glacier','humaninfluence','hydrogeology', 'hydrology','landcover', 'soil','topographic', 'catchment']),
+    # ('CAMELS_GAUGE_FILE', WindowsPath('D:/minio/waterism/datasets-origin/camels/camels_ch/static_attributes/CAMELS_CH_hydrology_attributes_obs.csv')),
+    # ('CAMELS_NESTEDNESS_FILE', None), ('CAMELS_BASINS_SHP', WindowsPath(
+    # 'D:/minio/waterism/datasets-origin/camels/camels_ch/catchment_delineations/CAMELS_CH_sub_catchments.shp'))])

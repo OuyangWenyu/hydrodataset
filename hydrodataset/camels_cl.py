@@ -53,20 +53,6 @@ class CamelsCl(Camels):
         """
         super().__init__(data_path, download, region, arg)
 
-    # def set_data_source_describe(self) -> collections.OrderedDict:
-    #     """
-    #     the files in the dataset and their location in file system
-    #
-    #     Returns
-    #     -------
-    #     collections.OrderedDict
-    #         the description for a CAMELS-CL dataset
-    #     """
-    #     if self.region != "CL":
-    #         raise NotImplementedError(CAMELS_NO_DATASET_ERROR_LOG)
-    #     camels_db = self.data_source_dir
-    #     return self._set_data_source_camelscl_describe(camels_db)
-
     def _set_data_source_camels_describe(self, camels_db):
         # attr
         attr_dir = camels_db.joinpath("1_CAMELScl_attributes")

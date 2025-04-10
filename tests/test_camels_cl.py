@@ -53,3 +53,26 @@ def test_read_area_meanprcp():
     mean_prcp = camelscl.read_mean_prcp(gage_ids[:5])
     print(areas.values)
     print(mean_prcp.values)
+
+def test_set_data_source_describe():
+    camelscl = CamelsCl()
+    describle = camelscl.set_data_source_describe()
+    print("\n")
+    print(describle)
+# OrderedDict([('CAMELS_DIR', WindowsPath('D:/minio/waterism/datasets-origin/camels/camels_cl')),
+# ('CAMELS_FLOW_DIR', [WindowsPath('D:/minio/waterism/datasets-origin/camels/camels_cl/2_CAMELScl_streamflow_m3s'),
+# WindowsPath('D:/minio/waterism/datasets-origin/camels/camels_cl/3_CAMELScl_streamflow_mm')]),
+# ('CAMELS_FORCING_DIR', [WindowsPath('D:/minio/waterism/datasets-origin/camels/camels_cl/4_CAMELScl_precip_cr2met'),
+# WindowsPath('D:/minio/waterism/datasets-origin/camels/camels_cl/5_CAMELScl_precip_chirps'),
+# WindowsPath('D:/minio/waterism/datasets-origin/camels/camels_cl/6_CAMELScl_precip_mswep'),
+# WindowsPath('D:/minio/waterism/datasets-origin/camels/camels_cl/7_CAMELScl_precip_tmpa'),
+# WindowsPath('D:/minio/waterism/datasets-origin/camels/camels_cl/8_CAMELScl_tmin_cr2met'),
+# WindowsPath('D:/minio/waterism/datasets-origin/camels/camels_cl/9_CAMELScl_tmax_cr2met'),
+# WindowsPath('D:/minio/waterism/datasets-origin/camels/camels_cl/10_CAMELScl_tmean_cr2met'),
+# WindowsPath('D:/minio/waterism/datasets-origin/camels/camels_cl/11_CAMELScl_pet_8d_modis'),
+# WindowsPath('D:/minio/waterism/datasets-origin/camels/camels_cl/12_CAMELScl_pet_hargreaves'),
+# WindowsPath('D:/minio/waterism/datasets-origin/camels/camels_cl/13_CAMELScl_swe')]),
+# ('CAMELS_ATTR_DIR', WindowsPath('D:/minio/waterism/datasets-origin/camels/camels_cl/1_CAMELScl_attributes')),
+# ('CAMELS_GAUGE_FILE', WindowsPath('D:/minio/waterism/datasets-origin/camels/camels_cl/1_CAMELScl_attributes/1_CAMELScl_attributes.txt')),
+# ('CAMELS_NESTEDNESS_FILE', None),
+# ('CAMELS_BASINS_SHP_FILE', WindowsPath('D:/minio/waterism/datasets-origin/camels/camels_cl/CAMELScl_catchment_boundaries/catchments_camels_cl_v1.3.shp'))])
