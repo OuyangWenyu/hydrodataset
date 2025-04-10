@@ -151,9 +151,9 @@ class Camels(HydroDataset):
         """
         camels_db = self.data_source_dir
 
-        return self._set_data_source_camelsus_describe(camels_db)
+        return self._set_data_source_camels_describe(camels_db)
 
-    def _set_data_source_camelsus_describe(self, camels_db):
+    def _set_data_source_camels_describe(self, camels_db):
         # shp file of basins
         camels_shp_file = camels_db.joinpath(
             "basin_set_full_res", "HCDN_nhru_final_671.shp"
