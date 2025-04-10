@@ -54,3 +54,18 @@ def test_read_area_meanprcp():
     mean_prcp = camelsde.read_mean_prcp(gage_ids[:5])
     print(areas.values)
     print(mean_prcp.values)
+
+def test_set_data_source_describe():
+    camelsde = CamelsDe()
+    describle = camelsde.set_data_source_describe()
+    print("\n")
+    print(describle)
+# OrderedDict([('CAMELS_DIR', WindowsPath('D:/minio/waterism/datasets-origin/camels/camels_de')),
+# ('CAMELS_FLOW_DIR', WindowsPath('D:/minio/waterism/datasets-origin/camels/camels_de/timeseries')),
+# ('CAMELS_FORCING_DIR', WindowsPath('D:/minio/waterism/datasets-origin/camels/camels_de/timeseries')),
+# ('CAMELS_FORCING_TYPE', ['observation', 'simulated']),
+# ('CAMELS_ATTR_DIR', WindowsPath('D:/minio/waterism/datasets-origin/camels/camels_de')),
+# ('CAMELS_ATTR_KEY_LST', ['climatic', 'humaninfluence', 'hydrogeology', 'hydrologic', 'landcover', 'soil', 'topographic']),
+# ('CAMELS_GAUGE_FILE', WindowsPath('D:/minio/waterism/datasets-origin/camels/camels_de/CAMELS_DE_hydrologic_attributes.csv')),
+# ('CAMELS_NESTEDNESS_FILE', None),
+# ('CAMELS_BASINS_SHP', WindowsPath('D:/minio/waterism/datasets-origin/camels/camels_de/CAMELS_DE_catchment_boundaries/catchments/CAMELS_DE_catchments.shp'))])

@@ -74,5 +74,22 @@ def test_read_gauge_id():
         site_list.append(site)
     print(site_list)
 
+def test_set_data_source_describe():
+    camelsdk = CamelsDk()
+    describle = camelsdk.set_data_source_describe()
+    print("\n")
+    print(describle)
+# OrderedDict([('CAMELS_DIR', WindowsPath('D:/minio/waterism/datasets-origin/camels/camels_dk')),
+# ('CAMELS_FLOW_DIR', [WindowsPath('D:/minio/waterism/datasets-origin/camels/camels_dk/Dynamics/Gauged_catchments'),
+# WindowsPath('D:/minio/waterism/datasets-origin/camels/camels_dk/Dynamics/Ungauged_catchments')]),
+# ('CAMELS_FORCING_DIR', [WindowsPath('D:/minio/waterism/datasets-origin/camels/camels_dk/Dynamics/Gauged_catchments'),
+# WindowsPath('D:/minio/waterism/datasets-origin/camels/camels_dk/Dynamics/Ungauged_catchments')]),
+# ('CAMELS_ATTR_DIR', WindowsPath('D:/minio/waterism/datasets-origin/camels/camels_dk/Attributes')),
+# ('CAMELS_ATTR_KEY_LST', ['climate', 'geology', 'landuse', 'signature_obs_based', 'soil', 'topography']),
+# ('CAMELS_GAUGE_FILE', WindowsPath('D:/minio/waterism/datasets-origin/camels/camels_dk/Attributes/CAMELS_DK_climate.csv')),
+# ('CAMELS_NESTEDNESS_FILE', None),
+# ('CAMELS_BASINS_SHP', WindowsPath('D:/minio/waterism/datasets-origin/camels/camels_dk/Shapefile/CAMELS_DK_304_gauging_catchment_boundaries.shp'))])
+
+
 
 

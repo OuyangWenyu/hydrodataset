@@ -69,7 +69,7 @@ class CamelsDe(Camels):
     #     else:
     #         raise NotImplementedError(CAMELS_NO_DATASET_ERROR_LOG)
 
-    def _set_data_source_camels_scribe(self, camels_db):
+    def _set_data_source_camels_describe(self, camels_db):
         # shp file of basins
         camels_shp_file = camels_db.joinpath(
             "CAMELS_DE_catchment_boundaries",
