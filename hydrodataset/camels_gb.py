@@ -17,6 +17,16 @@ CAMELS_NO_DATASET_ERROR_LOG = (
     + str(CAMELS_REGIONS)
 )
 
+camelsgb_arg = {
+    "forcing_type": "observation",
+    "gauge_id_tag": "gauge_id",
+    "area_tag": ["area", ],
+    "meanprcp_unit_tag": [["p_mean"], "mm/d"],
+    "time_range": {
+        "observation": ["1970-10-01", "2015-10-01"],
+    },
+    "b_nestedness": False,
+}
 
 class CamelsGb(Camels):
     def __init__(
@@ -24,13 +34,7 @@ class CamelsGb(Camels):
         data_path=os.path.join("camels", "camels_gb"),
         download=False,
         region: str = "GB",
-        gauge_id_tag: str ="gauge_id",
-        area_tag: list = ["area"],
-        meanprcp_unit_tag: list = [["p_mean"], "mm/d"],
-        time_range: dict = {
-            "observation": ["1970-10-01", "2015-10-01"],
-        },
-        b_nestedness: bool = False,
+        arg: dict = camelsgb_arg,
     ):
         """
         Initialization for CAMELS-GB dataset
@@ -47,7 +51,7 @@ class CamelsGb(Camels):
         region
             the default is CAMELS-GB
         """
-        super().__init__(data_path, download, region, gauge_id_tag,area_tag,meanprcp_unit_tag,time_range,b_nestedness)
+        super().__init__(data_path, download, region, arg)
 
     def set_data_source_describe(self) -> collections.OrderedDict:
         """

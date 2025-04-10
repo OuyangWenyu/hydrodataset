@@ -17,6 +17,16 @@ CAMELS_NO_DATASET_ERROR_LOG = (
     + str(CAMELS_REGIONS)
 )
 
+camelsind_arg = {
+    "forcing_type": "observation",
+    "gauge_id_tag": "gauge_id",
+    "area_tag": ["cwc_area", ],
+    "meanprcp_unit_tag": [["p_mean"], "mm/d"],
+    "time_range": {
+        "observation": ["1980-01-01", "2021-01-01"],
+    },
+    "b_nestedness": False,
+}
 
 class CamelsInd(Camels):
     def __init__(
@@ -24,13 +34,7 @@ class CamelsInd(Camels):
         data_path = os.path.join("camels","camels_ind"),
         download = False,
         region: str = "IND",
-        gauge_id_tag: str="gauge_id",
-        area_tag: list = ["cwc_area"],
-        meanprcp_unit_tag: list = [["p_mean"], "mm/d"],
-        time_range: dict = {
-            "observation": ["1980-01-01", "2021-01-01"],
-        },
-        b_nestedness: bool = False,
+        arg: dict = camelsind_arg,
     ):
         """
         Initialization for CAMELS-IND dataset
@@ -47,7 +51,7 @@ class CamelsInd(Camels):
         region
             the default is CAMELS-IND
         """
-        super().__init__(data_path,download,region, gauge_id_tag, area_tag,meanprcp_unit_tag,time_range,b_nestedness)
+        super().__init__(data_path,download,region, arg)
 
     def set_data_source_describe(self) -> collections.OrderedDict:
         """
