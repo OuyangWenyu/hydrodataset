@@ -53,19 +53,7 @@ class CamelsGb(Camels):
         """
         super().__init__(data_path, download, region, arg)
 
-    def set_data_source_describe(self) -> collections.OrderedDict:
-        """
-        the files in the dataset and their location in file system
-
-        Returns
-        -------
-        collections.OrderedDict
-            the description for a CAMELS-GB dataset
-        """
-        camels_db = self.data_source_dir
-        return self._set_data_source_camelsgb_describe(camels_db)
-
-    def _set_data_source_camelsgb_describe(self, camels_db):
+    def _set_data_source_camels_describe(self, camels_db):
         # shp file of basins
         camels_shp_file = camels_db.joinpath(
             "8344e4f3-d2ea-44f5-8afa-86d2987543a9",
