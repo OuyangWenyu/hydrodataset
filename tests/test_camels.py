@@ -332,3 +332,6 @@ def test_read_mean_prcp_invalid_region():
         camels.read_mean_prcp(gage_id_lst)
     except NotImplementedError as e:
         assert str(e) == CAMELS_NO_DATASET_ERROR_LOG
+
+def test_download_data_source():
+    camels = Camels(download=True)

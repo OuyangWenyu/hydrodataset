@@ -76,3 +76,7 @@ def test_set_data_source_describe():
 # ('CAMELS_GAUGE_FILE', WindowsPath('D:/minio/waterism/datasets-origin/camels/camels_br/01_CAMELS_BR_attributes/01_CAMELS_BR_attributes/camels_br_topography.txt')),
 # ('CAMELS_NESTEDNESS_FILE', None),
 # ('CAMELS_BASINS_SHP_FILE', WindowsPath('D:/minio/waterism/datasets-origin/camels/camels_br/14_CAMELS_BR_catchment_boundaries/14_CAMELS_BR_catchment_boundaries/camels_br_catchments.shp'))])
+
+
+def test_download_data_source():
+    camels = CamelsBr(download=True)

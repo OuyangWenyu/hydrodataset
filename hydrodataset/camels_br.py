@@ -128,6 +128,24 @@ class CamelsBr(Camels):
             "13_CAMELS_BR_temperature_max_cpc",
         )
         nestedness_information_file = None
+        base_url = "https://zenodo.org/records/15025488"
+        download_url_lst = [
+            f"{base_url}/files/01_CAMELS_BR_attributes.zip",
+            f"{base_url}/files/02_CAMELS_BR_streamflow_all_catchments.zip",
+            f"{base_url}/files/03_CAMELS_BR_streamflow_selected_catchments.zip",
+            f"{base_url}/files/04_CAMELS_BR_streamflow_simulated.zip",
+            f"{base_url}/files/05_CAMELS_BR_precipitation.zip",
+            f"{base_url}/files/06_CAMELS_BR_actual_evapotransp.zip",
+            f"{base_url}/files/07_CAMELS_BR_potential_evapotransp.zip",
+            f"{base_url}/files/08_CAMELS_BR_reference_evapotransp.zip",
+            f"{base_url}/files/09_CAMELS_BR_temperature.zip",
+            f"{base_url}/files/10_CAMELS_BR_soil_moisture.zip",
+            f"{base_url}/files/11_CAMELS_BR_precipitation_ana_gauges.zip",
+            f"{base_url}/files/12_CAMELS_BR_catchment_boundaries.zip",
+            f"{base_url}/files/13_CAMELS_BR_gauge_location.zip",
+            f"{base_url}/files/CAMELS_BR_readme.txt",
+        ]
+
         return collections.OrderedDict(
             CAMELS_DIR=camels_db,
             CAMELS_FLOW_DIR=[
@@ -151,6 +169,7 @@ class CamelsBr(Camels):
             CAMELS_GAUGE_FILE=gauge_id_file,
             CAMELS_NESTEDNESS_FILE=nestedness_information_file,
             CAMELS_BASINS_SHP_FILE=camels_shp_file,
+            CAMELS_DOWNLOAD_URL_LST=download_url_lst,
         )
 
     def read_site_info(self) -> pd.DataFrame:

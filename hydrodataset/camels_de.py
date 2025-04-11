@@ -79,6 +79,11 @@ class CamelsDe(Camels):
         ]
         gauge_id_file = attr_dir.joinpath("CAMELS_DE_hydrologic_attributes.csv")
         nestedness_information_file = None
+        base_url = "https://zenodo.org/records/13837553"
+        download_url_lst = [
+            f"{base_url}/files/camels_de.zip",
+            f"{base_url}/files/CAMELS_DE_Data_Description.pdf",
+        ]
 
         return collections.OrderedDict(
             CAMELS_DIR = camels_db,
@@ -90,6 +95,7 @@ class CamelsDe(Camels):
             CAMELS_GAUGE_FILE = gauge_id_file,
             CAMELS_NESTEDNESS_FILE=nestedness_information_file,
             CAMELS_BASINS_SHP = camels_shp_file,
+            CAMELS_DOWNLOAD_URL_LST=download_url_lst,
         )
 
     def read_site_info(self) -> pd.DataFrame:
