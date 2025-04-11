@@ -52,22 +52,6 @@ class CamelsDe(Camels):
             the default is CAMELS-DE
         """
         super().__init__(data_path, download, region, arg)
-    #
-    # def set_data_source_describe(self) -> collections.OrderedDict:
-    #     """
-    #     the files in the dataset and their location in file system
-    #
-    #     Returns
-    #     -------
-    #     collections.OrderedDict
-    #         the description for a CAMELS-DE dataset
-    #     """
-    #     camels_db = self.data_source_dir
-    #
-    #     if self.region == "DE":
-    #         return self._set_data_source_camelsde_describe(camels_db)
-    #     else:
-    #         raise NotImplementedError(CAMELS_NO_DATASET_ERROR_LOG)
 
     def _set_data_source_camels_describe(self, camels_db):
         # shp file of basins

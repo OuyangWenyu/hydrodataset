@@ -67,3 +67,18 @@ def test_read_nestedness_csv():
     nestedness = camelsfr.read_nestedness_csv()
     print(nestedness)
 
+def test_set_data_source_describe():
+    camelsfr = CamelsFr()
+    describle = camelsfr.set_data_source_describe()
+    print("\n")
+    print(describle)
+# OrderedDict([('CAMELS_DIR', WindowsPath('D:/minio/waterism/datasets-origin/camels/camels_fr')),
+# ('CAMELS_FLOW_DIR', WindowsPath('D:/minio/waterism/datasets-origin/camels/camels_fr/CAMELS_FR_time_series/daily')),
+# ('CAMELS_FORCING_DIR', WindowsPath('D:/minio/waterism/datasets-origin/camels/camels_fr/CAMELS_FR_time_series/daily')),
+# ('CAMELS_ATTR_DIR', [WindowsPath('D:/minio/waterism/datasets-origin/camels/camels_fr/CAMELS_FR_attributes/static_attributes'),
+# WindowsPath('D:/minio/waterism/datasets-origin/camels/camels_fr/CAMELS_FR_attributes/time_series_statistics')]),
+# ('CAMELS_ATTR_KEY_LST', ['geology', 'human_influences_dams', 'hydrogeology', 'land_cover', 'station_general', 'topography_general',
+# 'climatic_statistics', 'hydroclimatic_statistics_joint_availability_yearly', 'hydrological_signatures', 'hydrometry_statistics']),
+# ('CAMELS_GAUGE_FILE', WindowsPath('D:/minio/waterism/datasets-origin/camels/camels_fr/CAMELS_FR_attributes/static_attributes/CAMELS_FR_geology_attributes.csv')),
+# ('CAMELS_NESTEDNESS_FILE', WindowsPath('D:/minio/waterism/datasets-origin/camels/camels_fr/CAMELS_FR_geography/CAMELS_FR_catchment_nestedness_information.csv')),
+# ('CAMELS_BASINS_SHP', WindowsPath('D:/minio/waterism/datasets-origin/camels/camels_fr/CAMELS_FR_geography/CAMELS_FR_catchment_boundaries.gpkg'))])
