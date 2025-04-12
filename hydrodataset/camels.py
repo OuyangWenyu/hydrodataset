@@ -91,6 +91,7 @@ camels_arg = {
         "nldas": ["1980-01-01", "2015-01-01"],
     },
     "b_nestedness": False,
+    "forcing_unit": ["s", "mm/day", "W/m^2", "mm", "°C", "°C", "Pa", "mm/day"]
 }
 
 class Camels(HydroDataset):
@@ -128,6 +129,7 @@ class Camels(HydroDataset):
         self.data_source_description = self.set_data_source_describe()
         if download:
             self.download_data_source()
+        self.forcing_type = arg["forcing_type"]
         self.gauge_id_tag = arg["gauge_id_tag"]
         self.sites = self.read_site_info()
         self.gage = self.read_object_ids()
@@ -136,6 +138,7 @@ class Camels(HydroDataset):
         self.meanprcp_unit_tag = arg["meanprcp_unit_tag"]  # [mean_prce,unit]
         self.time_range = arg["time_range"][arg["forcing_type"]]  # forcing_type
         self.b_nestedness = arg["b_nestedness"]
+        self.forcing_unit = arg["forcing_unit"]
 
     def get_name(self):
         return "CAMELS_" + self.region
@@ -1015,8 +1018,10 @@ class Camels(HydroDataset):
         """Save all daymet basin-forcing data in a netcdf file in the cache directory.
 
         """
-        cache_npy_file = CACHE_DIR.joinpath("camels_daymet_forcing.npy")
-        json_file = CACHE_DIR.joinpath("camels_daymet_forcing.json")
+        file_name_npy = "camels_" + self.region.lower() + "_" + self.forcing_type + "_forcing.npy"
+        file_name_json = "camels_" + self.region.lower() + "_" + self.forcing_type + "_forcing.json"
+        cache_npy_file = CACHE_DIR.joinpath(file_name_npy)
+        json_file = CACHE_DIR.joinpath(file_name_json)
         if (not os.path.isfile(cache_npy_file)) or (not os.path.isfile(json_file)):
             self.cache_forcing_np_json()
         daymet_forcing = np.load(cache_npy_file)
@@ -1033,7 +1038,7 @@ class Camels(HydroDataset):
         variables = daymet_forcing_dict["variable"]
         # All units' names are from Pint https://github.com/hgrecco/pint/blob/master/pint/default_en.txt
         # final is PET's unit. PET comes from the model output of CAMELS-US
-        units = ["s", "mm/day", "W/m^2", "mm", "°C", "°C", "Pa", "mm/day"]
+        units = self.forcing_unit
         return xr.Dataset(
             data_vars={
                 **{
@@ -1049,7 +1054,7 @@ class Camels(HydroDataset):
                 "basin": basins,
                 "time": times,
             },
-            attrs={"forcing_type": "daymet"},
+            attrs={"forcing_type": self.forcing_type},
         )
 
     def cache_nestedness_df(self):
