@@ -26,6 +26,7 @@ camelsdk_arg = {
         "observation": ["1989-01-02", "2024-01-02"],
     },
     "b_nestedness": False,
+    "forcing_unit": ["mm/d", "°C", "mm/d", "m", "mm/d", "-", "m^3/s", "m^3/s", "m", "m^3/s", "m^3/s"],
 }
 
 class CamelsDk(Camels):
@@ -638,46 +639,6 @@ class CamelsDk(Camels):
                 ds_from_df[var_name].attrs["units"] = units_dict[var_name]
 
         return ds_from_df
-
-    def cache_forcing_xrdataset(self):
-        """Save all basin-forcing data in a netcdf file in the cache directory.
-
-        """
-        cache_npy_file = CACHE_DIR.joinpath("camels_dk_forcing.npy")
-        json_file = CACHE_DIR.joinpath("camels_dk_forcing.json")
-        if (not os.path.isfile(cache_npy_file)) or (not os.path.isfile(json_file)):
-            self.cache_forcing_np_json()
-        forcing = np.load(cache_npy_file)
-        with open(json_file, "r") as fp:
-            forcing_dict = json.load(
-                fp, object_pairs_hook=collections.OrderedDict
-            )
-        import pint_xarray
-
-        basins = forcing_dict["basin"]
-        times = pd.date_range(
-            forcing_dict["time"][0], periods=len(forcing_dict["time"])
-        )
-        variables = forcing_dict["variable"]
-
-        units = ["mm/d", "°C", "mm/d", "m", "mm/d", "-", "m^3/s", "m^3/s", "m", "m^3/s", "m^3/s"]
-        return xr.Dataset(
-            data_vars={
-                **{
-                    variables[i]: (
-                        ["basin", "time"],
-                        forcing[:, :, i],
-                        {"units": units[i]},
-                    )
-                    for i in range(len(variables))
-                }
-            },
-            coords={
-                "basin": basins,
-                "time": times,
-            },
-            attrs={"forcing_type": ""},
-        )
 
     def cache_streamflow_xrdataset(self):
         """Save all basins' streamflow data in a netcdf file in the cache directory
