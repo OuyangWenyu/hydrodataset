@@ -26,7 +26,7 @@ camelsbr_arg = {
         "observation": ["1995-01-01", "2015-01-01"],
     },
     "b_nestedness": False,
-    "forcing_unit": ["mm/d", "mm/d", "mm/d", "mm/d", "mm/d", "mm/d", "°C", "°C", "°C"]
+    "forcing_unit": ["mm/d", "mm/d", "mm/d", "mm/d", "mm/d", "mm/d", "°C", "°C", "°C"],
 }
 
 class CamelsBr(Camels):

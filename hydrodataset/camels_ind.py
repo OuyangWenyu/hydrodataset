@@ -26,6 +26,8 @@ camelsind_arg = {
         "observation": ["1980-01-01", "2021-01-01"],
     },
     "b_nestedness": False,
+    "forcing_unit": ["mm/day","°C", "°C", "°C", "w/m^2", "w/m^2", "m/s", "m/s", "m/s", "%", "mm/day", "mm/day", "mm/day",
+                     "kg/m^2/s", "kg/m^2/s", "kg/m^2", "kg/m^2", "kg/m^2", "kg/m^2"],
 }
 
 class CamelsInd(Camels):
@@ -52,22 +54,6 @@ class CamelsInd(Camels):
             the default is CAMELS-IND
         """
         super().__init__(data_path,download,region, arg)
-
-    # def set_data_source_describe(self) -> collections.OrderedDict:
-    #     """
-    #     the files in the dataset and their location in file system
-    #
-    #     Returns
-    #     -------
-    #     collections.OrderedDict
-    #         the description for a CAMELS-IND dataset
-    #     """
-    #     camels_db = self.data_source_dir
-    #
-    #     if self.region == "IND":
-    #         return self._set_data_source_camelsind_describe(camels_db)
-    #     else:
-    #         raise NotImplementedError(CAMELS_NO_DATASET_ERROR_LOG)
 
     def _set_data_source_camels_describe(self, camels_db):
         # shp file of basins

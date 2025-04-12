@@ -982,8 +982,10 @@ class Camels(HydroDataset):
         """Save all basins' streamflow data in a netcdf file in the cache directory
 
         """
-        cache_npy_file = CACHE_DIR.joinpath("camels_streamflow.npy")
-        json_file = CACHE_DIR.joinpath("camels_streamflow.json")
+        filename_npy = "camels_" + camels.region.lower() + "_streamflow.npy"
+        filename_json = "camels_" + camels.region.lower() + "_streamflow.json"
+        cache_npy_file = CACHE_DIR.joinpath(filename_npy)
+        json_file = CACHE_DIR.joinpath(filename_json)
         if (not os.path.isfile(cache_npy_file)) or (not os.path.isfile(json_file)):
             self.cache_streamflow_np_json()
         streamflow = np.load(cache_npy_file)
