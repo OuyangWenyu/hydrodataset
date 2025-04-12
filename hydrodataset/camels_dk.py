@@ -89,10 +89,10 @@ class CamelsDk(Camels):
         gauge_id_file = attr_dir.joinpath("CAMELS_DK_climate.csv")
         # gauge_id_file = forcing_dir
         nestedness_information_file = None
-        # base_url = "https://gdex.ucar.edu/dataset/camels"
-        # download_url_lst = [
-        #     f"{base_url}/file/basin_set_full_res.zip",
-        # ]
+        base_url = "https://gdex.ucar.edu/dataset/camels"
+        download_url_lst = [
+            f"{base_url}/file/basin_set_full_res.zip",
+        ]
         return collections.OrderedDict(
             CAMELS_DIR = camels_db,
             CAMELS_FLOW_DIR = flow_dir,
@@ -102,7 +102,7 @@ class CamelsDk(Camels):
             CAMELS_GAUGE_FILE = gauge_id_file,
             CAMELS_NESTEDNESS_FILE=nestedness_information_file,
             CAMELS_BASINS_SHP = camels_shp_file,
-            # CAMELS_DOWNLOAD_URL_LST=download_url_lst,
+            CAMELS_DOWNLOAD_URL_LST=download_url_lst,
         )
 
     def read_site_info(self) -> pd.DataFrame:

@@ -99,6 +99,10 @@ class CamelsFr(Camels):
             "CAMELS_FR_geography",
             "CAMELS_FR_catchment_nestedness_information.csv",
         )
+        base_url = "https://entrepot.recherche.data.gouv.fr"
+        download_url_lst = [
+            f"{base_url}/api/access/datafiles?gbrecs=true&format=original",
+        ]
 
         return collections.OrderedDict(
             CAMELS_DIR = camels_db,
@@ -109,6 +113,7 @@ class CamelsFr(Camels):
             CAMELS_GAUGE_FILE = gauge_id_file,
             CAMELS_NESTEDNESS_FILE = nestedness_information_file,
             CAMELS_BASINS_SHP = camels_shp_file,
+            CAMELS_DOWNLOAD_URL_LST=download_url_lst,
         )
 
     def read_site_info(self) -> pd.DataFrame:

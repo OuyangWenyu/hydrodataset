@@ -57,3 +57,6 @@ def test_read_area_meanprcp():
     mean_prcp = camelsaus.read_mean_prcp(gage_ids[:5])
     print(areas.values)
     print(mean_prcp.values)
+
+def test_download_data_source():
+    camelsaus = CamelsAus(download=True)

@@ -82,3 +82,7 @@ def test_set_data_source_describe():
 # ('CAMELS_GAUGE_FILE', WindowsPath('D:/minio/waterism/datasets-origin/camels/camels_fr/CAMELS_FR_attributes/static_attributes/CAMELS_FR_geology_attributes.csv')),
 # ('CAMELS_NESTEDNESS_FILE', WindowsPath('D:/minio/waterism/datasets-origin/camels/camels_fr/CAMELS_FR_geography/CAMELS_FR_catchment_nestedness_information.csv')),
 # ('CAMELS_BASINS_SHP', WindowsPath('D:/minio/waterism/datasets-origin/camels/camels_fr/CAMELS_FR_geography/CAMELS_FR_catchment_boundaries.gpkg'))])
+
+
+def test_download_data_source():
+    camelsfr = CamelsFr(download=True)

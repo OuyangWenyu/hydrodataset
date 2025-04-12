@@ -69,3 +69,7 @@ def test_set_data_source_describe():
 # ('CAMELS_NESTEDNESS_FILE', None),
 # ('CAMELS_BASINS_SHP_FILE',
 # WindowsPath('D:/minio/waterism/datasets-origin/camels/camels_gb/8344e4f3-d2ea-44f5-8afa-86d2987543a9/8344e4f3-d2ea-44f5-8afa-86d2987543a9/data/CAMELS_GB_catchment_boundaries/CAMELS_GB_catchment_boundaries.shp'))])
+
+
+def test_download_data_source():
+    camelsgb = CamelsGb(download=True)  # PASSED                      [100%]

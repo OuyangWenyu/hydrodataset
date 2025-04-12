@@ -78,6 +78,24 @@ class CamelsCl(Camels):
         forcing_dir_pet_hargreaves = camels_db.joinpath("12_CAMELScl_pet_hargreaves")
         forcing_dir_swe = camels_db.joinpath("13_CAMELScl_swe")
         nestedness_information_file = None
+        base_url = "https://store.pangaea.de/Publications/Alvarez-Garreton-etal_2018"
+        download_url_lst = [
+            f"{base_url}/1_CAMELScl_attributes.zip",
+            f"{base_url}/2_CAMELScl_streamflow_m3s.zip",
+            f"{base_url}/3_CAMELScl_streamflow_mm.zip",
+            f"{base_url}/4_CAMELScl_precip_cr2met.zip",
+            f"{base_url}/5_CAMELScl_precip_chirps.zip",
+            f"{base_url}/6_CAMELScl_precip_mswep.zip",
+            f"{base_url}/7_CAMELScl_precip_tmpa.zip",
+            f"{base_url}/8_CAMELScl_tmin_cr2met.zip",
+            f"{base_url}/9_CAMELScl_tmax_cr2met.zip",
+            f"{base_url}/10_CAMELScl_tmean_cr2met.zip",
+            f"{base_url}/11_CAMELScl_pet_8d_modis.zip",
+            f"{base_url}/12_CAMELScl_pet_hargreaves.zip",
+            f"{base_url}/13_CAMELScl_swe.zip",
+            f"{base_url}/14_CAMELScl_catch_hierarchy.zip",
+            f"{base_url}/CAMELScl_catchment_boundaries.zip",
+        ]
 
         return collections.OrderedDict(
             CAMELS_DIR=camels_db,
@@ -98,6 +116,7 @@ class CamelsCl(Camels):
             CAMELS_GAUGE_FILE=attr_file,
             CAMELS_NESTEDNESS_FILE=nestedness_information_file,
             CAMELS_BASINS_SHP_FILE=camels_shp_file,
+            CAMELS_DOWNLOAD_URL_LST=download_url_lst,
         )
 
     def read_site_info(self) -> pd.DataFrame:

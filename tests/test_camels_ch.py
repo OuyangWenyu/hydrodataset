@@ -75,3 +75,6 @@ def test_set_data_source_describe():
     # ('CAMELS_GAUGE_FILE', WindowsPath('D:/minio/waterism/datasets-origin/camels/camels_ch/static_attributes/CAMELS_CH_hydrology_attributes_obs.csv')),
     # ('CAMELS_NESTEDNESS_FILE', None), ('CAMELS_BASINS_SHP', WindowsPath(
     # 'D:/minio/waterism/datasets-origin/camels/camels_ch/catchment_delineations/CAMELS_CH_sub_catchments.shp'))])
+
+def test_download_data_source():
+    camelsch = CamelsCh(download=True)

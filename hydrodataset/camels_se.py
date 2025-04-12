@@ -81,6 +81,12 @@ class CamelsSe(Camels):
         ]
         gauge_id_file = attr_dir.joinpath("catchments_physical_properties.csv")
         nestedness_information_file = None
+        base_url = "https://api.researchdata.se/dataset/2023-173/1/"
+        download_url_lst = [
+            f"{base_url}/file/data?filePath=catchment+properties.zip",
+            f"{base_url}/file/data?filePath=catchment+time+series.zip",
+            f"{base_url}/file/data?filePath=catchment_GIS_shapefiles.zip",
+        ]
 
         return collections.OrderedDict(
             CAMELS_DIR = camels_db,
@@ -92,6 +98,7 @@ class CamelsSe(Camels):
             CAMELS_GAUGE_FILE = gauge_id_file,
             CAMELS_NESTEDNESS_FILE=nestedness_information_file,
             CAMELS_BASINS_SHP = camels_shp_file,
+            CAMELS_DOWNLOAD_URL_LST=download_url_lst,
         )
 
     def read_site_info(self) -> pd.DataFrame:

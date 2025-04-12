@@ -71,3 +71,7 @@ def test_set_data_source_describe():
 # ('CAMELS_GAUGE_FILE', WindowsPath('D:/minio/waterism/datasets-origin/camels/camels_ind/CAMELS_IND_All_Catchments/attributes_csv/camels_ind_clim.csv')),
 # ('CAMELS_NESTEDNESS_FILE', None),
 # ('CAMELS_BASINS_SHP', WindowsPath('D:/minio/waterism/datasets-origin/camels/camels_ind/CAMELS_IND_All_Catchments/shapefiles_catchment/merged/all_catchments.shp'))])
+
+
+def test_download_data_source():
+    camelsind = CamelsInd(download=True)

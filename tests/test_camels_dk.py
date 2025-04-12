@@ -90,6 +90,6 @@ def test_set_data_source_describe():
 # ('CAMELS_NESTEDNESS_FILE', None),
 # ('CAMELS_BASINS_SHP', WindowsPath('D:/minio/waterism/datasets-origin/camels/camels_dk/Shapefile/CAMELS_DK_304_gauging_catchment_boundaries.shp'))])
 
-
-
+def test_download_data_source():
+    camelsdk = CamelsDk(download=True)
 

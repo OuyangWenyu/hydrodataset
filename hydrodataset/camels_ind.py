@@ -106,6 +106,12 @@ class CamelsInd(Camels):
         ]
         gauge_id_file = attr_dir.joinpath("camels_ind_clim.csv")
         nestedness_information_file = None
+        base_url = "https://zenodo.org/records/14999580"
+        download_url_lst = [
+            f"{base_url}/files/00_CAMELS_IND_Data_Description.pdf",
+            f"{base_url}/files/CAMELS_IND_All_Catchments.zip",
+            f"{base_url}/files/CAMELS_IND_Catchments_Streamflow_Sufficient.zip",
+        ]
 
         return collections.OrderedDict(
             CAMELS_DIR = camels_db,
@@ -117,6 +123,7 @@ class CamelsInd(Camels):
             CAMELS_GAUGE_FILE = gauge_id_file,
             CAMELS_NESTEDNESS_FILE=nestedness_information_file,
             CAMELS_BASINS_SHP = camels_shp_file,
+            CAMELS_DOWNLOAD_URL_LST=download_url_lst,
         )
 
     def read_site_info(self) -> pd.DataFrame:

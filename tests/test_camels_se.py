@@ -68,3 +68,7 @@ def test_set_data_source_describe():
 # ('CAMELS_GAUGE_FILE', WindowsPath('D:/minio/waterism/datasets-origin/camels/camels_se/catchment properties/catchment properties/catchments_physical_properties.csv')),
 # ('CAMELS_NESTEDNESS_FILE', None),
 # ('CAMELS_BASINS_SHP', WindowsPath('D:/minio/waterism/datasets-origin/camels/camels_se/catchment_GIS_shapefiles/catchment_GIS_shapefiles/Sweden_catchments_50_boundaries_WGS84.shp'))])
+
+
+def test_download_data_source():
+    camelsse = CamelsSe(download=True)

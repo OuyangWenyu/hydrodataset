@@ -121,6 +121,18 @@ class CamelsAus(Camels):
         # forcing
         forcing_dir = camels_db.joinpath("05_hydrometeorology", "05_hydrometeorology")
         nestedness_information_file = None
+        base_url = "https://download.pangaea.de/dataset/921850"
+        download_url_lst = [
+            f"{base_url}/files/01_id_name_metadata.zip",
+            f"{base_url}/files/02_location_boundary_area.zip",
+            f"{base_url}/files/03_streamflow.zip",
+            f"{base_url}/file/04_attributes.zip",
+            f"{base_url}/file/05_hydrometeorology.zip",
+            f"{base_url}/file/CAMELS_AUS_Attributes&Indices_MasterTable.csv",
+            f"{base_url}/file/CAMELS_AUS_ReferenceList.pdf",
+            f"{base_url}/file/Units_01_TimeseriesData.pdf",
+            f"{base_url}/file/Units_02_AttributeMasterTable.pdf",
+        ]
 
         return collections.OrderedDict(
             CAMELS_DIR=camels_db,
@@ -130,6 +142,7 @@ class CamelsAus(Camels):
             CAMELS_GAUGE_FILE=gauge_id_file,
             CAMELS_NESTEDNESS_FILE=nestedness_information_file,
             CAMELS_BASINS_SHP_FILE=camels_shp_file,
+            CAMELS_DOWNLOAD_URL_LST=download_url_lst,
         )
 
     def read_site_info(self) -> pd.DataFrame:

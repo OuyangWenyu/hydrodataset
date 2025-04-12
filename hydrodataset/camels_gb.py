@@ -88,6 +88,10 @@ class CamelsGb(Camels):
             "topographic",
         ]
         nestedness_information_file = None
+        base_url = "https://data-package.ceh.ac.uk"
+        download_url_lst = [
+            f"{base_url}/data/8344e4f3-d2ea-44f5-8afa-86d2987543a9.zip",
+        ]
 
         return collections.OrderedDict(
             CAMELS_DIR=camels_db,
@@ -98,6 +102,7 @@ class CamelsGb(Camels):
             CAMELS_GAUGE_FILE=gauge_id_file,
             CAMELS_NESTEDNESS_FILE=nestedness_information_file,
             CAMELS_BASINS_SHP_FILE=camels_shp_file,
+            CAMELS_DOWNLOAD_URL_LST=download_url_lst,
         )
 
     def read_site_info(self) -> pd.DataFrame:

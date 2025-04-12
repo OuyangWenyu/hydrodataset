@@ -76,3 +76,7 @@ def test_set_data_source_describe():
 # ('CAMELS_GAUGE_FILE', WindowsPath('D:/minio/waterism/datasets-origin/camels/camels_cl/1_CAMELScl_attributes/1_CAMELScl_attributes.txt')),
 # ('CAMELS_NESTEDNESS_FILE', None),
 # ('CAMELS_BASINS_SHP_FILE', WindowsPath('D:/minio/waterism/datasets-origin/camels/camels_cl/CAMELScl_catchment_boundaries/catchments_camels_cl_v1.3.shp'))])
+
+
+def test_download_data_source():
+    camelscl = CamelsCl(download=True)   # PASSED                      [100%]
