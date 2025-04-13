@@ -20,7 +20,7 @@ CAMELS_NO_DATASET_ERROR_LOG = (
 camelscl_arg = {
     "forcing_type": "observation",
     "gauge_id_tag": "gauge_id",
-    "area_tag": ["area", ],
+    "area_tag": ["area",],
     "meanprcp_unit_tag": [["p_mean_cr2met"], "mm/d"],
     "time_range": {
         "observation": ["1995-01-01", "2015-01-01"],
