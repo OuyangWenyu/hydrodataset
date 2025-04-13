@@ -379,35 +379,6 @@ class CamelsSe(Camels):
         )
         np.save(cache_npy_file, data)
 
-    def cache_streamflow_np_json(self):
-        """
-        Save all basins' streamflow data in a numpy array file in the cache directory
-        """
-        cache_npy_file = CACHE_DIR.joinpath("camels_se_streamflow.npy")
-        json_file = CACHE_DIR.joinpath("camels_se_streamflow.json")
-        variables = self.get_target_cols()
-        basins = self.gage
-        t_range = self.time_range["observation"]
-        times = [
-            hydro_time.t2str(tmp) for tmp in hydro_time.t_range_days(t_range).tolist()
-        ]
-        data_info = collections.OrderedDict(
-            {
-                "dim": ["basin", "time", "variable"],
-                "basin": basins,
-                "time": times,
-                "variable": variables.tolist(),
-            }
-        )
-        with open(json_file, "w") as FP:
-            json.dump(data_info, FP, indent=4)
-        data = self.read_target_cols(
-            gage_id_lst=basins,
-            t_range=t_range,
-            target_cols=variables,
-        )
-        np.save(cache_npy_file, data)
-
     def cache_attributes_xrdataset(self):
         """Convert all the attributes to a single dataframe
 

@@ -592,39 +592,3 @@ class CamelsCl(Camels):
             target_cols=variables,
         )
         np.save(cache_npy_file, data)
-
-    def cache_streamflow_xrdataset(self):
-        """Save all basins' streamflow data in a netcdf file in the cache directory
-
-        """
-        cache_npy_file = CACHE_DIR.joinpath("camels_cl_streamflow.npy")
-        json_file = CACHE_DIR.joinpath("camels_cl_streamflow.json")
-        if (not os.path.isfile(cache_npy_file)) or (not os.path.isfile(json_file)):
-            self.cache_streamflow_np_json()
-        streamflow = np.load(cache_npy_file)
-        with open(json_file, "r") as fp:
-            streamflow_dict = json.load(fp, object_pairs_hook=collections.OrderedDict)
-        import pint_xarray
-
-        basins = streamflow_dict["basin"]
-        times = pd.date_range(
-            streamflow_dict["time"][0], periods=len(streamflow_dict["time"])
-        )
-        return xr.Dataset(
-            {
-                "streamflow": (
-                    ["basin", "time"],
-                    streamflow[:, :, 0],
-                    {"units": self.streamflow_unit},
-                ),
-                "ET": (
-                    ["basin", "time"],
-                    streamflow[:, :, 1],
-                    {"units": "mm/day"},
-                ),
-            },
-            coords={
-                "basin": basins,
-                "time": times,
-            },
-        )
