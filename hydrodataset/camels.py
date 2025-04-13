@@ -804,7 +804,7 @@ class Camels(HydroDataset):
         json_file = CACHE_DIR.joinpath("camels_daymet_forcing.json")
         variables = self.get_relevant_cols()
         basins = self.gage
-        t_range = self.time_range["daymet"]
+        t_range = self.time_range
         times = [
             hydro_time.t2str(tmp)
             for tmp in hydro_time.t_range_days(t_range).tolist()
@@ -831,11 +831,13 @@ class Camels(HydroDataset):
         Save all basins' streamflow data in a numpy array file in the cache directory
 
         """
-        cache_npy_file = CACHE_DIR.joinpath("camels_streamflow.npy")
-        json_file = CACHE_DIR.joinpath("camels_streamflow.json")
+        filename_npy = "camels_" + self.region.lower() + "_streamflow.npy"
+        filename_json = "camels_" + self.region.lower() + "_streamflow.json"
+        cache_npy_file = CACHE_DIR.joinpath(filename_npy)
+        json_file = CACHE_DIR.joinpath(filename_json)
         variables = self.get_target_cols()
         basins = self.gage
-        t_range = self.time_range["daymet"]
+        t_range = self.time_range
         times = [
             hydro_time.t2str(tmp) for tmp in hydro_time.t_range_days(t_range).tolist()
         ]
