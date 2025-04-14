@@ -397,40 +397,6 @@ class CamelsCl(Camels):
         out = temp[:, ind_var]
         return (out, var_dict, f_dict) if is_return_dict else out
 
-    def cache_forcing_np_json(self):
-        """
-        Save all basin-forcing data in a numpy array file in the cache directory.
-
-        Because it takes much time to read data from txt files,
-        it is a good way to cache data as a numpy file to speed up the reading.
-        In addition, we need a document to explain the meaning of all dimensions.
-        """
-        cache_npy_file = CACHE_DIR.joinpath("camels_cl_forcing.npy")
-        json_file = CACHE_DIR.joinpath("camels_cl_forcing.json")
-        variables = self.get_relevant_cols()
-        basins = self.gage
-        t_range = self.time_range["observation"]
-        times = [
-            hydro_time.t2str(tmp)
-            for tmp in hydro_time.t_range_days(t_range).tolist()
-        ]
-        data_info = collections.OrderedDict(
-            {
-                "dim": ["basin", "time", "variable"],
-                "basin": basins,
-                "time": times,
-                "variable": variables.tolist(),
-            }
-        )
-        with open(json_file, "w") as FP:
-            json.dump(data_info, FP, indent=4)
-        data = self.read_relevant_cols(
-            gage_id_lst=basins,
-            t_range=t_range,
-            var_lst=variables.tolist(),
-        )
-        np.save(cache_npy_file, data)
-
     def cache_attributes_xrdataset(self):
         """Convert all the attributes to a single dataframe
 
@@ -563,32 +529,3 @@ class CamelsCl(Camels):
 
         return ds_from_df
 
-    def cache_streamflow_np_json(self):
-        """
-        Save all basins' streamflow data in a numpy array file in the cache directory
-
-        """
-        cache_npy_file = CACHE_DIR.joinpath("camels_cl_streamflow.npy")
-        json_file = CACHE_DIR.joinpath("camels_cl_streamflow.json")
-        variables = self.get_target_cols()
-        basins = self.gage
-        t_range = self.time_range["observation"]
-        times = [
-            hydro_time.t2str(tmp) for tmp in hydro_time.t_range_days(t_range).tolist()
-        ]
-        data_info = collections.OrderedDict(
-            {
-                "dim": ["basin", "time", "variable"],
-                "basin": basins,
-                "time": times,
-                "variable": variables.tolist(),
-            }
-        )
-        with open(json_file, "w") as FP:
-            json.dump(data_info, FP, indent=4)
-        data = self.read_target_cols(
-            gage_id_lst=basins,
-            t_range=t_range,
-            target_cols=variables,
-        )
-        np.save(cache_npy_file, data)

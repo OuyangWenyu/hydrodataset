@@ -800,8 +800,10 @@ class Camels(HydroDataset):
         In addition, we need a document to explain the meaning of all dimensions.
 
         """
-        cache_npy_file = CACHE_DIR.joinpath("camels_daymet_forcing.npy")
-        json_file = CACHE_DIR.joinpath("camels_daymet_forcing.json")
+        filename_npy = "camels_" + self.region.lower() + self.forcing_type + "forcing.npy"
+        filename_json = "camels_" + self.region.lower() + self.forcing_type + "forcing.json"
+        cache_npy_file = CACHE_DIR.joinpath(filename_npy)
+        json_file = CACHE_DIR.joinpath(filename_json)
         variables = self.get_relevant_cols()
         basins = self.gage
         t_range = self.time_range
