@@ -313,41 +313,6 @@ class CamelsGb(Camels):
         out = np.concatenate(out_lst, 1)
         return out, var_lst, var_dict, f_dict
 
-    def cache_forcing_np_json(self):
-        """
-        Save all basin-forcing data in a numpy array file in the cache directory.
-
-        Because it takes much time to read data from csv files,
-        it is a good way to cache data as a numpy file to speed up the reading.
-        In addition, we need a document to explain the meaning of all dimensions.
-
-        """
-        cache_npy_file = CACHE_DIR.joinpath("camels_gb_forcing.npy")
-        json_file = CACHE_DIR.joinpath("camels_gb_forcing.json")
-        variables = self.get_relevant_cols()
-        basins = self.gage
-        t_range = self.time_range["observation"]
-        times = [
-            hydro_time.t2str(tmp)
-            for tmp in hydro_time.t_range_days(t_range).tolist()
-        ]
-        data_info = collections.OrderedDict(
-            {
-                "dim": ["basin", "time", "variable"],
-                "basin": basins,
-                "time": times,
-                "variable": variables.tolist(),
-            }
-        )
-        with open(json_file, "w") as FP:
-            json.dump(data_info, FP, indent=4)
-        data = self.read_relevant_cols(
-            gage_id_lst=basins,
-            t_range=t_range,
-            var_lst=variables.tolist(),
-        )
-        np.save(cache_npy_file, data)
-
     def cache_attributes_xrdataset(self):
         """Convert all the attributes to a single dataframe
 
