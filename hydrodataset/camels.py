@@ -725,7 +725,7 @@ class Camels(HydroDataset):
         return out_temp, var_lst, None, f_dict
 
     def read_constant_cols(
-        self, gage_id_lst=None, var_lst=None, is_return_dict=False
+        self, gage_id_lst=None, var_lst=None, is_return_dict=False, **kwargs
     ) -> np.ndarray:
         """
         Read Attributes data
@@ -748,7 +748,7 @@ class Camels(HydroDataset):
 
         attr_all, var_lst_all, var_dict, f_dict = self.read_attr_all()
         ind_var = [var_lst_all.index(var) for var in var_lst]
-        id_lst_all = self.read_object_ids()
+        id_lst_all = self.gage
         # Notice the sequence of station ids ! Some id_lst_all are not sorted, so don't use np.intersect1d
         ind_grid = [id_lst_all.tolist().index(tmp) for tmp in gage_id_lst]
         temp = attr_all[ind_grid, :]
