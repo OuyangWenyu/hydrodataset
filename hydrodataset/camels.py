@@ -91,7 +91,11 @@ camels_arg = {
         "nldas": ["1980-01-01", "2015-01-01"],
     },
     "b_nestedness": False,
-    "forcing_unit": ["s", "mm/day", "W/m^2", "mm", "°C", "°C", "Pa", "mm/day"]
+    "forcing_unit": ["s", "mm/day", "W/m^2", "mm", "°C", "°C", "Pa", "mm/day"],
+    "data_file_attr": {
+        "sep": ",",
+        "header": 1,
+    },
 }
 
 class Camels(HydroDataset):
@@ -131,6 +135,7 @@ class Camels(HydroDataset):
             self.download_data_source()
         self.forcing_type = arg["forcing_type"]
         self.gauge_id_tag = arg["gauge_id_tag"]
+        self.data_file_attr = arg["data_file_attr"]
         self.sites = self.read_site_info()
         self.gage = self.read_object_ids()
         self.n_gage = len(self.gage)  # basin number
@@ -139,6 +144,7 @@ class Camels(HydroDataset):
         self.time_range = arg["time_range"][arg["forcing_type"]]  # forcing_type
         self.b_nestedness = arg["b_nestedness"]
         self.forcing_unit = arg["forcing_unit"]
+
 
     def get_name(self):
         return "CAMELS_" + self.region
@@ -255,8 +261,14 @@ class Camels(HydroDataset):
             basic info of gages
         """
         camels_file = self.data_source_description["CAMELS_GAUGE_FILE"]
+        if self.region == "US":
+            dtype_ = {self.gauge_id_tag: str, "huc_02": str}
+        else:
+            dtype_ = {self.gauge_id_tag: str}
+        sep_ = self.data_file_attr["sep"]
+        header_ = self.data_file_attr["header"]
         data = pd.read_csv(
-            camels_file, sep=";", dtype={"gauge_id": str, "huc_02": str}
+            camels_file, sep=sep_, header=header_, dtype=dtype_
         )
         return data
 
