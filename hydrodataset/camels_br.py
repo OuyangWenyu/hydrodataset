@@ -418,36 +418,6 @@ class CamelsBr(Camels):
         out = np.concatenate(out_lst, 1)
         return out, var_lst, var_dict, f_dict
 
-    def read_constant_cols(
-        self, gage_id_lst=None, var_lst=None, is_return_dict=False, **kwargs
-    ) -> np.ndarray:
-        """
-        Read Attributes data
-
-        Parameters
-        ----------
-        gage_id_lst
-            station ids
-        var_lst
-            attribute variable types
-        is_return_dict
-            if true, return var_dict and f_dict for CAMELS_US
-        Returns
-        -------
-        Union[tuple, np.array]
-            if attr var type is str, return factorized data.
-            When we need to know what a factorized value represents, we need return a tuple;
-            otherwise just return an array
-        """
-        attr_all, var_lst_all, var_dict, f_dict = self.read_attr_all()
-        ind_var = [var_lst_all.index(var) for var in var_lst]
-        id_lst_all = self.gage
-        # Notice the sequence of station ids ! Some id_lst_all are not sorted, so don't use np.intersect1d
-        ind_grid = [id_lst_all.index(tmp) for tmp in gage_id_lst]
-        temp = attr_all[ind_grid, :]
-        out = temp[:, ind_var]
-        return (out, var_dict, f_dict) if is_return_dict else out
-
     def cache_attributes_xrdataset(self):
         """Convert all the attributes to a single dataframe
 
