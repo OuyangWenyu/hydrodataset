@@ -27,6 +27,10 @@ camelsdk_arg = {
     },
     "b_nestedness": False,
     "forcing_unit": ["mm/d", "°C", "mm/d", "m", "mm/d", "-", "m^3/s", "m^3/s", "m", "m^3/s", "m^3/s"],
+    "data_file_attr": {
+        "sep": ",",
+        "header": 0,
+    },
 }
 
 class CamelsDk(Camels):
@@ -105,25 +109,6 @@ class CamelsDk(Camels):
             CAMELS_BASINS_SHP = camels_shp_file,
             CAMELS_DOWNLOAD_URL_LST=download_url_lst,
         )
-
-    def read_site_info(self) -> pd.DataFrame:
-        """
-        Read the basic information of gages in a CAMELS-DK dataset.
-
-        Returns
-        -------
-        pd.DataFrame
-            basic info of gages
-        """
-        camels_file = self.data_source_description["CAMELS_GAUGE_FILE"]
-        # filename = os.listdir(camels_file)
-        # site_list = []
-        # for name in filename:
-        #     name_ = name.split("_")[-1]
-        #     site = name_.split(".")[0]
-        #     site_list.append(site)
-        return pd.read_csv(camels_file,sep=",",dtype={self.gauge_id_tag: str})
-        # return pd.DataFrame(site_list, columns=["catch_id"])
 
     def get_constant_cols(self) -> np.ndarray:
         """

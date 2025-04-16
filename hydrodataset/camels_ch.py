@@ -28,8 +28,8 @@ camelsch_arg = {
     "b_nestedness": False,
     "forcing_unit": ["m", "mm/day", "°C", "°C", "°C", "%", "mm"],
     "data_file_attr": {
-        "sep": ";",
-        "header": 0,
+        "sep": ",",
+        "header": 1,
     },
 }
 

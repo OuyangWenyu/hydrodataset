@@ -93,8 +93,8 @@ camels_arg = {
     "b_nestedness": False,
     "forcing_unit": ["s", "mm/day", "W/m^2", "mm", "°C", "°C", "Pa", "mm/day"],
     "data_file_attr": {
-        "sep": ",",
-        "header": 1,
+        "sep": ";",
+        "header": 0,
     },
 }
 
