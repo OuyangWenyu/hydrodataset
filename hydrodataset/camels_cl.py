@@ -27,6 +27,10 @@ camelscl_arg = {
     },
     "b_nestedness": False,
     "forcing_unit": ["mm/day", "mm/day", "mm/day", "mm/day", "°C", "°C", "°C", "mm/day", "mm/day", "mm"],
+    "data_file_attr": {
+        "sep": "\t",
+        "header": 0,
+    },
 }
 
 class CamelsCl(Camels):

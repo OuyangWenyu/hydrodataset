@@ -27,10 +27,10 @@ camelsch_arg = {
     },
     "b_nestedness": False,
     "forcing_unit": ["m", "mm/day", "°C", "°C", "°C", "%", "mm"],
-    "data_file_attr": {
-        "sep": ",",
-        "header": 1,
-    },
+    # "data_file_attr": {
+    #     "sep": ",",
+    #     "header": 1,
+    # },
 }
 
 class CamelsCh(Camels):

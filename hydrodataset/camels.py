@@ -95,6 +95,7 @@ camels_arg = {
     "data_file_attr": {
         "sep": ";",
         "header": 0,
+        "attr_file_str": ["camels_", ".txt",]
     },
 }
 
@@ -678,21 +679,20 @@ class Camels(HydroDataset):
         var_dict = {}
         var_lst = []
         out_lst = []
-        gage_dict = self.sites
-        camels_str = "camels_"
-        sep_ = ";"
+        camels_str1 = self.data_file_attr["attr_file_str"][0]
+        camels_str2 = self.data_file_attr["attr_file_str"][1]
+        sep_ = self.data_file_attr["sep"]
         for key in key_lst:
-            data_file = os.path.join(data_folder, camels_str + key + ".txt")
+            data_file = os.path.join(data_folder, camels_str1 + key + camels_str2)
             data_temp = pd.read_csv(data_file, sep=sep_)
             var_lst_temp = list(data_temp.columns[1:])
             var_dict[key] = var_lst_temp
             var_lst.extend(var_lst_temp)
             k = 0
-            gage_id_key = "gauge_id"
-            if self.region == "CC":
-                gage_id_key = "gage_id"
-            n_gage = len(gage_dict[gage_id_key].values)
-            out_temp = np.full([n_gage, len(var_lst_temp)], np.nan)
+            # gage_id_key = "gauge_id"
+            # if self.region == "CC":
+            #     gage_id_key = "gage_id"
+            out_temp = np.full([self.n_gage, len(var_lst_temp)], np.nan)
             for field in var_lst_temp:
                 if is_string_dtype(data_temp[field]):
                     value, ref = pd.factorize(data_temp[field], sort=True)
@@ -707,9 +707,9 @@ class Camels(HydroDataset):
 
     def read_attr_all_yr(self):
         var_lst = self.get_constant_cols().tolist()
-        gage_id_lst = self.read_object_ids()
+        gage_id_lst = self.gage
         # for factorized data, we need factorize all gages' data to keep the factorized number same all the time
-        n_gage = len(self.read_object_ids())
+        n_gage = self.n_gage
         c = np.full([n_gage, len(var_lst)], np.nan, dtype=object)
         for k in range(n_gage):
             attr_file = os.path.join(
