@@ -27,6 +27,10 @@ camelsaus_arg = {
     "b_nestedness": False,
     "forcing_unit": ["mm/d", "mm/d", "mm^2 /d^2", "mm/d", "mm/d", "mm/d", "mm/d", "mm/d", "mm/d", "mm/d", "mm/d", "MJ/m^2",
                      "°C", "°C", "°C", "°C", "MJ/m^2", "%", "%", "°C", "°C", "hPa", "hPa",],
+    "data_file_attr": {
+        "sep": ",",
+        "header": 0,
+    },
 }
 
 class CamelsAus(Camels):
@@ -146,22 +150,6 @@ class CamelsAus(Camels):
             CAMELS_BASINS_SHP_FILE=camels_shp_file,
             CAMELS_DOWNLOAD_URL_LST=download_url_lst,
         )
-
-    def read_site_info(self) -> pd.DataFrame:
-        """
-        Read the basic information of gages in a CAMELS-AUS dataset
-
-        Returns
-        -------
-        pd.DataFrame
-            basic info of gages
-        """
-        camels_file = self.data_source_description["CAMELS_GAUGE_FILE"]
-        if self.region in ["AUS", "AUS_v2"]:
-            data = pd.read_csv(camels_file, sep=",", dtype={self.gauge_id_tag: str})
-        else:
-            raise NotImplementedError(CAMELS_NO_DATASET_ERROR_LOG)
-        return data
 
     def get_constant_cols(self) -> np.ndarray:
         """

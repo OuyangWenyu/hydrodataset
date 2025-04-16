@@ -28,6 +28,10 @@ camelsgb_arg = {
     },
     "b_nestedness": False,
     "forcing_unit": ["mm/day", "°C",],
+    "data_file_attr": {
+        "sep": ",",
+        "header": 0,
+    },
 }
 
 class CamelsSe(Camels):
@@ -101,18 +105,6 @@ class CamelsSe(Camels):
             CAMELS_BASINS_SHP = camels_shp_file,
             CAMELS_DOWNLOAD_URL_LST=download_url_lst,
         )
-
-    def read_site_info(self) -> pd.DataFrame:
-        """
-        Read the basic information of gages in a CAMELS-SE dataset.
-
-        Returns
-        -------
-        pd.DataFrame
-            basic info of gages
-        """
-        camels_file = self.data_source_description["CAMELS_GAUGE_FILE"]
-        return pd.read_csv(camels_file,sep=",",dtype={self.gauge_id_tag: str})
 
     def get_constant_cols(self) -> np.ndarray:
         """
