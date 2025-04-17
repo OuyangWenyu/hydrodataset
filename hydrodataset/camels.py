@@ -829,8 +829,8 @@ class Camels(HydroDataset):
         In addition, we need a document to explain the meaning of all dimensions.
 
         """
-        filename_npy = "camels_" + self.region.lower() + self.forcing_type + "forcing.npy"
-        filename_json = "camels_" + self.region.lower() + self.forcing_type + "forcing.json"
+        filename_npy = "camels_" + self.region.lower() + "_" + self.forcing_type + "_forcing.npy"
+        filename_json = "camels_" + self.region.lower() + "_" + self.forcing_type + "_forcing.json"
         cache_npy_file = CACHE_DIR.joinpath(filename_npy)
         json_file = CACHE_DIR.joinpath(filename_json)
         variables = self.get_relevant_cols()
@@ -1015,8 +1015,8 @@ class Camels(HydroDataset):
         """Save all basins' streamflow data in a netcdf file in the cache directory
 
         """
-        filename_npy = "camels_" + camels.region.lower() + "_streamflow.npy"
-        filename_json = "camels_" + camels.region.lower() + "_streamflow.json"
+        filename_npy = "camels_" + self.region.lower() + "_streamflow.npy"
+        filename_json = "camels_" + self.region.lower() + "_streamflow.json"
         cache_npy_file = CACHE_DIR.joinpath(filename_npy)
         json_file = CACHE_DIR.joinpath(filename_json)
         if (not os.path.isfile(cache_npy_file)) or (not os.path.isfile(json_file)):
@@ -1102,18 +1102,20 @@ class Camels(HydroDataset):
         filename = "camels" + self.region.lower()
         filename_attributes = filename +"_attributes.nc"
         filename_timeseries = filename + "_timeseries.nc"
-        if not os.path.isfile(filename_attributes):
+        path = os.path.isfile(filename_attributes)
+        if os.path.isfile(filename_attributes):
             ds_attr = self.cache_attributes_xrdataset()
             ds_attr.to_netcdf(CACHE_DIR.joinpath(filename_attributes))
-        if not os.path.isfile(filename_timeseries):
+        if os.path.isfile(filename_timeseries):
             ds_streamflow = self.cache_streamflow_xrdataset()
             ds_forcing = self.cache_forcing_xrdataset()
             ds = xr.merge([ds_streamflow, ds_forcing])
             ds.to_netcdf(CACHE_DIR.joinpath(filename_timeseries))
         if self.b_nestedness:
             filename_nestedness = filename + "_nestedness.csv"
-            ds_nestedness = self.cache_nestedness_df()
-            ds_nestedness.to_csv(CACHE_DIR.joinpath(filename_nestedness), sep=';')
+            if not os.path.isfile(filename_nestedness):
+                ds_nestedness = self.cache_nestedness_df()
+                ds_nestedness.to_csv(CACHE_DIR.joinpath(filename_nestedness), sep=self.data_file_attr["sep"])
 
     def read_ts_xrdataset(
         self,

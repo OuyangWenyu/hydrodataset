@@ -31,6 +31,7 @@ camelsind_arg = {
     "data_file_attr": {
         "sep": ",",
         "header": 0,
+        "attr_file_str": ["camels_ind_", ".csv", ]
     },
 }
 
@@ -310,39 +311,6 @@ class CamelsInd(Camels):
                 )
                 x[k, :, j] = data_forcing
         return x
-
-    def read_attr_all(self):
-        """
-         Read Attributes data
-
-        """
-        data_folder = self.data_source_description["CAMELS_ATTR_DIR"]
-        key_lst = self.data_source_description["CAMELS_ATTR_KEY_LST"]
-        f_dict = {}
-        var_dict = {}
-        var_lst = []
-        out_lst = []
-        camels_str = "camels_ind_"
-        sep_ = ","
-        for key in key_lst:
-            data_file = os.path.join(data_folder, camels_str + key + ".csv")
-            data_temp = pd.read_csv(data_file, sep=sep_)
-            var_lst_temp = list(data_temp.columns[1:])
-            var_dict[key] = var_lst_temp
-            var_lst.extend(var_lst_temp)
-            k = 0
-            out_temp = np.full([self.n_gage, len(var_lst_temp)], np.nan)
-            for field in var_lst_temp:
-                if is_string_dtype(data_temp[field]):
-                    value, ref = pd.factorize(data_temp[field], sort=True)
-                    out_temp[:, k] = value
-                    f_dict[field] = ref.tolist()
-                elif is_numeric_dtype(data_temp[field]):
-                    out_temp[:, k] = data_temp[field].values
-                k = k + 1
-            out_lst.append(out_temp)
-        out = np.concatenate(out_lst, 1)
-        return out, var_lst, var_dict, f_dict
 
     def cache_forcing_np_json(self):
         """
