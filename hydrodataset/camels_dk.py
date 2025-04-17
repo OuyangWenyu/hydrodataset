@@ -30,6 +30,7 @@ camelsdk_arg = {
     "data_file_attr": {
         "sep": ",",
         "header": 0,
+        "attr_file_str": ["CAMELS_DK_", ".csv", ]
     },
 }
 
@@ -287,88 +288,6 @@ class CamelsDk(Camels):
                 )
                 x[k, :, j] = data_forcing
         return x
-
-    def read_attr_all(self):
-        """
-         Read attributes data all
-
-        Returns
-        -------
-        out
-            np.ndarray, the all attribute values, do not contain the column names, pure numerical values. For dk, (3330, 217).
-        var_lst
-            list, the all attributes item, the column names, e.g. "p_mean", "root_depth", "slope_mean" and so on. For dk, len(var_lst) = 217.
-        var_dict
-            dict, the all attribute keys and their attribute items, e.g. in dk, the key "climate" and its attribute items -> 'climate': ['p_mean',
-            't_mean', 'pet_mean', 'aridity', 'high_prec_freq', 'high_prec_dur', 'high_prec_timing', 'low_prec_freq', 'low_prec_dur', 'low_prec_timing',
-            'frac_snow_daily', 'p_seasonality']. For dk, len(var_dict) = 7.
-        f_dict
-            dict, the all enumerated type or categorical variable in all attributes item, e.g. in dk, the enumerated type "high_prec_timing" and its items ->
-            'high_prec_timing': ['jja', 'son']. For dk, len(f_dict) = 2.
-        """
-
-        data_folder = self.data_source_description["CAMELS_ATTR_DIR"]
-        key_lst = self.data_source_description["CAMELS_ATTR_KEY_LST"]
-        f_dict = {}
-        var_dict = {}
-        var_lst = []
-        out_lst = []
-        camels_str = "CAMELS_DK_"
-        sep_ = ","
-        for key in key_lst:
-            data_file = os.path.join(data_folder, camels_str + key + ".csv")
-            data_temp = pd.read_csv(data_file, sep=sep_)
-            var_lst_temp = list(data_temp.columns[1:])
-            var_dict[key] = var_lst_temp
-            var_lst.extend(var_lst_temp)
-            k = 0
-            out_temp = np.full([self.n_gage, len(var_lst_temp)], np.nan)
-            for field in var_lst_temp:
-                if is_string_dtype(data_temp[field]):
-                    value, ref = pd.factorize(data_temp[field], sort=True)  # Encode the object as an enumerated type or categorical variable.
-                    out_temp[:, k] = value
-                    f_dict[field] = ref.tolist()
-                elif is_numeric_dtype(data_temp[field]):
-                    out_temp[:, k] = data_temp[field].values
-                k = k + 1
-            out_lst.append(out_temp)
-        out = np.concatenate(out_lst, 1)
-        return out, var_lst, var_dict, f_dict
-
-    def cache_forcing_np_json(self):
-        """
-        Save all basin-forcing data in a numpy array file in the cache directory.
-
-        Because it takes much time to read data from csv files,
-        it is a good way to cache data as a numpy file to speed up the reading.
-        In addition, we need a document to explain the meaning of all dimensions.
-
-        """
-        cache_npy_file = CACHE_DIR.joinpath("camels_dk_forcing.npy")
-        json_file = CACHE_DIR.joinpath("camels_dk_forcing.json")
-        variables = self.get_relevant_cols()
-        basins = self.gage
-        t_range = self.time_range
-        times = [
-            hydro_time.t2str(tmp)
-            for tmp in hydro_time.t_range_days(t_range).tolist()
-        ]
-        data_info = collections.OrderedDict(
-            {
-                "dim": ["basin", "time", "variable"],
-                "basin": basins,
-                "time": times,
-                "variable": variables.tolist(),
-            }
-        )
-        with open(json_file, "w") as FP:
-            json.dump(data_info, FP, indent=4)
-        data = self.read_relevant_cols(
-            gage_id_lst=basins,
-            t_range=t_range,
-            var_lst=variables.tolist(),
-        )
-        np.save(cache_npy_file, data)
 
     def cache_attributes_xrdataset(self):
         """Convert all the attributes to a single dataframe

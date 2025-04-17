@@ -30,6 +30,7 @@ camelscl_arg = {
     "data_file_attr": {
         "sep": "\t",
         "header": 0,
+        # "attr_file_str": ["CAMELS_DK_", ".csv", ]
     },
 }
 

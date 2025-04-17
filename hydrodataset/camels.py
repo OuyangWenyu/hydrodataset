@@ -673,6 +673,23 @@ class Camels(HydroDataset):
         return x
 
     def read_attr_all(self):
+        """
+         Read attributes data all
+
+        Returns
+        -------
+        out
+            np.ndarray, the all attribute values, do not contain the column names, pure numerical values. For dk, (3330, 217).
+        var_lst
+            list, the all attributes item, the column names, e.g. "p_mean", "root_depth", "slope_mean" and so on. For dk, len(var_lst) = 217.
+        var_dict
+            dict, the all attribute keys and their attribute items, e.g. in dk, the key "climate" and its attribute items -> 'climate': ['p_mean',
+            't_mean', 'pet_mean', 'aridity', 'high_prec_freq', 'high_prec_dur', 'high_prec_timing', 'low_prec_freq', 'low_prec_dur', 'low_prec_timing',
+            'frac_snow_daily', 'p_seasonality']. For dk, len(var_dict) = 7.
+        f_dict
+            dict, the all enumerated type or categorical variable in all attributes item, e.g. in dk, the enumerated type "high_prec_timing" and its items ->
+            'high_prec_timing': ['jja', 'son']. For dk, len(f_dict) = 2.
+        """
         data_folder = self.data_source_description["CAMELS_ATTR_DIR"]
         key_lst = self.data_source_description["CAMELS_ATTR_KEY_LST"]
         f_dict = {}
@@ -695,7 +712,7 @@ class Camels(HydroDataset):
             out_temp = np.full([self.n_gage, len(var_lst_temp)], np.nan)
             for field in var_lst_temp:
                 if is_string_dtype(data_temp[field]):
-                    value, ref = pd.factorize(data_temp[field], sort=True)
+                    value, ref = pd.factorize(data_temp[field], sort=True)  # Encode the object as an enumerated type or categorical variable.
                     out_temp[:, k] = value
                     f_dict[field] = ref.tolist()
                 elif is_numeric_dtype(data_temp[field]):

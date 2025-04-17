@@ -30,6 +30,7 @@ camelsaus_arg = {
     "data_file_attr": {
         "sep": ",",
         "header": 0,
+        # "attr_file_str": ["camels_", ".txt", ]
     },
 }
 

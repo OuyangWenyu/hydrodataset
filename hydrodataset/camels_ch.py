@@ -27,10 +27,11 @@ camelsch_arg = {
     },
     "b_nestedness": False,
     "forcing_unit": ["m", "mm/day", "°C", "°C", "°C", "%", "mm"],
-    # "data_file_attr": {
-    #     "sep": ",",
-    #     "header": 1,
-    # },
+    "data_file_attr": {
+        "sep": ",",
+        "header": 1,
+        "attr_file_str": ["CAMELS_CH_", "_attributes.csv", "_attributes_obs.csv", ]
+    },
 }
 
 class CamelsCh(Camels):
@@ -298,13 +299,14 @@ class CamelsCh(Camels):
         var_dict = {}
         var_lst = []
         out_lst = []
-        camels_str = "CAMELS_CH_"
-        sep_ = ","
+        camels_str1 = self.data_file_attr["attr_file_str"][0]
+        camels_str2 = self.data_file_attr["attr_file_str"][1]
+        sep_ = self.data_file_attr["sep"]
         for key in key_lst:
             if key in ["climate", "hydrology"]:
-                data_file = os.path.join(data_folder, camels_str + key + "_attributes_obs.csv")
+                data_file = os.path.join(data_folder, camels_str1 + key + "_attributes_obs.csv")
             else:
-                data_file = os.path.join(data_folder, camels_str + key + "_attributes.csv")
+                data_file = os.path.join(data_folder, camels_str1 + key + camels_str2)
             header_ = 1
             if key in ["catchments",]:
                 header_ = 0
