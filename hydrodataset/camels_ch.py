@@ -395,9 +395,9 @@ class CamelsCh(Camels):
         np.save(cache_npy_file, data)
 
 
-    def get_attributes_units_dict(self):
+    def get_attribute_units_dict(self):
         """
-
+            todo: duplication
         Returns
         -------
 

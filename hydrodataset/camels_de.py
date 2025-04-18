@@ -287,7 +287,7 @@ class CamelsDe(Camels):
                 x[k, :, j] = data_forcing
         return x
 
-    def get_attributes_units_dict(self):
+    def get_attribute_units_dict(self):
         """
 
         Returns

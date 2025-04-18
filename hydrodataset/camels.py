@@ -1049,7 +1049,7 @@ class Camels(HydroDataset):
 
         return ds_from_df
 
-    def get_attributes_units_dict(self):
+    def get_attribute_units_dict(self):
         """
 
         Returns
