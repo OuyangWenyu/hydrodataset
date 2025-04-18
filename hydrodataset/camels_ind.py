@@ -349,24 +349,13 @@ class CamelsInd(Camels):
         )
         np.save(cache_npy_file, data)
 
-    def cache_attributes_xrdataset(self):
-        """Convert all the attributes to a single dataframe
+    def get_attribute_units_dict(self):
+        """
 
         Returns
         -------
-        None
+
         """
-        # NOTICE: although it seems that we don't use pint_xarray, we have to import this package
-        import pint_xarray
-
-        attr_all, var_lst_all, var_dict, f_dict = self.read_attr_all()
-        basins = self.gage
-        attrs_df = pd.DataFrame(data=attr_all[0:, 0:], index=basins, columns=var_lst_all)
-
-        # unify id to basin
-        attrs_df.index.name = "basin"
-        # We use xarray dataset to cache all data
-        ds_from_df = attrs_df.to_xarray()
         units_dict = {
             "num_dams": "dimensionless",
             "res_store_sum": "10^3m^3",
@@ -574,12 +563,7 @@ class CamelsInd(Camels):
             "dpsbar": "m/km",
         }
 
-        # Assign units to the variables in the Dataset
-        for var_name in units_dict:
-            if var_name in ds_from_df.data_vars:
-                ds_from_df[var_name].attrs["units"] = units_dict[var_name]
-
-        return ds_from_df
+        return units_dict
 
     def cache_streamflow_xrdataset(self):
         """Save all basins' streamflow data in a netcdf file in the cache directory

@@ -402,6 +402,10 @@ class CamelsCh(Camels):
         -------
 
         """
+        # # delete the repetitive attribute item, "country".
+        # duplicate_columns = attrs_df.columns[attrs_df.columns.duplicated()]
+        # if duplicate_columns.size > 0:
+        #     attrs_df = attrs_df.loc[:, ~attrs_df.columns.duplicated()]
         units_dict = {
             "ind_start_date": "dimensionless",
             "ind_end_date": "dimensionless",
