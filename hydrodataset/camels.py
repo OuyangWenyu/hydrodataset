@@ -723,6 +723,12 @@ class Camels(HydroDataset):
         return out, var_lst, var_dict, f_dict
 
     def read_attr_all_yr(self):
+        """
+        year attributes data all
+        Returns
+        -------
+
+        """
         var_lst = self.get_constant_cols().tolist()
         gage_id_lst = self.gage
         # for factorized data, we need factorize all gages' data to keep the factorized number same all the time
@@ -902,7 +908,7 @@ class Camels(HydroDataset):
         attr_files = self.data_source_dir.glob("camels_*.txt")
         attrs = {
             f.stem.split("_")[1]: pd.read_csv(
-                f, sep=";", index_col=0, dtype={"huc_02": str, "gauge_id": str}
+                f, sep=self.data_file_attr["sep"], index_col=0, dtype={"huc_02": str, "gauge_id": str}
             )
             for f in attr_files
         }
@@ -1011,6 +1017,108 @@ class Camels(HydroDataset):
                 ds_from_df[column].attrs["category_mapping"] = str(mapping_str)
         return ds_from_df
 
+    def cache_attributes_xrdataset(self):
+        """Convert all the attributes to a single dataframe
+
+        Returns
+        -------
+        None
+        """
+        # NOTICE: although it seems that we don't use pint_xarray, we have to import this package
+        import pint_xarray
+
+        attr_all, var_lst_all, var_dict, f_dict = self.read_attr_all()
+        basins = self.gage
+        attrs_df = pd.DataFrame(data=attr_all[0:,0:],index=basins,columns=var_lst_all)
+
+        # delete the repetitive attribute item, "country".
+        duplicate_columns = attrs_df.columns[attrs_df.columns.duplicated()]
+        if duplicate_columns.size > 0:
+            attrs_df = attrs_df.loc[:, ~attrs_df.columns.duplicated()]
+
+        # unify id to basin
+        attrs_df.index.name = "basin"
+        # We use xarray dataset to cache all data
+        ds_from_df = attrs_df.to_xarray()
+        units_dict = self.get_attributes_units_dict()
+
+        # Assign units to the variables in the Dataset
+        for var_name in units_dict:
+            if var_name in ds_from_df.data_vars:
+                ds_from_df[var_name].attrs["units"] = units_dict[var_name]
+
+        return ds_from_df
+
+    def get_attributes_units_dict(self):
+        """
+
+        Returns
+        -------
+
+        """
+        units_dict = {
+            "gauge_lat": "degree",
+            "gauge_lon": "degree",
+            "elev_mean": "m",
+            "slope_mean": "m/km",
+            "area_gages2": "km^2",
+            "area_geospa_fabric": "km^2",
+            "geol_1st_class": "dimensionless",
+            "glim_1st_class_frac": "dimensionless",
+            "geol_2nd_class": "dimensionless",
+            "glim_2nd_class_frac": "dimensionless",
+            "carbonate_rocks_frac": "dimensionless",
+            "geol_porostiy": "dimensionless",
+            "geol_permeability": "m^2",
+            "frac_forest": "dimensionless",
+            "lai_max": "dimensionless",
+            "lai_diff": "dimensionless",
+            "gvf_max": "dimensionless",
+            "gvf_diff": "dimensionless",
+            "dom_land_cover_frac": "dimensionless",
+            "dom_land_cover": "dimensionless",
+            "root_depth_50": "m",
+            "root_depth_99": "m",
+            "q_mean": "mm/day",
+            "runoff_ratio": "dimensionless",
+            "slope_fdc": "dimensionless",
+            "baseflow_index": "dimensionless",
+            "stream_elas": "dimensionless",
+            "q5": "mm/day",
+            "q95": "mm/day",
+            "high_q_freq": "day/year",
+            "high_q_dur": "day",
+            "low_q_freq": "day/year",
+            "low_q_dur": "day",
+            "zero_q_freq": "percent",
+            "hfd_mean": "dimensionless",
+            "soil_depth_pelletier": "m",
+            "soil_depth_statsgo": "m",
+            "soil_porosity": "dimensionless",
+            "soil_conductivity": "cm/hr",
+            "max_water_content": "m",
+            "sand_frac": "percent",
+            "silt_frac": "percent",
+            "clay_frac": "percent",
+            "water_frac": "percent",
+            "organic_frac": "percent",
+            "other_frac": "percent",
+            "p_mean": "mm/day",
+            "pet_mean": "mm/day",
+            "p_seasonality": "dimensionless",
+            "frac_snow": "dimensionless",
+            "aridity": "dimensionless",
+            "high_prec_freq": "days/year",
+            "high_prec_dur": "day",
+            "high_prec_timing": "dimensionless",
+            "low_prec_freq": "days/year",
+            "low_prec_dur": "day",
+            "low_prec_timing": "dimensionless",
+            "huc_02": "dimensionless",
+            "gauge_name": "dimensionless",
+        }
+        return units_dict
+
     def cache_streamflow_xrdataset(self):
         """Save all basins' streamflow data in a netcdf file in the cache directory
 
@@ -1103,7 +1211,7 @@ class Camels(HydroDataset):
         filename_attributes = filename +"_attributes.nc"
         filename_timeseries = filename + "_timeseries.nc"
         path = os.path.isfile(filename_attributes)
-        if os.path.isfile(filename_attributes):
+        if os.path.isfile(filename_attributes):  # todo: not
             ds_attr = self.cache_attributes_xrdataset()
             ds_attr.to_netcdf(CACHE_DIR.joinpath(filename_attributes))
         if os.path.isfile(filename_timeseries):
