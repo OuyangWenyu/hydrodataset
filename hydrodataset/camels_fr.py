@@ -25,6 +25,7 @@ camelsfr_arg = {
     "time_range": {
         "observation": ["1970-01-01", "2022-01-01"],
     },
+    "target_cols": ["tsd_q_l", "tsd_q_mm"],
     "b_nestedness": True,
     "forcing_unit": ["mm/day", "-", "°C", "mm/day", "mm/day", "mm/day", "m/s", "g/kg", "J/cm^2", "J/cm^2", "-", "-", "mm/day", "°C", "°C"],
     "data_file_attr": {
@@ -164,17 +165,6 @@ class CamelsFr(Camels):
                 "tsd_temp_max",
             ]
         )
-
-    def get_target_cols(self) -> np.ndarray:
-        """
-        For CAMELS-FR, the target vars are streamflows
-
-        Returns
-        -------
-        np.ndarray
-            streamflow types
-        """
-        return np.array(["tsd_q_l", "tsd_q_mm"])
 
     def read_fr_gage_flow_forcing(self, gage_id, t_range, var_type):
         """

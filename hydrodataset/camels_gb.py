@@ -25,6 +25,7 @@ camelsgb_arg = {
     "time_range": {
         "observation": ["1970-10-01", "2015-10-01"],
     },
+    "target_cols": ["discharge_spec", "discharge_vol"],
     "b_nestedness": False,
     "forcing_unit": ["mm/day", "mm/day", "°C", "mm/day", "m^3/s", "mm/day", "g/kg", "W/m^2", "W/m^2", "m/s"],
     "data_file_attr": {
@@ -146,17 +147,6 @@ class CamelsGb(Camels):
                 "windspeed",
             ]
         )
-
-    def get_target_cols(self) -> np.ndarray:
-        """
-        For CAMELS-GB, the target vars are streamflows
-
-        Returns
-        -------
-        np.array
-            streamflow types
-        """
-        return np.array(["discharge_spec", "discharge_vol"])
 
     def read_gb_gage_flow_forcing(self, gage_id, t_range, var_type):
         """

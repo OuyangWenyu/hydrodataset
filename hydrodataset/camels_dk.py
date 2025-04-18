@@ -25,6 +25,7 @@ camelsdk_arg = {
     "time_range": {
         "observation": ["1989-01-02", "2024-01-02"],
     },
+    "target_cols": ["Qobs","Qdkm"],  # Qdkm means Qsim
     "b_nestedness": False,
     "forcing_unit": ["mm/d", "°C", "mm/d", "m", "mm/d", "-", "m^3/s", "m^3/s", "m", "m^3/s", "m^3/s"],
     "data_file_attr": {
@@ -149,17 +150,6 @@ class CamelsDk(Camels):
                 "Abstraction",
             ]
         )
-
-    def get_target_cols(self) -> np.ndarray:
-        """
-        For CAMELS-DK, the target vars are streamflows
-
-        Returns
-        -------
-        np.ndarray
-            streamflow types
-        """
-        return np.array(["Qobs","Qdkm"])  # Qdkm means Qsim
 
     def read_dk_gage_flow_forcing(self, gage_id, t_range, var_type):
         """

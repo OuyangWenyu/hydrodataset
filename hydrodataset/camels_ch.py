@@ -25,6 +25,7 @@ camelsch_arg = {
     "time_range": {
         "observation": ["1981-01-01","2021-01-01"],
     },
+    "target_cols": ["discharge_vol(m3/s)", "discharge_spec(mm/d)"],
     "b_nestedness": False,
     "forcing_unit": ["m", "mm/day", "°C", "°C", "°C", "%", "mm"],
     "data_file_attr": {
@@ -144,18 +145,6 @@ class CamelsCh(Camels):
                 "swe(mm)",
             ]
         )
-
-    def get_target_cols(self) -> np.ndarray:
-        """
-        For CAMELS-CH, the target vars are streamflows
-
-        Returns
-        -------
-        np.ndarray
-            streamflow types
-        """
-        return np.array(["discharge_vol(m3/s)", "discharge_spec(mm/d)"])
-
 
     def read_ch_gage_flow_forcing(self, gage_id, t_range, var_type):
         """

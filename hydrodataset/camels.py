@@ -90,6 +90,7 @@ camels_arg = {
         "maurer": ["1980-01-01", "2015-01-01"],
         "nldas": ["1980-01-01", "2015-01-01"],
     },
+    "target_cols": ["usgsFlow", "ET"],
     "b_nestedness": False,
     "forcing_unit": ["s", "mm/day", "W/m^2", "mm", "°C", "°C", "Pa", "mm/day"],
     "data_file_attr": {
@@ -143,6 +144,7 @@ class Camels(HydroDataset):
         self.area_tag = arg["area_tag"]
         self.meanprcp_unit_tag = arg["meanprcp_unit_tag"]  # [mean_prce,unit]
         self.time_range = arg["time_range"][arg["forcing_type"]]  # forcing_type
+        self.target_cols = arg["target_cols"]
         self.b_nestedness = arg["b_nestedness"]
         self.forcing_unit = arg["forcing_unit"]
 
@@ -321,7 +323,7 @@ class Camels(HydroDataset):
         np.array
             streamflow types
         """
-        return np.array(["usgsFlow", "ET"])
+        return np.array(self.target_cols)
 
     def read_object_ids(self, **kwargs) -> np.ndarray:
         """

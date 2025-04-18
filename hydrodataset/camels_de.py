@@ -25,6 +25,7 @@ camelsde_arg = {
     "time_range": {
         "observation": ["1951-01-01", "2021-01-01"],
     },
+    "target_cols": ["discharge_vol", "discharge_spec"],
     "b_nestedness": False,
     "forcing_unit": ["m", "mm/d", "mm/d", "mm/d", "mm/d", "mm/d", "%", "%", "%", "%", "%", "W/m^2", "W/m^2", "W/m^2",
                      "W/m^2", "W/m^2", "°C", "°C", "°C"],
@@ -151,17 +152,6 @@ class CamelsDe(Camels):
                 "temperature_max",
             ]
         )
-
-    def get_target_cols(self) -> np.ndarray:
-        """
-        For CAMELS-DE, the target vars are streamflows
-
-        Returns
-        -------
-        np.ndarray
-            streamflow types
-        """
-        return np.array(["discharge_vol", "discharge_spec"])
 
     def read_de_gage_flow_forcing(self, gage_id, t_range, var_type):
         """
