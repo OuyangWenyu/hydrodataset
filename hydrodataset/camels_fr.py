@@ -193,7 +193,7 @@ class CamelsFr(Camels):
         )
         data_temp = pd.read_csv(gage_file, sep=";",header=7)  # no need the "skiprows"
         obs = data_temp[var_type].values
-        # if var_type in ["tsd_sq_l", "tsd_q_mm"]:
+        # if var_type in self.target_cols:  # todo:
         #     obs[obs < 0] = np.nan
         date = pd.to_datetime(pd.Series(data_temp["tsd_date"]),format="%Y%m%d").dt.strftime("%Y-%m-%d").values.astype("datetime64[D]")
         return time_intersect_dynamic_data(obs, date, t_range)

@@ -1033,7 +1033,7 @@ class Camels(HydroDataset):
         basins = self.gage
         attrs_df = pd.DataFrame(data=attr_all[0:,0:],index=basins,columns=var_lst_all)
 
-        # delete the repetitive attribute item, "country".
+        # delete the repetitive attribute item, e.g. in ch, "country".
         duplicate_columns = attrs_df.columns[attrs_df.columns.duplicated()]
         if duplicate_columns.size > 0:
             attrs_df = attrs_df.loc[:, ~attrs_df.columns.duplicated()]

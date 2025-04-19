@@ -187,7 +187,7 @@ class CamelsDk(Camels):
         data_temp = pd.read_csv(gage_file, sep=",")
 
         obs = data_temp[var_type].values
-        if var_type in ["Qobs", "Qdkm"]:
+        if var_type in self.target_cols:
             obs[obs < 0] = np.nan
         date = pd.to_datetime(data_temp["time"]).values.astype("datetime64[D]")
         return time_intersect_dynamic_data(obs, date, t_range)

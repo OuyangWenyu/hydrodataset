@@ -171,7 +171,7 @@ class CamelsSe(Camels):
         )
         data_temp = pd.read_csv(gage_file, sep=",")
         obs = data_temp[var_type].values
-        if var_type in ["Qobs_m3s", "Qobs_mm"]:
+        if var_type in self.target_cols:
             obs[obs < 0] = np.nan
         df_date = data_temp[["Year", "Month", "Day"]]
         date = pd.to_datetime(df_date).values.astype("datetime64[D]")
