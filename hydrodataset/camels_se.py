@@ -26,6 +26,7 @@ camelsgb_arg = {
     "time_range": {
         "observation": ["1961-01-01", "2021-01-01"],
     },
+    "target_cols": ["Qobs_m3s", "Qobs_mm"],
     "b_nestedness": False,
     "forcing_unit": ["mm/day", "°C",],
     "data_file_attr": {
@@ -136,17 +137,6 @@ class CamelsSe(Camels):
                 "Tobs_C",
             ]
         )
-
-    def get_target_cols(self) -> np.ndarray:
-        """
-        For CAMELS-SE, the target vars are streamflows
-
-        Returns
-        -------
-        np.ndarray
-            streamflow types
-        """
-        return np.array(["Qobs_m3s", "Qobs_mm"])
 
     def read_se_gage_flow_forcing(self, gage_id, t_range, var_type):
         """

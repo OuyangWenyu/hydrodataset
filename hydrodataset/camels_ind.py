@@ -25,6 +25,7 @@ camelsind_arg = {
     "time_range": {
         "observation": ["1980-01-01", "2021-01-01"],
     },
+    "target_cols": ["streamflow_observed"],
     "b_nestedness": False,
     "forcing_unit": ["mm/day","°C", "°C", "°C", "w/m^2", "w/m^2", "m/s", "m/s", "m/s", "%", "mm/day", "mm/day", "mm/day",
                      "kg/m^2/s", "kg/m^2/s", "kg/m^2", "kg/m^2", "kg/m^2", "kg/m^2"],
@@ -163,17 +164,6 @@ class CamelsInd(Camels):
                 "sm_lvl4(kg/m2)",
             ]
         )
-
-    def get_target_cols(self) -> np.ndarray:
-        """
-        For CAMELS-IND, the target vars are streamflows
-
-        Returns
-        -------
-        np.ndarray
-            streamflow types
-        """
-        return np.array(["streamflow_observed"])
 
     def read_ind_gage_forcing(self, gage_id, t_range, var_type):
         """
