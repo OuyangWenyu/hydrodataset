@@ -25,6 +25,7 @@ camelsbr_arg = {
     "time_range": {
         "observation": ["1995-01-01", "2015-01-01"],
     },
+    "target_cols": ["streamflow_mm_selected_catchments"],
     "b_nestedness": False,
     "forcing_unit": ["mm/d", "mm/d", "mm/d", "mm/d", "mm/d", "mm/d", "°C", "°C", "°C"],
     "data_file_attr": {
@@ -203,22 +204,6 @@ class CamelsBr(Camels):
             [
                 str(forcing_dir).split(os.sep)[-1][13:]
                 for forcing_dir in self.data_source_description["CAMELS_FORCING_DIR"]
-            ]
-        )
-
-    def get_target_cols(self) -> np.ndarray:
-        """
-        For CAMELS-BR, the target vars are streamflows
-
-        Returns
-        -------
-        np.array
-            streamflow types
-        """
-        return np.array(
-            [
-                str(flow_dir).split(os.sep)[-1][13:]
-                for flow_dir in self.data_source_description["CAMELS_FLOW_DIR"]
             ]
         )
 

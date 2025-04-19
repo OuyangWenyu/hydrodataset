@@ -24,6 +24,7 @@ camelsaus_arg = {
     "time_range": {
         "observation": ["1990-01-01", "2010-01-01"],
     },
+    "target_cols": ["streamflow_MLd", "streamflow_MLd_inclInfilled", "streamflow_mmd",],  # QualityCodes are not streamflow data. MLd means "1 Megaliters Per Day"; 1 MLd = 0.011574074074074 cubic-meters-per-second; mmd means "mm/day"
     "b_nestedness": False,
     "forcing_unit": ["mm/d", "mm/d", "mm^2 /d^2", "mm/d", "mm/d", "mm/d", "mm/d", "mm/d", "mm/d", "mm/d", "mm/d", "MJ/m^2",
                      "°C", "°C", "°C", "°C", "MJ/m^2", "%", "%", "°C", "°C", "hPa", "hPa",],
@@ -229,27 +230,6 @@ class CamelsAus(Camels):
         else:
             raise NotImplementedError(CAMELS_NO_DATASET_ERROR_LOG)
         return the_cols
-
-    def get_target_cols(self) -> np.ndarray:
-        """
-        For CAMELS-AUS, the target vars are streamflows
-
-        QualityCodes are not streamflow data.
-        MLd means "1 Megaliters Per Day"; 1 MLd = 0.011574074074074 cubic-meters-per-second
-        mmd means "mm/day"
-
-        Returns
-        -------
-        np.array
-            streamflow types
-        """
-        return np.array(
-            [
-                "streamflow_MLd",
-                "streamflow_MLd_inclInfilled",
-                "streamflow_mmd",
-            ]
-        )
 
     def read_target_cols(
         self,
