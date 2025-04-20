@@ -70,6 +70,15 @@ def test_read_attr_xrdataset():
         all_number=True,
     )
     print(attr_data)
+# PASSED                          [100%]
+# <xarray.Dataset> Size: 160B
+# Dimensions:            (basin: 5)
+# Coordinates:
+#   * basin              (basin) object 40B '01013500' '01022500' ... '01047000'
+# Data variables:
+#     soil_conductivity  (basin) float64 40B 1.107 2.375 1.29 1.373 2.615
+#     elev_mean          (basin) float64 40B 250.3 92.68 143.8 247.8 310.4
+#     geol_1st_class     (basin) float64 40B 10.0 0.0 10.0 10.0 7.0
 
 
 def test_read_mean_prcp():

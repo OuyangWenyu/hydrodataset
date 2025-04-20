@@ -897,127 +897,127 @@ class Camels(HydroDataset):
         )
         np.save(cache_npy_file, data)
 
-    def cache_attributes_xrdataset(self):
-        """Convert all the attributes to a single dataframe
-
-        Returns
-        -------
-        None
-        """
-        # NOTICE: although it seems that we don't use pint_xarray, we have to import this package
-        import pint_xarray
-
-        attr_files = self.data_source_dir.glob("camels_*.txt")
-        attrs = {
-            f.stem.split("_")[1]: pd.read_csv(
-                f, sep=self.data_file_attr["sep"], index_col=0, dtype={"huc_02": str, "gauge_id": str}
-            )
-            for f in attr_files
-        }
-
-        attrs_df = pd.concat(attrs.values(), axis=1)
-
-        # fix station names
-        def fix_station_nm(station_nm):
-            name = station_nm.title().rsplit(" ", 1)
-            name[0] = name[0] if name[0][-1] == "," else f"{name[0]},"
-            name[1] = name[1].replace(".", "")
-            return " ".join(
-                (name[0], name[1].upper() if len(name[1]) == 2 else name[1].title())
-            )
-
-        attrs_df["gauge_name"] = [fix_station_nm(n) for n in attrs_df["gauge_name"]]
-        obj_cols = attrs_df.columns[attrs_df.dtypes == "object"]
-        for c in obj_cols:
-            attrs_df[c] = attrs_df[c].str.strip().astype(str)
-
-        # transform categorical variables to numeric
-        categorical_mappings = {}
-        for column in attrs_df.columns:
-            if attrs_df[column].dtype == "object":
-                attrs_df[column] = attrs_df[column].astype("category")
-                categorical_mappings[column] = dict(
-                    enumerate(attrs_df[column].cat.categories)
-                )
-                attrs_df[column] = attrs_df[column].cat.codes
-
-        # unify id to basin
-        attrs_df.index.name = "basin"
-        # We use xarray dataset to cache all data
-        ds_from_df = attrs_df.to_xarray()
-        units_dict = {
-            "gauge_lat": "degree",
-            "gauge_lon": "degree",
-            "elev_mean": "m",
-            "slope_mean": "m/km",
-            "area_gages2": "km^2",
-            "area_geospa_fabric": "km^2",
-            "geol_1st_class": "dimensionless",
-            "glim_1st_class_frac": "dimensionless",
-            "geol_2nd_class": "dimensionless",
-            "glim_2nd_class_frac": "dimensionless",
-            "carbonate_rocks_frac": "dimensionless",
-            "geol_porostiy": "dimensionless",
-            "geol_permeability": "m^2",
-            "frac_forest": "dimensionless",
-            "lai_max": "dimensionless",
-            "lai_diff": "dimensionless",
-            "gvf_max": "dimensionless",
-            "gvf_diff": "dimensionless",
-            "dom_land_cover_frac": "dimensionless",
-            "dom_land_cover": "dimensionless",
-            "root_depth_50": "m",
-            "root_depth_99": "m",
-            "q_mean": "mm/day",
-            "runoff_ratio": "dimensionless",
-            "slope_fdc": "dimensionless",
-            "baseflow_index": "dimensionless",
-            "stream_elas": "dimensionless",
-            "q5": "mm/day",
-            "q95": "mm/day",
-            "high_q_freq": "day/year",
-            "high_q_dur": "day",
-            "low_q_freq": "day/year",
-            "low_q_dur": "day",
-            "zero_q_freq": "percent",
-            "hfd_mean": "dimensionless",
-            "soil_depth_pelletier": "m",
-            "soil_depth_statsgo": "m",
-            "soil_porosity": "dimensionless",
-            "soil_conductivity": "cm/hr",
-            "max_water_content": "m",
-            "sand_frac": "percent",
-            "silt_frac": "percent",
-            "clay_frac": "percent",
-            "water_frac": "percent",
-            "organic_frac": "percent",
-            "other_frac": "percent",
-            "p_mean": "mm/day",
-            "pet_mean": "mm/day",
-            "p_seasonality": "dimensionless",
-            "frac_snow": "dimensionless",
-            "aridity": "dimensionless",
-            "high_prec_freq": "days/year",
-            "high_prec_dur": "day",
-            "high_prec_timing": "dimensionless",
-            "low_prec_freq": "days/year",
-            "low_prec_dur": "day",
-            "low_prec_timing": "dimensionless",
-            "huc_02": "dimensionless",
-            "gauge_name": "dimensionless",
-        }
-
-        # Assign units to the variables in the Dataset
-        for var_name in units_dict:
-            if var_name in ds_from_df.data_vars:
-                ds_from_df[var_name].attrs["units"] = units_dict[var_name]
-
-        # Assign categorical mappings to the variables in the Dataset
-        for column in ds_from_df.data_vars:
-            if column in categorical_mappings:
-                mapping_str = categorical_mappings[column]
-                ds_from_df[column].attrs["category_mapping"] = str(mapping_str)
-        return ds_from_df
+    # def cache_attributes_xrdataset(self):
+    #     """Convert all the attributes to a single dataframe
+    #
+    #     Returns
+    #     -------
+    #     None
+    #     """
+    #     # NOTICE: although it seems that we don't use pint_xarray, we have to import this package
+    #     import pint_xarray
+    #
+    #     attr_files = self.data_source_dir.glob("camels_*.txt")
+    #     attrs = {
+    #         f.stem.split("_")[1]: pd.read_csv(
+    #             f, sep=self.data_file_attr["sep"], index_col=0, dtype={"huc_02": str, "gauge_id": str}
+    #         )
+    #         for f in attr_files
+    #     }
+    #
+    #     attrs_df = pd.concat(attrs.values(), axis=1)
+    #
+    #     # fix station names
+    #     def fix_station_nm(station_nm):
+    #         name = station_nm.title().rsplit(" ", 1)
+    #         name[0] = name[0] if name[0][-1] == "," else f"{name[0]},"
+    #         name[1] = name[1].replace(".", "")
+    #         return " ".join(
+    #             (name[0], name[1].upper() if len(name[1]) == 2 else name[1].title())
+    #         )
+    #
+    #     attrs_df["gauge_name"] = [fix_station_nm(n) for n in attrs_df["gauge_name"]]
+    #     obj_cols = attrs_df.columns[attrs_df.dtypes == "object"]
+    #     for c in obj_cols:
+    #         attrs_df[c] = attrs_df[c].str.strip().astype(str)
+    #
+    #     # transform categorical variables to numeric
+    #     categorical_mappings = {}
+    #     for column in attrs_df.columns:
+    #         if attrs_df[column].dtype == "object":
+    #             attrs_df[column] = attrs_df[column].astype("category")
+    #             categorical_mappings[column] = dict(
+    #                 enumerate(attrs_df[column].cat.categories)
+    #             )
+    #             attrs_df[column] = attrs_df[column].cat.codes
+    #
+    #     # unify id to basin
+    #     attrs_df.index.name = "basin"
+    #     # We use xarray dataset to cache all data
+    #     ds_from_df = attrs_df.to_xarray()
+    #     units_dict = {
+    #         "gauge_lat": "degree",
+    #         "gauge_lon": "degree",
+    #         "elev_mean": "m",
+    #         "slope_mean": "m/km",
+    #         "area_gages2": "km^2",
+    #         "area_geospa_fabric": "km^2",
+    #         "geol_1st_class": "dimensionless",
+    #         "glim_1st_class_frac": "dimensionless",
+    #         "geol_2nd_class": "dimensionless",
+    #         "glim_2nd_class_frac": "dimensionless",
+    #         "carbonate_rocks_frac": "dimensionless",
+    #         "geol_porostiy": "dimensionless",
+    #         "geol_permeability": "m^2",
+    #         "frac_forest": "dimensionless",
+    #         "lai_max": "dimensionless",
+    #         "lai_diff": "dimensionless",
+    #         "gvf_max": "dimensionless",
+    #         "gvf_diff": "dimensionless",
+    #         "dom_land_cover_frac": "dimensionless",
+    #         "dom_land_cover": "dimensionless",
+    #         "root_depth_50": "m",
+    #         "root_depth_99": "m",
+    #         "q_mean": "mm/day",
+    #         "runoff_ratio": "dimensionless",
+    #         "slope_fdc": "dimensionless",
+    #         "baseflow_index": "dimensionless",
+    #         "stream_elas": "dimensionless",
+    #         "q5": "mm/day",
+    #         "q95": "mm/day",
+    #         "high_q_freq": "day/year",
+    #         "high_q_dur": "day",
+    #         "low_q_freq": "day/year",
+    #         "low_q_dur": "day",
+    #         "zero_q_freq": "percent",
+    #         "hfd_mean": "dimensionless",
+    #         "soil_depth_pelletier": "m",
+    #         "soil_depth_statsgo": "m",
+    #         "soil_porosity": "dimensionless",
+    #         "soil_conductivity": "cm/hr",
+    #         "max_water_content": "m",
+    #         "sand_frac": "percent",
+    #         "silt_frac": "percent",
+    #         "clay_frac": "percent",
+    #         "water_frac": "percent",
+    #         "organic_frac": "percent",
+    #         "other_frac": "percent",
+    #         "p_mean": "mm/day",
+    #         "pet_mean": "mm/day",
+    #         "p_seasonality": "dimensionless",
+    #         "frac_snow": "dimensionless",
+    #         "aridity": "dimensionless",
+    #         "high_prec_freq": "days/year",
+    #         "high_prec_dur": "day",
+    #         "high_prec_timing": "dimensionless",
+    #         "low_prec_freq": "days/year",
+    #         "low_prec_dur": "day",
+    #         "low_prec_timing": "dimensionless",
+    #         "huc_02": "dimensionless",
+    #         "gauge_name": "dimensionless",
+    #     }
+    #
+    #     # Assign units to the variables in the Dataset
+    #     for var_name in units_dict:
+    #         if var_name in ds_from_df.data_vars:
+    #             ds_from_df[var_name].attrs["units"] = units_dict[var_name]
+    #
+    #     # Assign categorical mappings to the variables in the Dataset
+    #     for column in ds_from_df.data_vars:
+    #         if column in categorical_mappings:
+    #             mapping_str = categorical_mappings[column]
+    #             ds_from_df[column].attrs["category_mapping"] = str(mapping_str)
+    #     return ds_from_df
 
     def cache_attributes_xrdataset(self):
         """Convert all the attributes to a single dataframe
@@ -1042,7 +1042,7 @@ class Camels(HydroDataset):
         attrs_df.index.name = "basin"
         # We use xarray dataset to cache all data
         ds_from_df = attrs_df.to_xarray()
-        units_dict = self.get_attributes_units_dict()
+        units_dict = self.get_attribute_units_dict()
 
         # Assign units to the variables in the Dataset
         for var_name in units_dict:
