@@ -170,7 +170,7 @@ class CamelsCh(Camels):
             self.data_source_description["CAMELS_FLOW_DIR"],
             "CAMELS_CH_obs_based_" + gage_id + ".csv",
         )
-        data_temp = pd.read_csv(gage_file, sep=",")
+        data_temp = pd.read_csv(gage_file, sep=self.data_file_attr["sep"])
         obs = data_temp[var_type].values
         if var_type in self.target_cols:
             obs[obs < 0] = np.nan

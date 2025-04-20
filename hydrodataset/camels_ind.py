@@ -190,7 +190,7 @@ class CamelsInd(Camels):
             self.data_source_description["CAMELS_FORCING_DIR"],
             gage_id + ".csv",
         )
-        data_temp = pd.read_csv(gage_file, sep=",")
+        data_temp = pd.read_csv(gage_file, sep=self.data_file_attr["sep"])
         obs = data_temp[var_type].values
         df_date = data_temp[["year", "month", "day"]]
         date = pd.to_datetime(df_date).values.astype("datetime64[D]")
@@ -241,7 +241,7 @@ class CamelsInd(Camels):
                     os.path.join(
                         self.data_source_description["CAMELS_FLOW_DIR"]
                     ),
-                    sep=",",
+                    sep=self.data_file_attr["sep"],
                 )
             else:
                 raise NotImplementedError(CAMELS_NO_DATASET_ERROR_LOG)

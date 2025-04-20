@@ -184,7 +184,7 @@ class CamelsDk(Camels):
             gage_file = gage_file1
         elif os.path.exists(gage_file2):
             gage_file = gage_file2
-        data_temp = pd.read_csv(gage_file, sep=",")
+        data_temp = pd.read_csv(gage_file, sep=self.data_file_attr["sep"])
 
         obs = data_temp[var_type].values
         if var_type in self.target_cols:

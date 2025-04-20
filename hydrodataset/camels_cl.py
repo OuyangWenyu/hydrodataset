@@ -29,7 +29,7 @@ camelscl_arg = {
     "b_nestedness": False,
     "forcing_unit": ["mm/day", "mm/day", "mm/day", "mm/day", "°C", "°C", "°C", "mm/day", "mm/day", "mm"],
     "data_file_attr": {
-        "sep": "\t",
+        "sep": r"\t",
         "header": 0,
         # "attr_file_str": ["CAMELS_DK_", ".csv", ]
     },
@@ -125,18 +125,6 @@ class CamelsCl(Camels):
             CAMELS_BASINS_SHP_FILE=camels_shp_file,
             CAMELS_DOWNLOAD_URL_LST=download_url_lst,
         )
-
-    def read_site_info(self) -> pd.DataFrame:
-        """
-        Read the basic information of gages in a CAMELS-CL dataset
-
-        Returns
-        -------
-        pd.DataFrame
-            basic info of gages
-        """
-        camels_file = self.data_source_description["CAMELS_GAUGE_FILE"]
-        return pd.read_csv(camels_file, sep="\t", index_col=0)
 
     def get_constant_cols(self) -> np.ndarray:
         """
@@ -234,7 +222,7 @@ class CamelsCl(Camels):
                         self.data_source_description["CAMELS_FLOW_DIR"][0],
                         "2_CAMELScl_streamflow_m3s.txt",
                     ),
-                    sep="\t",
+                    sep=self.data_file_attr["sep"],
                     index_col=0,
                 )
             elif target_cols[k] == "streamflow_mm":
@@ -243,7 +231,7 @@ class CamelsCl(Camels):
                         self.data_source_description["CAMELS_FLOW_DIR"][1],
                         "3_CAMELScl_streamflow_mm.txt",
                     ),
-                    sep="\t",
+                    sep=self.data_file_attr["sep"],
                     index_col=0,
                 )
             else:
@@ -298,7 +286,7 @@ class CamelsCl(Camels):
                     tmp_ = os.path.join(self.data_source_description["CAMELS_DIR"], tmp)
                     if os.path.isdir(tmp_):
                         forcing_file = os.path.join(tmp_, os.listdir(tmp_)[0])
-            forcing_data = pd.read_csv(forcing_file, sep="\t", index_col=0)
+            forcing_data = pd.read_csv(forcing_file, sep=self.data_file_attr["sep"], index_col=self.data_file_attr["header"])
             date = pd.to_datetime(forcing_data.index.values).values.astype(
                 "datetime64[D]"
             )
@@ -313,7 +301,7 @@ class CamelsCl(Camels):
             x[:, ind2, k] = chosen_data.values.T
         return x
 
-    def read_attr_all_in_one_file(self):
+    def read_attr_all(self):
         """
         Read all attr data in CAMELS_CL
 
@@ -326,7 +314,7 @@ class CamelsCl(Camels):
             self.data_source_description["CAMELS_ATTR_DIR"],
             "1_CAMELScl_attributes.txt",
         )
-        all_attr_tmp = pd.read_csv(attr_all_file, sep="\t", index_col=0)
+        all_attr_tmp = pd.read_csv(attr_all_file, sep=self.data_file_attr["sep"], index_col=self.data_file_attr["header"])
         all_attr = pd.DataFrame(
             all_attr_tmp.values.T,
             index=all_attr_tmp.columns,

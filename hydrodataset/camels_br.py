@@ -29,7 +29,7 @@ camelsbr_arg = {
     "b_nestedness": False,
     "forcing_unit": ["mm/d", "mm/d", "mm/d", "mm/d", "mm/d", "mm/d", "°C", "°C", "°C"],
     "data_file_attr": {
-        "sep": "\s+",
+        "sep": r"\s+",
         "header": 0,
         "attr_file_str": ["camels_br_", ".txt", ]
     },
@@ -236,7 +236,7 @@ class CamelsBr(Camels):
         # elif flow_type == "streamflow_simulated":
         #     flow_type = "simulated_streamflow"
         gage_file = os.path.join(dir_, gage_id + "_" + flow_type + ".txt")
-        data_temp = pd.read_csv(gage_file, sep=r"\s+")
+        data_temp = pd.read_csv(gage_file, sep=self.data_file_attr["sep"])
         obs = data_temp.iloc[:, 3].values
         obs[obs < 0] = np.nan
         df_date = data_temp[["year", "month", "day"]]
@@ -324,7 +324,7 @@ class CamelsBr(Camels):
         ]:
             var_type = var_type[:-4]
         gage_file = os.path.join(dir_, gage_id + "_" + var_type + ".txt")
-        data_temp = pd.read_csv(gage_file, sep=r"\s+")
+        data_temp = pd.read_csv(gage_file, sep=self.data_file_attr["sep"])
         obs = data_temp.iloc[:, 3].values
         df_date = data_temp[["year", "month", "day"]]
         date = pd.to_datetime(df_date).values.astype("datetime64[D]")

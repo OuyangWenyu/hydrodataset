@@ -191,7 +191,7 @@ class CamelsFr(Camels):
             self.data_source_description["CAMELS_FLOW_DIR"],
             "CAMELS_FR_tsd_" + gage_id + ".csv",
         )
-        data_temp = pd.read_csv(gage_file, sep=";",header=7)  # no need the "skiprows"
+        data_temp = pd.read_csv(gage_file, sep=self.data_file_attr["sep"], header=7)  # no need the "skiprows"
         obs = data_temp[var_type].values
         # if var_type in self.target_cols:  # todo:
         #     obs[obs < 0] = np.nan
