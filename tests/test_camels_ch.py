@@ -78,3 +78,10 @@ def test_set_data_source_describe():
 
 def test_download_data_source():
     camelsch = CamelsCh(download=True)
+
+def test_get_constant_cols():
+    camelsch = CamelsCh()
+    constant_cols = camelsch.get_constant_cols()
+    print(constant_cols)
+
+# todo:  FileNotFoundError: [Errno 2] No such file or directory: 'D:\\minio\\waterism\\datasets-origin\\camels\\camels_ch\\static_attributes\\CAMELS_CH_geology_attributes_obs.csv'
