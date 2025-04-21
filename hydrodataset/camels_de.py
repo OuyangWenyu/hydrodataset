@@ -73,7 +73,6 @@ class CamelsDe(Camels):
             "timeseries",
         )
         forcing_dir = flow_dir
-        forcing_types = ["observation", "simulated"]
         # attr
         attr_dir = camels_db.joinpath()
         attr_key_lst = [
@@ -97,7 +96,6 @@ class CamelsDe(Camels):
             CAMELS_DIR = camels_db,
             CAMELS_FLOW_DIR = flow_dir,
             CAMELS_FORCING_DIR = forcing_dir,
-            CAMELS_FORCING_TYPE=forcing_types,
             CAMELS_ATTR_DIR = attr_dir,
             CAMELS_ATTR_KEY_LST = attr_key_lst,
             CAMELS_GAUGE_FILE = gauge_id_file,

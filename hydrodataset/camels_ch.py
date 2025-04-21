@@ -72,7 +72,6 @@ class CamelsCh(Camels):
             "observation_based",
         )
         forcing_dir = flow_dir
-        forcing_types = ["observation", "simulation"]
         # attr
         attr_dir = camels_db.joinpath(
             "static_attributes"
@@ -102,7 +101,6 @@ class CamelsCh(Camels):
             CAMELS_DIR = camels_db,
             CAMELS_FLOW_DIR = flow_dir,
             CAMELS_FORCING_DIR = forcing_dir,
-            CAMELS_FORCING_TYPE=forcing_types,
             CAMELS_ATTR_DIR = attr_dir,
             CAMELS_ATTR_KEY_LST = attr_key_lst,
             CAMELS_GAUGE_FILE = gauge_id_file,
@@ -299,7 +297,7 @@ class CamelsCh(Camels):
             header_ = 1
             if key in ["catchments",]:
                 header_ = 0
-            data_temp = pd.read_csv(data_file, sep=sep_,header=header_)  # if a UnicodeDecodeError bug appeared, a manually encoding transform for camels_ch\static_attributes\CAMELS_CH_topographic_attributes.csv is need, encoding->convert to UTF-8 in Notepad++.
+            data_temp = pd.read_csv(data_file, sep=sep_, header=header_)  # if a UnicodeDecodeError bug appeared, a manually encoding transform for camels_ch\static_attributes\CAMELS_CH_topographic_attributes.csv is need, encoding->convert to UTF-8 in Notepad++.
             var_lst_temp = list(data_temp.columns[1:])
             var_dict[key] = var_lst_temp
             var_lst.extend(var_lst_temp)

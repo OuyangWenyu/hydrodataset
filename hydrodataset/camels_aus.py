@@ -166,7 +166,7 @@ class CamelsAus(Camels):
             self.data_source_description["CAMELS_DIR"],
             "CAMELS_AUS_Attributes-Indices_MasterTable.csv",
         )
-        camels_aus_attr_indices_data = pd.read_csv(attr_all_file, sep=",")
+        camels_aus_attr_indices_data = pd.read_csv(attr_all_file, sep=self.data_file_attr["sep"])
         # exclude station id
         return camels_aus_attr_indices_data.columns.values[1:]
 
