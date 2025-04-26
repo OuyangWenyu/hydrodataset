@@ -5,12 +5,9 @@ import pandas as pd
 import numpy as np
 from typing import Union
 from tqdm import tqdm
-import xarray as xr
 from hydroutils import hydro_time
 from hydrodataset import CACHE_DIR, CAMELS_REGIONS
 from hydrodataset.camels import Camels, time_intersect_dynamic_data
-from pandas.api.types import is_string_dtype, is_numeric_dtype
-import json
 
 CAMELS_NO_DATASET_ERROR_LOG = (
     "We cannot read this dataset now. Please check if you choose correctly:\n"

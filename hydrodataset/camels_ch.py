@@ -5,7 +5,6 @@ import pandas as pd
 import numpy as np
 from typing import Union
 from tqdm import tqdm
-import xarray as xr
 from hydroutils import hydro_time
 from hydrodataset import CACHE_DIR, CAMELS_REGIONS
 from hydrodataset.camels import Camels, time_intersect_dynamic_data
