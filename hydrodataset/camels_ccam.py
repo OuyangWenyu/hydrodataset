@@ -22,7 +22,7 @@ camelsccam_arg = {
     "area_tag": ["area", ],
     "meanprcp_unit_tag": [["pre_mean"], "mm/d"],
     "time_range": {
-        "observation": ["1990-01-01","2021-04-01"],
+        "observation": ["1990-01-01", "2021-04-01"],
     },
     "target_cols": ["q", ],
     "b_nestedness": False,
@@ -30,7 +30,7 @@ camelsccam_arg = {
     "data_file_attr": {
         "sep": ",",
         "header": 1,
-        "attr_file_str": ["2_", "_attributes.csv", "_attributes_obs.csv", ]
+        "attr_file_str": ["2_", ".txt",]
     },
 }
 
@@ -62,30 +62,22 @@ class CamelsCcam(Camels):
     def _set_data_source_camels_describe(self, camels_db):
         # shp file of basins
         camels_shp_file = camels_db.joinpath(
-            "catchment_delineations",
-            "CAMELS_CCAM_sub_catchments.shp",
+            "0_catchment_boundary",
         )
         # flow and forcing data are in a same file
         flow_dir = camels_db.joinpath(
-            "timeseries",
-            "observation_based",
+            "7_HydroMLYR",
+            "1_data",
         )
         forcing_dir = flow_dir
         # attr
-        attr_dir = camels_db.joinpath(
-            "static_attributes"
-        )
+        attr_dir = camels_db
         attr_key_lst = [
-            "climate",
-            "geology",
-            "glacier",
-            "humaninfluence",
-            "hydrogeology",
-            "hydrology",
-            "landcover",
-            "soil",
-            "topographic",
-            "catchment",
+            "2_location_topography",
+            "3_land_cover_characteristics",
+            "4_geological_characteristics",
+            "5_climate_indices",
+            "6_soil",
         ]
         gauge_id_file = attr_dir.joinpath("CAMELS_CCAM_hydrology_attributes_obs.csv")
         nestedness_information_file = None
@@ -132,7 +124,7 @@ class CamelsCcam(Camels):
 
     def get_relevant_cols(self) -> np.ndarray:
         """
-        all readable forcing types in CAMELS-CH
+        all readable forcing types in CAMELS-CCAM
 
         Returns
         -------
@@ -141,13 +133,21 @@ class CamelsCcam(Camels):
         """
         return np.array(
             [
-                "waterlevel(m)",
-                "precipitation(mm/d)",
-                "temperature_min(degC)",
-                "temperature_mean(degC)",
-                "temperature_max(degC)",
-                "rel_sun_dur(%)",
-                "swe(mm)",
+                "pre",
+                "evp",
+                "gst_mean",
+                "prs_mean",
+                "tem_mean",
+                "rhu",
+                "win_mean",
+                "gst_min",
+                "prs_min",
+                "tem_min",
+                "gst_max",
+                "prs_max",
+                "tem_max",
+                "ssd",
+                "win_max",
             ]
         )
 
@@ -160,10 +160,10 @@ class CamelsCcam(Camels):
         gage_id
             the station id
         t_range
-            the time range, for example, ["1981-01-01","2021-01-01"]
+            the time range, for example, ["1990-01-01","2021-04-01"]
         var_type
-            flow type: "discharge_vol(m3/s)", "discharge_spec(mm/d)"
-            forcing type: "waterlevel(m)", "precipitation(mm/d)", "temperature_min(degC)", "temperature_mean(degC)", "temperature_max(degC)", "rel_sun_dur(%)", "swe(mm)"
+            flow type: "q"
+            forcing type: "pre", "evp", "gst_mean", "prs_mean"", "tem_mean", "rhu", "win_mean", "gst_min", "prs_min", "tem_min", "gst_max", "prs_max", "tem_max", "ssd", "win_max",
 
         Returns
         -------
@@ -200,7 +200,7 @@ class CamelsCcam(Camels):
         gage_id_lst
             station ids
         t_range
-            the time range, for example, ["1981-01-01","2021-01-01"]
+            the time range, for example, ["1990-01-01","2021-04-01"]
         target_cols
             the default is None, but we need at least one default target.
             For CAMELS-CCAM, it's ["q"]
@@ -231,3 +231,67 @@ class CamelsCcam(Camels):
         # other units are m3/s -> ft3/s
         y = self.unit_convert_streamflow_m3tofoot3(y)
         return y
+
+    def read_relevant_cols(
+        self,
+        gage_id_lst: list = None,
+        t_range: list = None,
+        var_lst: list = None,
+        forcing_type="observation",
+        **kwargs,
+    ) -> np.ndarray:
+        """
+        Read forcing data
+
+        Parameters
+        ----------
+        gage_id_lst
+            station ids
+        t_range
+            the time range, for example, ["1990-01-01","2021-04-01"]
+        var_lst
+            forcing variable type: "pre", "evp", "gst_mean", "prs_mean"", "tem_mean", "rhu", "win_mean", "gst_min", "prs_min", "tem_min", "gst_max", "prs_max", "tem_max", "ssd", "win_max",
+        forcing_type
+            support for CAMELS-CCAM, there are two types: observation, simulation
+        Returns
+        -------
+        np.array
+            forcing data
+        """
+        t_range_list = hydro_time.t_range_days(t_range)
+        nt = t_range_list.shape[0]
+        x = np.full([len(gage_id_lst), nt, len(var_lst)], np.nan)
+        for j in tqdm(range(len(var_lst)), desc="Read forcing data of CAMELS-CCAM"):
+            for k in tqdm(range(len(gage_id_lst))):
+                data_forcing = self.read_ccam_gage_flow_forcing(
+                    gage_id_lst[k], t_range, var_lst[j]
+                )
+                x[k, :, j] = data_forcing
+        return x
+
+    def read_attr_all(self):
+        """
+         Read attributes data all
+
+        Returns
+        -------
+        out
+            np.ndarray, the all attribute values, do not contain the column names, pure numerical values. For ch, (331, 188).
+        var_lst
+            list, the all attributes item, the column names, e.g. "p_mean", "grass_perc", "area" and so on. For ch, len(var_lst) = 188.
+        var_dict
+            dict, the all attribute keys and their attribute items, e.g. in ch, the key "climate" and its attribute items -> 'climate': ['ind_start_date',
+            'ind_end_date', 'ind_number_of_years', 'p_mean', 'pet_mean', 'aridity', 'p_seasonality', 'frac_snow', 'high_prec_freq', 'high_prec_dur',
+            'high_prec_timing', 'low_prec_freq', 'low_prec_dur', 'low_prec_timing']. For ch, len(var_dict) = 10.
+        f_dict
+            dict, the all enumerated type or categorical variable in all attributes item, e.g. in ch, the enumerated type "country" and its items ->
+            'country': ['A', 'CH', 'DE', 'FR', 'I']. For ch, len(f_dict) = 8.
+        """
+        data_folder = self.data_source_description["CAMELS_ATTR_DIR"]
+        key_lst = self.data_source_description["CAMELS_ATTR_KEY_LST"]
+        f_dict = {}
+        var_dict = {}
+        var_lst = []
+        out_lst = []
+
+        return 0
