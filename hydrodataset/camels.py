@@ -787,7 +787,7 @@ class Camels(HydroDataset):
         ind_var = [var_lst_all.index(var) for var in var_lst]
         id_lst_all = self.gage
         # Notice the sequence of station ids ! Some id_lst_all are not sorted, so don't use np.intersect1d
-        ind_grid = [id_lst_all.tolist().index(tmp) for tmp in gage_id_lst]
+        ind_grid = [id_lst_all.index(tmp) for tmp in gage_id_lst]
         temp = attr_all[ind_grid, :]
         out = temp[:, ind_var]
         return (out, var_dict, f_dict) if is_return_dict else out
@@ -870,8 +870,8 @@ class Camels(HydroDataset):
         Save all basins' streamflow data in a numpy array file in the cache directory
 
         """
-        filename_npy = "camels_" + self.region.lower() + "_streamflow.npy"
-        filename_json = "camels_" + self.region.lower() + "_streamflow.json"
+        filename_npy = "camels_" + self.region.lower() +  "_" + self.forcing_type + "_streamflow.npy"
+        filename_json = "camels_" + self.region.lower() +  "_" + self.forcing_type + "_streamflow.json"
         cache_npy_file = CACHE_DIR.joinpath(filename_npy)
         json_file = CACHE_DIR.joinpath(filename_json)
         variables = self.get_target_cols()
@@ -1125,8 +1125,8 @@ class Camels(HydroDataset):
         """Save all basins' streamflow data in a netcdf file in the cache directory
 
         """
-        filename_npy = "camels_" + self.region.lower() + "_streamflow.npy"
-        filename_json = "camels_" + self.region.lower() + "_streamflow.json"
+        filename_npy = "camels_" + self.region.lower() + "_" + self.forcing_type + "_streamflow.npy"
+        filename_json = "camels_" + self.region.lower() + "_" + self.forcing_type + "_streamflow.json"
         cache_npy_file = CACHE_DIR.joinpath(filename_npy)
         json_file = CACHE_DIR.joinpath(filename_json)
         if (not os.path.isfile(cache_npy_file)) or (not os.path.isfile(json_file)):
@@ -1213,10 +1213,10 @@ class Camels(HydroDataset):
         filename_attributes = filename +"_attributes.nc"
         filename_timeseries = filename + "_timeseries.nc"
         path = os.path.isfile(filename_attributes)
-        if os.path.isfile(filename_attributes):  # todo: not
+        if not os.path.isfile(filename_attributes):  # todo: not
             ds_attr = self.cache_attributes_xrdataset()
             ds_attr.to_netcdf(CACHE_DIR.joinpath(filename_attributes))
-        if os.path.isfile(filename_timeseries):
+        if not os.path.isfile(filename_timeseries):
             ds_streamflow = self.cache_streamflow_xrdataset()
             ds_forcing = self.cache_forcing_xrdataset()
             ds = xr.merge([ds_streamflow, ds_forcing])
