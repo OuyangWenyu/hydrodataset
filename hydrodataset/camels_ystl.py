@@ -27,7 +27,7 @@ camelsystl_arg = {
     },
     "target_cols": ["discharge_vol",],
     "b_nestedness": False,
-    "forcing_unit": ["mm", "mm", "m3/s"],
+    "forcing_unit": ["mm", "mm", "m3/s", "m3/s", "m3/s"],
     "data_file_attr": {
         "sep": ",",
         "header": 0,
@@ -118,8 +118,10 @@ class CamelsYstl(Camels):
         return np.array(
             [
                 "prcp",
-                "pet",
-                "discharge_vol",
+                 "pet",
+                 "discharge_vol1",
+                 "discharge_vol2",
+                 "discharge_vol3",
             ]
         )
 
@@ -192,7 +194,7 @@ class CamelsYstl(Camels):
         nt = t_range_list.shape[0]
         y = np.full([len(gage_id_lst), nt, nf], np.nan)
         for j in tqdm(
-            range(len(target_cols)), desc="Read streamflow data of CAMELS-CH"
+            range(len(target_cols)), desc="Read streamflow data of CAMELS-YSTL"
         ):
             for k in tqdm(range(len(gage_id_lst))):
                 data_obs = self.read_ystl_gage_flow_forcing(
