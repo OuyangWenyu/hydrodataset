@@ -284,7 +284,10 @@ class CamelsFr(Camels):
                 x[k, :, j] = data_forcing
         return x
 
-    def read_attr_all(self):
+    def read_attr_all(
+        self,
+        gages_ids: Union[list, np.ndarray]
+    ):
         """
          Read Attributes data
 
@@ -300,6 +303,7 @@ class CamelsFr(Camels):
         camels_str2 = self.data_file_attr["attr_file_str"][1]
         camels_str3 = self.data_file_attr["attr_file_str"][2]
         sep_ = self.data_file_attr["sep"]
+        n_gage = len(gages_ids)
         for key in key_lst:
             # locate the attribute file
             data_file1 = os.path.join(data_folder1, camels_str1 + key + camels_str2)
@@ -314,7 +318,7 @@ class CamelsFr(Camels):
             var_lst.extend(var_lst_temp)
             k = 0
             print(len(var_lst_temp))
-            out_temp = np.full([self.n_gage, len(var_lst_temp)], np.nan)
+            out_temp = np.full([n_gage, len(var_lst_temp)], np.nan)
             for field in var_lst_temp:
                 if is_string_dtype(data_temp[field]):
                     value, ref = pd.factorize(data_temp[field], sort=True)

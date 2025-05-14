@@ -674,10 +674,17 @@ class Camels(HydroDataset):
                 x[k, :, :] = data
         return x
 
-    def read_attr_all(self):
+    def read_attr_all(
+        self,
+        gages_ids: Union[list, np.ndarray]
+    ):
         """
-         Read attributes data all
+        Read attributes data all
 
+        Parameters
+        ----------
+        gages_ids : Union[list, np.ndarray]
+            gages sites' ids
         Returns
         -------
         out
@@ -701,6 +708,7 @@ class Camels(HydroDataset):
         camels_str1 = self.data_file_attr["attr_file_str"][0]
         camels_str2 = self.data_file_attr["attr_file_str"][1]
         sep_ = self.data_file_attr["sep"]
+        n_gage = len(gages_ids)
         for key in key_lst:
             data_file = os.path.join(data_folder, camels_str1 + key + camels_str2)
             data_temp = pd.read_csv(data_file, sep=sep_)
@@ -711,7 +719,7 @@ class Camels(HydroDataset):
             # gage_id_key = "gauge_id"
             # if self.region == "CC":
             #     gage_id_key = "gage_id"
-            out_temp = np.full([self.n_gage, len(var_lst_temp)], np.nan)
+            out_temp = np.full([n_gage, len(var_lst_temp)], np.nan)
             for field in var_lst_temp:
                 if is_string_dtype(data_temp[field]):
                     value, ref = pd.factorize(data_temp[field], sort=True)  # Encode the object as an enumerated type or categorical variable.
@@ -783,7 +791,7 @@ class Camels(HydroDataset):
             otherwise just return an array
         """
 
-        attr_all, var_lst_all, var_dict, f_dict = self.read_attr_all()
+        attr_all, var_lst_all, var_dict, f_dict = self.read_attr_all(self.gage)
         ind_var = [var_lst_all.index(var) for var in var_lst]
         id_lst_all = self.gage
         # Notice the sequence of station ids ! Some id_lst_all are not sorted, so don't use np.intersect1d

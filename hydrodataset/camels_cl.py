@@ -299,7 +299,10 @@ class CamelsCl(Camels):
             x[:, ind2, k] = chosen_data.values.T
         return x
 
-    def read_attr_all(self):
+    def read_attr_all(
+        self,
+        gages_ids: Union[list, np.ndarray]
+    ):
         """
         Read all attr data in CAMELS_CL
 
@@ -328,8 +331,9 @@ class CamelsCl(Camels):
         # gage_all_attr = all_attr[all_attr['station_id'].isin(gage_id_lst)]
         var_lst = self.get_constant_cols().tolist()
         data_temp = all_attr[var_lst]
+        n_gage = len(gages_ids)
         # for factorized data, we need factorize all gages' data to keep the factorized number same all the time
-        out = np.full([self.n_gage, len(var_lst)], np.nan)
+        out = np.full([n_gage, len(var_lst)], np.nan)
         f_dict = {}
         k = 0
         for field in var_lst:

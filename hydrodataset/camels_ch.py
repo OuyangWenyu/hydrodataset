@@ -261,7 +261,7 @@ class CamelsCh(Camels):
                 x[k, :, j] = data_forcing
         return x
 
-    def read_attr_all(self):
+    def read_attr_all(self, gages_ids: Union[list, np.ndarray]):
         """
          Read attributes data all
 
@@ -288,6 +288,7 @@ class CamelsCh(Camels):
         camels_str1 = self.data_file_attr["attr_file_str"][0]
         camels_str2 = self.data_file_attr["attr_file_str"][1]
         sep_ = self.data_file_attr["sep"]
+        n_gage = len(gages_ids)
         for key in key_lst:
             if key in ["climate", "hydrology"]:
                 data_file = os.path.join(data_folder, camels_str1 + key + "_attributes_obs.csv")
@@ -301,7 +302,7 @@ class CamelsCh(Camels):
             var_dict[key] = var_lst_temp
             var_lst.extend(var_lst_temp)
             k = 0
-            out_temp = np.full([self.n_gage, len(var_lst_temp)], np.nan)
+            out_temp = np.full([n_gage, len(var_lst_temp)], np.nan)
             for field in var_lst_temp:
                 if is_string_dtype(data_temp[field]):
                     value, ref = pd.factorize(data_temp[field], sort=True) # Encode the object as an enumerated type or categorical variable.
