@@ -265,6 +265,11 @@ class CamelsCh(Camels):
         """
          Read attributes data all
 
+	     Parameters
+         ----------
+         gages_ids : Union[list, np.ndarray]
+            gages sites' ids
+
         Returns
         -------
         out

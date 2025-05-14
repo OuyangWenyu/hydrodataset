@@ -306,6 +306,10 @@ class CamelsCl(Camels):
         """
         Read all attr data in CAMELS_CL
 
+        Parameters
+        ----------
+        gages_ids : Union[list, np.ndarray]
+            gages sites' ids
         Returns
         -------
         np.array

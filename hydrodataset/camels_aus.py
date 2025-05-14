@@ -362,6 +362,10 @@ class CamelsAus(Camels):
         """
         Read all attr data in CAMELS_AUS
 
+	    Parameters
+        ----------
+        gages_ids : Union[list, np.ndarray]
+            gages sites' ids
         Returns
         -------
         np.array

@@ -291,6 +291,11 @@ class CamelsFr(Camels):
         """
          Read Attributes data
 
+        Parameters
+        ----------
+        gages_ids : Union[list, np.ndarray]
+            gages sites' ids
+
         """
         data_folder1 = self.data_source_description["CAMELS_ATTR_DIR"][0]
         data_folder2 = self.data_source_description["CAMELS_ATTR_DIR"][1]
