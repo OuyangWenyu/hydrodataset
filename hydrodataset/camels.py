@@ -1040,7 +1040,7 @@ class Camels(HydroDataset):
         # NOTICE: although it seems that we don't use pint_xarray, we have to import this package
         import pint_xarray
 
-        attr_all, var_lst_all, var_dict, f_dict = self.read_attr_all()
+        attr_all, var_lst_all, var_dict, f_dict = self.read_attr_all(self.gage)
         basins = self.gage
         attrs_df = pd.DataFrame(data=attr_all[0:,0:],index=basins,columns=var_lst_all)
 
