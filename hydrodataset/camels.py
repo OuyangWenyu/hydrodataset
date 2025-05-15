@@ -738,6 +738,11 @@ class Camels(HydroDataset):
     ):
         """
         year attributes data all
+
+        Parameters
+        ----------
+        gages_ids : Union[list, np.ndarray]
+            gages sites' ids
         Returns
         -------
 
@@ -1256,7 +1261,7 @@ class Camels(HydroDataset):
         all_vars = ts.data_vars
         if any(var not in ts.variables for var in var_lst):
             raise ValueError(f"var_lst must all be in {all_vars}")
-        return ts[var_lst].sel(basin=gage_id_lst, time=slice(t_range[0], t_range[1]))
+        return ts[var_lst].sel(basin=gage_id_lst, time=slice(t_range[0], t_range[1]))  # slice(), left close and right close.  # todo: the slice() function get a left close and right close time range data.
 
     def read_attr_xrdataset(self, gage_id_lst=None, var_lst=None, **kwargs):
         if var_lst is None or len(var_lst) == 0:
