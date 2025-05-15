@@ -791,7 +791,7 @@ class Camels(HydroDataset):
             otherwise just return an array
         """
 
-        attr_all, var_lst_all, var_dict, f_dict = self.read_attr_all(self.gage)
+        attr_all, var_lst_all, var_dict, f_dict = self.read_attr_all(gage_id_lst)
         ind_var = [var_lst_all.index(var) for var in var_lst]
         id_lst_all = self.gage
         # Notice the sequence of station ids ! Some id_lst_all are not sorted, so don't use np.intersect1d
