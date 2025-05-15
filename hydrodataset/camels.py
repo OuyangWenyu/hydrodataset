@@ -732,7 +732,10 @@ class Camels(HydroDataset):
         out = np.concatenate(out_lst, 1)
         return out, var_lst, var_dict, f_dict
 
-    def read_attr_all_yr(self):
+    def read_attr_all_yr(
+        self,
+        gages_ids: Union[list, np.ndarray]
+    ):
         """
         year attributes data all
         Returns
@@ -742,7 +745,7 @@ class Camels(HydroDataset):
         var_lst = self.get_constant_cols().tolist()
         gage_id_lst = self.gage
         # for factorized data, we need factorize all gages' data to keep the factorized number same all the time
-        n_gage = self.n_gage
+        n_gage = len(gages_ids)
         c = np.full([n_gage, len(var_lst)], np.nan, dtype=object)
         for k in range(n_gage):
             attr_file = os.path.join(
