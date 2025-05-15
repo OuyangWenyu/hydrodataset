@@ -261,7 +261,10 @@ class CamelsCh(Camels):
                 x[k, :, j] = data_forcing
         return x
 
-    def read_attr_all(self, gages_ids: Union[list, np.ndarray]):
+    def read_attr_all(
+        self,
+        gages_ids: Union[list, np.ndarray]
+    ):
         """
          Read attributes data all
 
