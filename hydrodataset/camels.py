@@ -658,6 +658,10 @@ class Camels(HydroDataset):
                     f_dict[field] = ref.tolist()
                 elif is_numeric_dtype(data_temp[field]):
                     out_temp[:, k] = data_temp[field].values
+                else:
+                    value, ref = pd.factorize(data_temp[field], sort=True)
+                    out_temp[:, k] = value
+                    f_dict[field] = ref.tolist()
                 k = k + 1
             out_lst.append(out_temp)
         out = np.concatenate(out_lst, 1)
