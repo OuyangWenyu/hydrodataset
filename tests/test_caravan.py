@@ -11,6 +11,8 @@ Copyright (c) 2023-2024 Wenyu Ouyang. All rights reserved.
 import os
 import numpy as np
 import pytest
+import pandas as pd
+import xarray as xr
 
 from hydrodataset import ROOT_DIR
 from hydrodataset.caravan import Caravan, _extract_unit
@@ -167,7 +169,7 @@ def test_read_ts_xrdataset(caravan):
         ["1990-01-01", "2009-12-31"],
         var_lst=None,
     )
-    print("TS Data for Selected IDs:", ts_data)  # Print the time series data for debugging
+    assert ts_data is not None, "Time series data should not be None"  
 
 
 def test_read_attr_xrdataset(caravan):
@@ -176,7 +178,26 @@ def test_read_attr_xrdataset(caravan):
         caravan_ids[:3].tolist() + caravan_ids[-2:].tolist(),
         ["p_mean", "pet_mean_ERA5_LAND", "aridity_ERA5_LAND"],
     )
-    print(attr_data)
+    # Verify that attr_data is a xr.dataset
+    assert isinstance(attr_data, xr.Dataset), "attr_data should be a pandas DataFrame"
+
+    # Determine expected shape based on selected caravan_ids and 3 attributes
+    expected_shape = (len(caravan_ids[:3].tolist() + caravan_ids[-2:].tolist()), 3)
+    assert (attr_data.dims["basin"], len(attr_data.data_vars)) == expected_shape, \
+    f"Expected shape {expected_shape}, got {(attr_data.dims['basin'], len(attr_data.data_vars))}"
+
+    # Assert that the attribute columns are exactly as expected
+    expected_columns = ["p_mean", "pet_mean_ERA5_LAND", "aridity_ERA5_LAND"]
+    assert list(attr_data.data_vars) == expected_columns, \
+    f"Expected columns {expected_columns}, got {list(attr_data.data_vars)}"
+
+    # Check that each column contains numeric data
+    for col in expected_columns:
+        assert pd.api.types.is_numeric_dtype(attr_data[col]), f"Column {col} must be numeric"
+
+    # Check some key values: here ensuring no negative values exist
+    for col in expected_columns:
+        assert (attr_data[col] >= 0).all(), f"Column {col} contains negative values"
 
 
 def test_streamflow_unit(caravan):

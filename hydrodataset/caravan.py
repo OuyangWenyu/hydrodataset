@@ -1,3 +1,4 @@
+import logging
 import collections
 import glob
 import re
@@ -16,7 +17,7 @@ from tzfpy import get_tz
 from hydroutils import hydro_file
 from hydrodataset import CACHE_DIR, HydroDataset
 
-
+logging.basicConfig(level=logging.INFO, format="%(levelname)s: %(message)s")
 class Caravan(HydroDataset):
     def __init__(self, data_path, download=False, region="Global"):
         """
@@ -140,13 +141,13 @@ class Caravan(HydroDataset):
             if fzip.suffix == '.xz':
                 with tarfile.open(fzip, "r:xz") as tar:
                     tar.extractall(path=self.data_source_dir)
-                print(f"Successfully extracted {fzip.name}")
+                logging.info(f"Successfully extracted {fzip.name}")
             elif fzip.suffix == '.zip':
                 # Handle regular .zip files (just in case)
                 shutil.unpack_archive(fzip, self.data_source_dir)
-                print(f"Successfully extracted {fzip.name}")
+                logging.info(f"Successfully extracted {fzip.name}")
             else:
-                print(f"Unsupported file format: {fzip.suffix}")
+                logging.warning(f"Unsupported file format: {fzip.suffix}")
             
         except tarfile.ReadError:
             Warning("Please manually unzip the file.")
@@ -953,6 +954,31 @@ class Caravan(HydroDataset):
             concat_dim="basin",
             parallel=parallel,
         )
+        # Check for duplicates in the gauge_id dimension
+        gauge_ids = pd.Series(combined_ds.gauge_id.values)
+        duplicates = gauge_ids[gauge_ids.duplicated()]
+
+        if not duplicates.empty: 
+            logging.error("Duplicate gauge IDs found: %s", duplicates.values)  
+            raise ValueError("Duplicate gauge IDs found. Please check your data extraction process.")  
+        else:  
+            logging.info("No duplicate gauge IDs found.")  
+
+        def extract_unit(variable_name, units_string):
+            """Construct a pattern based on the variable name to find the unit"""
+            # If the variable is 'streamflow', directly use it for unit extraction
+            if variable_name == "streamflow":
+                main_name = "streamflow"
+            # If the variable starts with 'dewpoint_temperature_2m', use the main name 'temperature_2m' for unit extraction
+            elif variable_name.startswith("dewpoint_temperature_2m"):
+                main_name = "temperature_2m"
+            else:
+                main_name = "_".join(variable_name.split("_")[:-1])
+
+            pattern = main_name + r":.*?\[(.*?)\]"
+            match = re.search(pattern, units_string)
+            return match[1].strip() if match else "unknown"
+
         # If relevant columns are specified, select them
         if var_lst:
             combined_ds = combined_ds[var_lst]
