@@ -17,6 +17,9 @@ import xarray as xr
 from hydrodataset import ROOT_DIR
 from hydrodataset.caravan import Caravan, _extract_unit
 
+@pytest.fixture()
+def caravan():
+    return Caravan(os.path.join(ROOT_DIR, "Caravan"), download=True)
 
 @pytest.fixture()
 def caravan_us():
