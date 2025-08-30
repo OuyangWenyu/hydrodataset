@@ -1,0 +1,170 @@
+[build-system]
+requires = ["setuptools>=45", "wheel", "setuptools_scm[toml]>=6.2"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "hydrodataset"
+version = "0.1.13"
+description = "A Python package for downloading and reading hydrological datasets"
+readme = "README.md"
+license = {text = "MIT"}
+authors = [
+    {name = "Wenyu Ouyang", email = "wenyuouyang@outlook.com"}
+]
+maintainers = [
+    {name = "Wenyu Ouyang", email = "wenyuouyang@outlook.com"}
+]
+keywords = ["hydrodataset", "hydrology", "datasets", "water"]
+classifiers = [
+    "Development Status :: 2 - Pre-Alpha",
+    "Intended Audience :: Developers",
+    "License :: OSI Approved :: MIT License",
+    "Natural Language :: English",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+]
+requires-python = ">=3.10"
+dependencies = [
+    "xarray",
+    "netCDF4",
+    "zarr",
+    "dask[complete]",
+    "dask[distributed]",
+    "bokeh>=2.4.2",
+    "scipy",
+    "pint",
+    "pint-pandas",
+    "pint-xarray",
+    "tzfpy",
+    "codetiming",
+    "hydroutils",
+]
+
+[project.optional-dependencies]
+dev = [
+    "bump2version",
+    "wheel",
+    "watchdog",
+    "tox",
+    "coverage",
+    "Sphinx",
+    "twine",
+    "grip",
+    "black",
+    "flake8",
+    "pytest",
+    "pytest-runner",
+]
+test = [
+    "pytest>=3",
+    "pytest-runner",
+    "coverage",
+]
+docs = [
+    "Sphinx",
+    "grip",
+    "mkdocs-material",
+    "mkdocstrings",
+    "mkdocs-git-revision-date-plugin",
+    "mkdocs-jupyter",
+    "ipykernel",
+    "mkdocstrings-python",
+]
+lint = [
+    "black",
+    "flake8",
+]
+
+[project.urls]
+Homepage = "https://github.com/OuyangWenyu/hydrodataset"
+Repository = "https://github.com/OuyangWenyu/hydrodataset"
+Documentation = "https://github.com/OuyangWenyu/hydrodataset"
+"Bug Tracker" = "https://github.com/OuyangWenyu/hydrodataset/issues"
+
+[tool.setuptools.packages.find]
+include = ["hydrodataset*"]
+
+[tool.setuptools.package-data]
+hydrodataset = ["*"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+python_files = ["test_*.py"]
+python_classes = ["Test*"]
+python_functions = ["test_*"]
+
+[tool.coverage.run]
+source = ["hydrodataset"]
+omit = [
+    "*/tests/*",
+    "*/test_*",
+    "setup.py",
+]
+
+[tool.coverage.report]
+exclude_lines = [
+    "pragma: no cover",
+    "def __repr__",
+    "if self.debug:",
+    "if settings.DEBUG",
+    "raise AssertionError",
+    "raise NotImplementedError",
+    "if 0:",
+    "if __name__ == .__main__.:",
+    "class .*\\bProtocol\\):",
+    "@(abc\\.)?abstractmethod",
+]
+
+[tool.black]
+line-length = 88
+target-version = ['py310', 'py311', 'py312']
+include = '\.pyi?$'
+exclude = '''
+/(
+    \.eggs
+  | \.git
+  | \.hg
+  | \.mypy_cache
+  | \.tox
+  | \.venv
+  | _build
+  | buck-out
+  | build
+  | dist
+)/
+'''
+
+[tool.flake8]
+max-line-length = 88
+extend-ignore = ["E203", "W503"]
+exclude = [
+    ".git",
+    "__pycache__",
+    "docs/source/conf.py",
+    "old",
+    "build",
+    "dist",
+    ".eggs",
+    "*.egg",
+]
+
+[tool.bumpversion]
+current_version = "0.1.13"
+parse = "(?P<major>\\d+)\\.(?P<minor>\\d+)\\.(?P<patch>\\d+)"
+serialize = ["{major}.{minor}.{patch}"]
+search = "{current_version}"
+replace = "{new_version}"
+commit = true
+tag = true
+
+[[tool.bumpversion.files]]
+filename = "pyproject.toml"
+search = 'version = "{current_version}"'
+replace = 'version = "{new_version}"'
+
+[[tool.bumpversion.files]]
+filename = "hydrodataset/__init__.py"
+search = "__version__ = '{current_version}'"
+replace = "__version__ = '{new_version}'"
