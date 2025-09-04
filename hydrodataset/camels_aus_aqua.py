@@ -64,6 +64,9 @@ class CamelsAus(HydroDataset):
 
         return self.aqua_fetch.dynamic_features
 
+    def read_attr_all(self):
+        return self.aqua_fetch.static_features
+
     def cache_attributes_xrdataset(self):
         ds_attr = self.aqua_fetch.fetch_static_features().to_xarray()
         BASE_UNITS = {
@@ -251,13 +254,16 @@ class CamelsAus(HydroDataset):
         print(f"成功保存到: {batch_filepath}")
 
     def read_attr_xrdataset(self, gage_id_lst=None, var_lst=None, **kwargs):
-        if var_lst is None or len(var_lst) == 0:
-            return None
+
         try:
             attr = xr.open_dataset(CACHE_DIR.joinpath("camels_aus_attributes.nc"))
         except FileNotFoundError:
             attr = self.cache_attributes_xrdataset()
-        return attr[var_lst].sel(station_id=gage_id_lst)
+        if var_lst is None or len(var_lst) == 0:
+            var_lst = self.read_attr_all()
+            return attr[var_lst].sel(station_id=gage_id_lst)
+        else:
+            return attr[var_lst].sel(station_id=gage_id_lst)
 
     def read_ts_xrdataset(
         self,
@@ -267,7 +273,9 @@ class CamelsAus(HydroDataset):
         **kwargs,
     ):
         if var_lst is None:
-            return None
+            var_lst = self.read_ts_all()
+        if t_range is None:
+            t_range = ["1950-01-01", "2022-03-31"]
         camels_aus_tsnc = CACHE_DIR.joinpath("camels_aus_timeseries.nc")
         if not os.path.isfile(camels_aus_tsnc):
             self.cache_timeseries_xrdataset()

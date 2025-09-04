@@ -93,6 +93,9 @@ class Camelsh(HydroDataset):
 
         return self.aqua_fetch.dynamic_features
 
+    def read_attr_all(self):
+        return self.aqua_fetch.static_features
+
     def cache_attributes_xrdataset(self):
         ds_attr = self.aqua_fetch.fetch_static_features().to_xarray()
         BASE_UNITS = {
@@ -319,13 +322,16 @@ class Camelsh(HydroDataset):
         return {"status": "success", "batches": n_batches}
 
     def read_attr_xrdataset(self, gage_id_lst=None, var_lst=None, **kwargs):
-        if var_lst is None or len(var_lst) == 0:
-            return None
+
         try:
             attr = xr.open_dataset(CACHE_DIR.joinpath("camelsh_attributes.nc"))
         except FileNotFoundError:
             attr = self.cache_attributes_xrdataset()
-        return attr[var_lst].sel(STAID=gage_id_lst)
+        if var_lst is None or len(var_lst) == 0:
+            var_lst = self.read_attr_all()
+            return attr[var_lst].sel(STAID=gage_id_lst)
+        else:
+            return attr[var_lst].sel(STAID=gage_id_lst)
 
     def read_ts_xrdataset(
         self,
@@ -347,6 +353,10 @@ class Camelsh(HydroDataset):
         Returns:
             xarray.Dataset: 包含指定站点、变量和时间范围的数据
         """
+        if var_lst is None:
+            var_lst = self.read_ts_all()
+        if t_range is None:
+            t_range = ["1980-01-01", "2024-12-31"]
         # 检查缓存文件是否存在
         ts_files = sorted(CACHE_DIR.glob("camelsh_timeseries_batch_*.nc"))
 
@@ -364,7 +374,7 @@ class Camelsh(HydroDataset):
         for batch_file in ts_files:
             with xr.open_dataset(batch_file) as batch_ds:
                 # 站点筛选
-                if gage_id_lst:
+                if gage_id_lst is not None and len(gage_id_lst) > 0:
                     batch_ds = batch_ds.sel(
                         basin=[gid for gid in gage_id_lst if gid in batch_ds.basin]
                     )
@@ -384,12 +394,3 @@ class Camelsh(HydroDataset):
             raise ValueError("未找到匹配的数据，请检查参数")
 
         return result_ds
-
-    @property
-    def streamflow_unit(self):
-        """Get streamflow unit.
-
-        Returns:
-            str: Streamflow unit string
-        """
-        return "foot^3/s"

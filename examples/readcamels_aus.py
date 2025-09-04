@@ -37,17 +37,21 @@ def main():
         else:
             print("无单位属性")
     '''
-    '''
-    # dx = xr.open_dataset(CACHE_DIR.joinpath("camels_aus_attributes.nc"))
-    dx = ds.read_attr_xrdataset(gage_id_lst=gage_ids[:2], var_lst=["anngro_mega"])
-    print(dx)
 
+    # dx = xr.open_dataset(CACHE_DIR.joinpath("camels_aus_attributes.nc"))
+    dx = ds.read_ts_xrdataset(
+        gage_id_lst=gage_ids[:2],
+        t_range=["1980-01-01", "1980-01-01"],
+    )
+    print(dx)
+    '''
     dy = ds.read_ts_xrdataset(
         gage_id_lst=gage_ids[:2],
         t_range=["1990-01-01", "2000-01-01"],
         var_lst=["q_cms_obs"],
     )
     print(dy)
+    '''
     '''
     dx = xr.open_dataset(CACHE_DIR.joinpath("camels_aus_timeseries.nc"))
     value = dx['q_cms_obs'].sel(time='1980-01-08', basin='912105A').values.item()
@@ -70,6 +74,7 @@ def main():
         (dm['year'] == 1980) & (dm['month'] == 1) & (dm['day'] == 8), '912105A'
     ].values[0]
     print(result_2)
+    '''
 
 
 if __name__ == "__main__":

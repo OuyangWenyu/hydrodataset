@@ -20,8 +20,13 @@ def main():
     # 1. 获取所有站点ID
 
     gage_ids = ds.read_object_ids()
-    result = ds.read_attr_xrdataset(gage_id_lst=gage_ids[:2], var_lst=["RIP100_81"])
-    print(result['RIP100_81'].values)
+    result = ds.read_attr_xrdataset(gage_id_lst=gage_ids[:2], var_lst=["p_mean"])
+    print(result['p_mean'].values)
+
+    ts_data = ds.read_ts_xrdataset(
+        gage_id_lst=gage_ids[:2],
+    )
+    print(ts_data['pet_mm'].values)
 
 
 if __name__ == "__main__":
