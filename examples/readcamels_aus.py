@@ -44,6 +44,11 @@ def main():
         t_range=["1980-01-01", "1980-01-01"],
     )
     print(dx)
+    dy = ds.read_attr_xrdataset(
+        gage_id_lst=gage_ids[:2],
+        var_lst=["p_mean"],
+    )
+    print(dy)
     '''
     dy = ds.read_ts_xrdataset(
         gage_id_lst=gage_ids[:2],

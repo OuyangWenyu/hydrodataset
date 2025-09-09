@@ -13,38 +13,25 @@ from hydrodataset import CACHE_DIR, HydroDataset, CAMELS_REGIONS
 import json
 import collections
 from pathlib import Path
-from aqua_fetch import CAMELS_AUS
+from aqua_fetch import CAMELS_CH
 from hydrodataset import CACHE_DIR, SETTING
 import warnings
 import re
 
 
-class CamelsAus(HydroDataset):
-    """CAMELSH (CAMELS-Hourly) dataset class extending RainfallRunoff.
+class CamelsCh(HydroDataset):
+    """CAMELS-CH dataset class extending RainfallRunoff.
 
-    This class provides access to the CAMELSH dataset, which contains hourly
+    This class provides access to the CAMELS-CH dataset, which contains hourly
     hydrological and meteorological data for various watersheds.
-
-    Attributes:
-        region: Geographic region identifier
-        download: Whether to download data automatically
-        ds_description: Dictionary containing dataset file paths
     """
 
     def __init__(self, data_path, region=None, download=False):
-        """Initialize CAMELSH dataset.
-
-        Args:
-            data_path: Path to the CAMELSH data directory
-            region: Geographic region identifier (optional)
-            download: Whether to download data automatically (default: False)
-        """
-        # Call parent class RainfallRunoff constructor with CAMELSH dataset
-        # Set additional attributes
+        """Initialize CAMELS-CH dataset."""
         self.data_path = data_path
         self.region = region
         self.download = download
-        self.aqua_fetch = CAMELS_AUS(data_path)
+        self.aqua_fetch = CAMELS_CH(data_path)
 
     def read_object_ids(self) -> np.ndarray:
         """Read watershed station ID list.
@@ -157,7 +144,7 @@ class CamelsAus(HydroDataset):
                 ds_attr[var].attrs['description'] = 'Classification code'
 
         print("savepath:", CACHE_DIR)
-        ds_attr.to_netcdf(CACHE_DIR.joinpath("camels_aus_attributes.nc"))
+        ds_attr.to_netcdf(CACHE_DIR.joinpath("camels_ch_attributes.nc"))
         return
 
     def cache_timeseries_xrdataset(self):
@@ -171,41 +158,22 @@ class CamelsAus(HydroDataset):
 
         units = [
             "m^3/s",
-            "ML/day",
-            "mm/day",
-            "mm/day",
-            "mm/day",
-            "mm/day",
-            "mm/day",
-            "mm/day",
-            "mm/day",
-            "mm/day",
-            "mm/day",
-            "mm/day",
-            'mm/day',
-            'dimensionless',
-            '°C',
-            '°C',
-            'hPa',
-            'hPa',
-            'hPa',
-            'W/m²',
-            '%',
-            '%',
-            '°C',
-            '°C',
-            'hPa',
-            'hPa',
-            '°C',
-            '°C',
+            "mm",
+            "m",
+            "mm",
+            "°C",
+            "°C",
+            "°C",
+            "%",
+            "mm",
         ]
 
         batch_data = self.aqua_fetch.fetch_stations_features(
             stations=gage_id_lst,
             dynamic_features=var_lst,
             static_features=None,
-            st='1950-01-01',
-            en='2022-03-31',
+            st='1981-01-01',
+            en='2020-12-31',
             as_dataframe=False,
         )
 
@@ -244,7 +212,7 @@ class CamelsAus(HydroDataset):
         )
 
         # 保存文件
-        batch_filename = f"camels_aus_timeseries.nc"
+        batch_filename = f"camels_ch_timeseries.nc"
         batch_filepath = CACHE_DIR / batch_filename
 
         # 确保缓存目录存在且有写入权限
@@ -256,15 +224,15 @@ class CamelsAus(HydroDataset):
     def read_attr_xrdataset(self, gage_id_lst=None, var_lst=None, **kwargs):
 
         try:
-            attr = xr.open_dataset(CACHE_DIR.joinpath("camels_aus_attributes.nc"))
+            attr = xr.open_dataset(CACHE_DIR.joinpath("camels_ch_attributes.nc"))
         except FileNotFoundError:
             self.cache_attributes_xrdataset()
-            attr = xr.open_dataset(CACHE_DIR.joinpath("camels_aus_attributes.nc"))
+            attr = xr.open_dataset(CACHE_DIR.joinpath("camels_ch_attributes.nc"))
         if var_lst is None or len(var_lst) == 0:
             var_lst = self.read_attr_all()
-            return attr[var_lst].sel(station_id=gage_id_lst)
+            return attr[var_lst].sel(gauge_id=gage_id_lst)
         else:
-            return attr[var_lst].sel(station_id=gage_id_lst)
+            return attr[var_lst].sel(gauge_id=gage_id_lst)
 
     def read_ts_xrdataset(
         self,
@@ -276,11 +244,11 @@ class CamelsAus(HydroDataset):
         if var_lst is None:
             var_lst = self.read_ts_all()
         if t_range is None:
-            t_range = ["1950-01-01", "2022-03-31"]
-        camels_aus_tsnc = CACHE_DIR.joinpath("camels_aus_timeseries.nc")
-        if not os.path.isfile(camels_aus_tsnc):
+            t_range = ["1981-01-01", "2020-12-31"]
+        camels_ch_tsnc = CACHE_DIR.joinpath("camels_ch_timeseries.nc")
+        if not os.path.isfile(camels_ch_tsnc):
             self.cache_timeseries_xrdataset()
-        ts = xr.open_dataset(camels_aus_tsnc)
+        ts = xr.open_dataset(camels_ch_tsnc)
         all_vars = ts.data_vars
         if any(var not in ts.variables for var in var_lst):
             raise ValueError(f"var_lst must all be in {all_vars}")

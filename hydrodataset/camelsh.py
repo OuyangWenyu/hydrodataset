@@ -326,7 +326,8 @@ class Camelsh(HydroDataset):
         try:
             attr = xr.open_dataset(CACHE_DIR.joinpath("camelsh_attributes.nc"))
         except FileNotFoundError:
-            attr = self.cache_attributes_xrdataset()
+            self.cache_attributes_xrdataset()
+            attr = xr.open_dataset(CACHE_DIR.joinpath("camelsh_attributes.nc"))
         if var_lst is None or len(var_lst) == 0:
             var_lst = self.read_attr_all()
             return attr[var_lst].sel(STAID=gage_id_lst)
