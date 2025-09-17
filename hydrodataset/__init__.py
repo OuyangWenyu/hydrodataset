@@ -85,3 +85,5 @@ from .hydro_dataset import *
 from .camels import *
 from .multi_datasets import *
 from .lamah import *
+# from .camelsh import *
+from .camelshourly import *

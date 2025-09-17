@@ -157,28 +157,38 @@ class CamelsHourly(Camels):
         t_range: list = None,
         var_lst: list = None,
         forcing_type="nldas",
-    ) -> np.array:
+    ) -> xr.Dataset:
         if forcing_type not in ["nldas"]:
-            raise ValueError(
-                f"forcing_type must be one of ['nldas'], but got {forcing_type}"
-            )
+            raise ValueError(f"forcing_type must be one of ['nldas']")
         if var_lst is None:
             return None
         if any(var not in self.get_relevant_cols() for var in var_lst):
             raise ValueError(f"var_lst must all be in {self.get_relevant_cols()}")
-        start_date = t_range[0]
-        # the given range is left-closed and right-open
+
+        start_date = pd.to_datetime(t_range[0])
         end_date = pd.to_datetime(t_range[1]) - pd.Timedelta(hours=1)
         t_range_lst = pd.date_range(start=start_date, end=end_date, freq="H")
+
         forcings_data = np.empty((len(gage_id_lst), len(t_range_lst), len(var_lst)))
-        for basin in gage_id_lst:
+        for i, basin in enumerate(gage_id_lst):
             forcing = load_hourly_us_forcings(
                 self.data_source_description["NLDAS_HOURLY_DIR"], basin, forcing_type
             )
-            forcings_data[gage_id_lst.index(basin), :, :] = (
-                forcing[var_lst].loc[t_range_lst[0] : t_range_lst[-1]].values
-            )
-        return forcings_data
+            forcings_data[i, :, :] = forcing[var_lst].loc[
+                t_range_lst[0]:t_range_lst[-1]
+            ].values
+
+        da = xr.DataArray(
+            forcings_data,
+            dims=["basin", "time", "variable"],
+            coords={"basin": gage_id_lst, "time": t_range_lst, "variable": var_lst},
+        )
+        ds = da.to_dataset(dim="variable")
+
+        for var in var_lst:
+            ds[var].attrs["units"] = "mm/h"
+
+        return ds
 
     def read_target_cols(
         self,
@@ -186,10 +196,10 @@ class CamelsHourly(Camels):
         t_range: list = None,
         target_cols: list = None,
         **kwargs,
-    ) -> np.array:
+    ) -> xr.Dataset:
         if target_cols is None:
             return None
-        # Define the dictionary
+
         key_value_dict = {
             "qobs_mm_per_hour": "QObs(mm/h)",
             "qobs_count": "QObs count",
@@ -199,28 +209,37 @@ class CamelsHourly(Camels):
             "qobs_CAMELS_mm_per_hour": "QObs_CAMELS(mm/h)",
         }
 
-        # Function to get value by key
         def get_value(key):
             return key_value_dict.get(key, "Key not found")
 
         if any(var not in self.get_target_cols() for var in target_cols):
             raise ValueError(f"target_cols must all be in {self.get_target_cols()}")
-        tgtcols4csv = []
-        for var in target_cols:
-            tgtcols4csv.append(get_value(var))
-        start_date = t_range[0]
-        # the given range is left-closed and right-open
+        tgtcols4csv = [get_value(var) for var in target_cols]
+
+        start_date = pd.to_datetime(t_range[0])
         end_date = pd.to_datetime(t_range[1]) - pd.Timedelta(hours=1)
         t_range_lst = pd.date_range(start=start_date, end=end_date, freq="H")
+
         streamflows = np.empty((len(gage_id_lst), len(t_range_lst), len(target_cols)))
-        for basin in gage_id_lst:
+        for i, basin in enumerate(gage_id_lst):
             discharge = load_hourly_us_discharge(
                 self.data_source_description["USGS_HOURLY_STREAMFLOW_DIR"], basin
             )
-            streamflows[gage_id_lst.index(basin), :, :] = (
-                discharge[tgtcols4csv].loc[t_range_lst[0] : t_range_lst[-1]].values
-            )
-        return streamflows
+            streamflows[i, :, :] = discharge[tgtcols4csv].loc[
+                t_range_lst[0]:t_range_lst[-1]
+            ].values
+
+        da = xr.DataArray(
+            streamflows,
+            dims=["basin", "time", "variable"],
+            coords={"basin": gage_id_lst, "time": t_range_lst, "variable": target_cols},
+        )
+        ds = da.to_dataset(dim="variable")
+
+        for var in target_cols:
+            ds[var].attrs["units"] = "mm/h"
+
+        return ds
 
     def cache_xrdataset(self):
         """We save it as zarr format as it is more efficient than netcdf according to:
@@ -250,7 +269,8 @@ class CamelsHourly(Camels):
         if var_lst is None:
             return None
         # Define paths for Zarr and NetCDF
-        zarr_path = self.data_source_description["CAMELS_US_HOURLY_TS_NC"][:-3] + "zarr"
+        nc_path = self.data_source_description["CAMELS_US_HOURLY_TS_NC"]
+        zarr_path = nc_path.with_suffix(".zarr")
         nc_path = self.data_source_description["CAMELS_US_HOURLY_TS_NC"]
 
         # Check if Zarr dataset exists, else use NetCDF
