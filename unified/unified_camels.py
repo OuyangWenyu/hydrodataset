@@ -1,6 +1,18 @@
 from hydrodataset import SETTING, CACHE_DIR
 from hydrodataset.camelsh import Camelsh  # 从 camelsh.py 导入
 from hydrodataset.camels_aus_aqua import CamelsAus  # 从 camels_aus_aqua.py 导入
+from hydrodataset.camels_cl_aqua import CamelsCl  # 从 camels_cl_aqua.py 导入
+from hydrodataset.camels_dk_aqua import CamelsDK  # 从 camels_dk_aqua.py 导入
+from hydrodataset.camels_col_aqua import CamelsCol  # 从 camels_col_aqua.py 导入
+from hydrodataset.camels_se_aqua import CamelsSe  # 从 camels_se_aqua.py 导入
+from hydrodataset.camels_sk_aqua import CamelsSk  # 从 camels_sk_aqua.py 导入
+from hydrodataset.camels_gb_aqua import CamelsGb  # 从 camels_gb_aqua.py 导入
+from hydrodataset.camels_fi_aqua import CamelsFi  # 从 camels_fi_aqua.py 导入
+from hydrodataset.camels_lux_aqua import CamelsLux  # 从 camels_lux_aqua.py 导入
+from hydrodataset.camels_nz_aqua import CamelsNz  # 从 camels_nz_aqua.py 导入
+from hydrodataset.camels_de_aqua import CamelsDe  # 从 camels_de_aqua.py 导入
+from hydrodataset.camels_fr_aqua import CamelsFr  # 从 camels_fr_aqua.py 导入
+from hydrodataset.camels_ch_aqua import CamelsCh  # 从 camels_ch_aqua.py 导入
 import pandas as pd
 import xarray as xr
 
@@ -9,6 +21,18 @@ class UnifiedCamelsDataset:
     # 类属性：缓存站点列表（初始化时加载一次）
     _camelsh_stations = None
     _camels_aus_stations = None
+    _camels_cl_stations = None
+    _camels_dk_stations = None
+    _camels_col_stations = None
+    _camels_se_stations = None
+    _camels_sk_stations = None
+    _camels_gb_stations = None
+    _camels_fi_stations = None
+    _camels_lux_stations = None
+    _camels_nz_stations = None
+    _camels_de_stations = None
+    _camels_fr_stations = None
+    _camels_ch_stations = None
 
     def __init__(self, data_path=None):
         """
@@ -33,6 +57,78 @@ class UnifiedCamelsDataset:
             camels_aus_ds = CamelsAus(self.data_path)
             UnifiedCamelsDataset._camels_aus_stations = set(
                 camels_aus_ds.read_object_ids()
+            )
+
+        if UnifiedCamelsDataset._camels_cl_stations is None:
+            camels_cl_ds = CamelsCl(self.data_path)
+            UnifiedCamelsDataset._camels_cl_stations = set(
+                camels_cl_ds.read_object_ids()
+            )
+
+        if UnifiedCamelsDataset._camels_dk_stations is None:
+            camels_dk_ds = CamelsDK(self.data_path)
+            UnifiedCamelsDataset._camels_dk_stations = set(
+                camels_dk_ds.read_object_ids()
+            )
+
+        if UnifiedCamelsDataset._camels_col_stations is None:
+            camels_col_ds = CamelsCol(self.data_path)
+            UnifiedCamelsDataset._camels_col_stations = set(
+                camels_col_ds.read_object_ids()
+            )
+
+        if UnifiedCamelsDataset._camels_se_stations is None:
+            camels_se_ds = CamelsSe(self.data_path)
+            UnifiedCamelsDataset._camels_se_stations = set(
+                camels_se_ds.read_object_ids()
+            )
+
+        if UnifiedCamelsDataset._camels_sk_stations is None:
+            camels_sk_ds = CamelsSk(self.data_path)
+            UnifiedCamelsDataset._camels_sk_stations = set(
+                camels_sk_ds.read_object_ids()
+            )
+
+        if UnifiedCamelsDataset._camels_gb_stations is None:
+            camels_gb_ds = CamelsGb(self.data_path)
+            UnifiedCamelsDataset._camels_gb_stations = set(
+                camels_gb_ds.read_object_ids()
+            )
+
+        if UnifiedCamelsDataset._camels_fi_stations is None:
+            camels_fi_ds = CamelsFi(self.data_path)
+            UnifiedCamelsDataset._camels_fi_stations = set(
+                camels_fi_ds.read_object_ids()
+            )
+
+        if UnifiedCamelsDataset._camels_lux_stations is None:
+            camels_lux_ds = CamelsLux(self.data_path)
+            UnifiedCamelsDataset._camels_lux_stations = set(
+                camels_lux_ds.read_object_ids()
+            )
+
+        if UnifiedCamelsDataset._camels_nz_stations is None:
+            camels_nz_ds = CamelsNz(self.data_path)
+            UnifiedCamelsDataset._camels_nz_stations = set(
+                camels_nz_ds.read_object_ids()
+            )
+
+        if UnifiedCamelsDataset._camels_de_stations is None:
+            camels_de_ds = CamelsDe(self.data_path)
+            UnifiedCamelsDataset._camels_de_stations = set(
+                camels_de_ds.read_object_ids()
+            )
+
+        if UnifiedCamelsDataset._camels_fr_stations is None:
+            camels_fr_ds = CamelsFr(self.data_path)
+            UnifiedCamelsDataset._camels_fr_stations = set(
+                camels_fr_ds.read_object_ids()
+            )
+
+        if UnifiedCamelsDataset._camels_ch_stations is None:
+            camels_ch_ds = CamelsCh(self.data_path)
+            UnifiedCamelsDataset._camels_ch_stations = set(
+                camels_ch_ds.read_object_ids()
             )
 
     def get_station_info(
@@ -65,6 +161,30 @@ class UnifiedCamelsDataset:
                     self.dataset = Camelsh(self.data_path)
                 elif station_id in UnifiedCamelsDataset._camels_aus_stations:
                     self.dataset = CamelsAus(self.data_path)
+                elif station_id in UnifiedCamelsDataset._camels_cl_stations:
+                    self.dataset = CamelsCl(self.data_path)
+                elif station_id in UnifiedCamelsDataset._camels_dk_stations:
+                    self.dataset = CamelsDK(self.data_path)
+                elif station_id in UnifiedCamelsDataset._camels_col_stations:
+                    self.dataset = CamelsCol(self.data_path)
+                elif station_id in UnifiedCamelsDataset._camels_se_stations:
+                    self.dataset = CamelsSe(self.data_path)
+                elif station_id in UnifiedCamelsDataset._camels_sk_stations:
+                    self.dataset = CamelsSk(self.data_path)
+                elif station_id in UnifiedCamelsDataset._camels_gb_stations:
+                    self.dataset = CamelsGb(self.data_path)
+                elif station_id in UnifiedCamelsDataset._camels_fi_stations:
+                    self.dataset = CamelsFi(self.data_path)
+                elif station_id in UnifiedCamelsDataset._camels_lux_stations:
+                    self.dataset = CamelsLux(self.data_path)
+                elif station_id in UnifiedCamelsDataset._camels_nz_stations:
+                    self.dataset = CamelsNz(self.data_path)
+                elif station_id in UnifiedCamelsDataset._camels_de_stations:
+                    self.dataset = CamelsDe(self.data_path)
+                elif station_id in UnifiedCamelsDataset._camels_fr_stations:
+                    self.dataset = CamelsFr(self.data_path)
+                elif station_id in UnifiedCamelsDataset._camels_ch_stations:
+                    self.dataset = CamelsCh(self.data_path)
                 else:
                     print(f"警告: 跳过无效站点 ID '{station_id}'（不属于任何数据集）。")
                     continue

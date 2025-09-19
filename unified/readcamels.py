@@ -1,6 +1,6 @@
-from unified.unified_camels import print_station_info
+from unified_camels import print_station_info
 
-
+'''
 # 输入站点 ID 列表（自动检测类型）
 print('the first type:')
 print_station_info(
@@ -53,3 +53,23 @@ print_station_info(
     ['912105A', '01011000'],
     dynamic_lst=['q_cms_obs'],
 )
+'''
+print_station_info(
+    [
+        '912105A',
+        '01011000',
+        '1021001',
+        '12431077',
+        '11027030',
+        '200',
+        '1001655',
+        '102001',
+        '1012',
+        'ID_05',
+        '3819',
+        'DE110010',
+        'A140202001',
+        '2109',
+    ],
+)
+print('--------------------------------')
