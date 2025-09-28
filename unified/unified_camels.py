@@ -139,15 +139,16 @@ class UnifiedCamelsDataset:
         dynamic_lst: list = None,
     ) -> dict[str, dict]:
         """
-        根据站点 ID 列表 获取信息（支持多个 ID）。
+        根据站点 ID 列表 获取信息（支持多个 ID，包括多数据集ID）。
 
         参数:
         - station_id_lst: 站点 ID 列表 (list[str]) 或单个 str
         - t_range: 时间范围 (list)，可选
-        - var_lst: 变量列表 (list)，可选
+        - static_lst: 静态属性列表 (list)，可选
+        - dynamic_lst: 动态变量列表 (list)，可选
 
         返回:
-        - dict: {station_id: {'static_attrs': DataFrame, 'timeseries': DataFrame or None}}
+        - dict: {station_id: {'datasets': {dataset_name: {'static_attrs': DataFrame, 'timeseries': DataFrame or None}}}}
         """
         if isinstance(station_id_lst, str):  # 支持单个 ID（转换为列表）
             station_id_lst = [station_id_lst]
@@ -156,59 +157,173 @@ class UnifiedCamelsDataset:
 
         for station_id in station_id_lst:
             try:
-                # 确定数据集类型（内部检测）
-                if station_id in UnifiedCamelsDataset._camelsh_stations:
-                    self.dataset = Camelsh(self.data_path)
-                elif station_id in UnifiedCamelsDataset._camels_aus_stations:
-                    self.dataset = CamelsAus(self.data_path)
-                elif station_id in UnifiedCamelsDataset._camels_cl_stations:
-                    self.dataset = CamelsCl(self.data_path)
-                elif station_id in UnifiedCamelsDataset._camels_dk_stations:
-                    self.dataset = CamelsDK(self.data_path)
-                elif station_id in UnifiedCamelsDataset._camels_col_stations:
-                    self.dataset = CamelsCol(self.data_path)
-                elif station_id in UnifiedCamelsDataset._camels_se_stations:
-                    self.dataset = CamelsSe(self.data_path)
-                elif station_id in UnifiedCamelsDataset._camels_sk_stations:
-                    self.dataset = CamelsSk(self.data_path)
-                elif station_id in UnifiedCamelsDataset._camels_gb_stations:
-                    self.dataset = CamelsGb(self.data_path)
-                elif station_id in UnifiedCamelsDataset._camels_fi_stations:
-                    self.dataset = CamelsFi(self.data_path)
-                elif station_id in UnifiedCamelsDataset._camels_lux_stations:
-                    self.dataset = CamelsLux(self.data_path)
-                elif station_id in UnifiedCamelsDataset._camels_nz_stations:
-                    self.dataset = CamelsNz(self.data_path)
-                elif station_id in UnifiedCamelsDataset._camels_de_stations:
-                    self.dataset = CamelsDe(self.data_path)
-                elif station_id in UnifiedCamelsDataset._camels_fr_stations:
-                    self.dataset = CamelsFr(self.data_path)
-                elif station_id in UnifiedCamelsDataset._camels_ch_stations:
-                    self.dataset = CamelsCh(self.data_path)
-                else:
+                # 检测ID存在于哪些数据集中
+                datasets_for_id = self._find_datasets_for_id(station_id)
+
+                if not datasets_for_id:
                     print(f"警告: 跳过无效站点 ID '{station_id}'（不属于任何数据集）。")
                     continue
 
-                info = {}
+                info = {'datasets': {}}
 
-                # 获取静态属性
-                attrs_ds = self.dataset.read_attr_xrdataset(
-                    gage_id_lst=[station_id], var_lst=static_lst
-                )
-                info['static_attrs'] = attrs_ds.to_dataframe().reset_index()
+                # 为每个包含该ID的数据集获取信息
+                for dataset_name, dataset_class in datasets_for_id.items():
+                    try:
+                        dataset_instance = dataset_class(self.data_path)
 
-                # 获取时间序列
+                        dataset_info = {}
 
-                ts_ds = self.dataset.read_ts_xrdataset(
-                    gage_id_lst=[station_id], t_range=t_range, var_lst=dynamic_lst
-                )
-                info['timeseries'] = ts_ds.to_dataframe().reset_index()
+                        # 获取静态属性
+                        attrs_ds = dataset_instance.read_attr_xrdataset(
+                            gage_id_lst=[station_id], var_lst=static_lst
+                        )
+                        dataset_info['static_attrs'] = (
+                            attrs_ds.to_dataframe().reset_index()
+                        )
+
+                        # 获取时间序列
+                        ts_ds = dataset_instance.read_ts_xrdataset(
+                            gage_id_lst=[station_id],
+                            t_range=t_range,
+                            var_lst=dynamic_lst,
+                        )
+                        dataset_info['timeseries'] = ts_ds.to_dataframe().reset_index()
+
+                        info['datasets'][dataset_name] = dataset_info
+
+                    except Exception as e:
+                        print(
+                            f"错误: 在数据集 {dataset_name} 中处理站点 '{station_id}' 失败 - {e}"
+                        )
+                        info['datasets'][dataset_name] = {
+                            'static_attrs': None,
+                            'timeseries': None,
+                        }
 
                 results[station_id] = info
             except Exception as e:
                 print(f"错误: 处理站点 '{station_id}' 失败 - {e}")
 
         return results
+
+    def _find_datasets_for_id(self, station_id: str) -> dict[str, type]:
+        """
+        查找站点ID存在于哪些数据集中。
+
+        参数:
+        - station_id: 站点ID
+
+        返回:
+        - dict[str, type]: {dataset_name: dataset_class}
+        """
+        datasets = {}
+
+        if station_id in UnifiedCamelsDataset._camelsh_stations:
+            datasets['CAMELS-H'] = Camelsh
+        if station_id in UnifiedCamelsDataset._camels_aus_stations:
+            datasets['CAMELS-AUS'] = CamelsAus
+        if station_id in UnifiedCamelsDataset._camels_cl_stations:
+            datasets['CAMELS-CL'] = CamelsCl
+        if station_id in UnifiedCamelsDataset._camels_dk_stations:
+            datasets['CAMELS-DK'] = CamelsDK
+        if station_id in UnifiedCamelsDataset._camels_col_stations:
+            datasets['CAMELS-COL'] = CamelsCol
+        if station_id in UnifiedCamelsDataset._camels_se_stations:
+            datasets['CAMELS-SE'] = CamelsSe
+        if station_id in UnifiedCamelsDataset._camels_sk_stations:
+            datasets['CAMELS-SK'] = CamelsSk
+        if station_id in UnifiedCamelsDataset._camels_gb_stations:
+            datasets['CAMELS-GB'] = CamelsGb
+        if station_id in UnifiedCamelsDataset._camels_fi_stations:
+            datasets['CAMELS-FI'] = CamelsFi
+        if station_id in UnifiedCamelsDataset._camels_lux_stations:
+            datasets['CAMELS-LUX'] = CamelsLux
+        if station_id in UnifiedCamelsDataset._camels_nz_stations:
+            datasets['CAMELS-NZ'] = CamelsNz
+        if station_id in UnifiedCamelsDataset._camels_de_stations:
+            datasets['CAMELS-DE'] = CamelsDe
+        if station_id in UnifiedCamelsDataset._camels_fr_stations:
+            datasets['CAMELS-FR'] = CamelsFr
+        if station_id in UnifiedCamelsDataset._camels_ch_stations:
+            datasets['CAMELS-CH'] = CamelsCh
+
+        return datasets
+
+    def detect_multi_dataset_ids(
+        self, station_id_lst: list[str] = None
+    ) -> dict[str, list[str]]:
+        """
+        检测哪些ID存在于多个数据集中。
+
+        参数:
+        - station_id_lst: 要检查的站点ID列表，如果为None则检查所有ID
+
+        返回:
+        - dict[str, list[str]]: {station_id: [dataset_names]}
+        """
+        if station_id_lst is None:
+            # 获取所有ID
+            all_ids = set()
+            for stations in [
+                UnifiedCamelsDataset._camelsh_stations,
+                UnifiedCamelsDataset._camels_aus_stations,
+                UnifiedCamelsDataset._camels_cl_stations,
+                UnifiedCamelsDataset._camels_dk_stations,
+                UnifiedCamelsDataset._camels_col_stations,
+                UnifiedCamelsDataset._camels_se_stations,
+                UnifiedCamelsDataset._camels_sk_stations,
+                UnifiedCamelsDataset._camels_gb_stations,
+                UnifiedCamelsDataset._camels_fi_stations,
+                UnifiedCamelsDataset._camels_lux_stations,
+                UnifiedCamelsDataset._camels_nz_stations,
+                UnifiedCamelsDataset._camels_de_stations,
+                UnifiedCamelsDataset._camels_fr_stations,
+                UnifiedCamelsDataset._camels_ch_stations,
+            ]:
+                all_ids.update(stations)
+            station_id_lst = list(all_ids)
+
+        if isinstance(station_id_lst, str):
+            station_id_lst = [station_id_lst]
+
+        multi_dataset_ids = {}
+        for station_id in station_id_lst:
+            datasets_for_id = self._find_datasets_for_id(station_id)
+            if len(datasets_for_id) > 1:
+                multi_dataset_ids[station_id] = list(datasets_for_id.keys())
+
+        return multi_dataset_ids
+
+    def get_dataset_count_for_id(self, station_id: str) -> int:
+        """
+        获取站点ID存在于多少个数据集中。
+
+        参数:
+        - station_id: 站点ID
+
+        返回:
+        - int: 数据集数量
+        """
+        datasets_for_id = self._find_datasets_for_id(station_id)
+        return len(datasets_for_id)
+
+    def print_multi_dataset_info(self, station_id_lst: list[str] = None):
+        """
+        打印多数据集ID的信息。
+
+        参数:
+        - station_id_lst: 要检查的站点ID列表，如果为None则检查所有ID
+        """
+        multi_dataset_ids = self.detect_multi_dataset_ids(station_id_lst)
+
+        if not multi_dataset_ids:
+            print("未发现存在于多个数据集中的ID")
+            return
+
+        print(f"=== 多数据集ID信息 (共{len(multi_dataset_ids)}个) ===")
+        for station_id, datasets in multi_dataset_ids.items():
+            print(f"\n站点ID: {station_id}")
+            print(f"存在于 {len(datasets)} 个数据集中: {', '.join(datasets)}")
 
     def auto_get_station_info(
         self,
@@ -232,7 +347,7 @@ class UnifiedCamelsDataset:
         )  # 直接调用调整后的方法
 
 
-# 示例使用函数（更新为支持列表）
+# 示例使用函数（更新为支持多数据集）
 def print_station_info(
     station_id_lst: list[str] or str,
     t_range: list = None,
@@ -245,13 +360,151 @@ def print_station_info(
     )
 
     for station_id, info in results.items():
-        print(f"\n站点 ID: {station_id}")
+        print(f"\n{'='*60}")
+        print(f"站点 ID: {station_id}")
 
-        print("静态属性:")
-        print(info['static_attrs'])
+        datasets_info = info['datasets']
+        dataset_count = len(datasets_info)
 
-        if info['timeseries'] is not None:
-            print("时间序列数据:")
-            print(info['timeseries'])
+        if dataset_count == 1:
+            dataset_name = list(datasets_info.keys())[0]
+            print(f"来自数据集: {dataset_name}")
+
+            dataset_info = datasets_info[dataset_name]
+            print("\n静态属性:")
+            print(dataset_info['static_attrs'])
+
+            if dataset_info['timeseries'] is not None:
+                print("\n时间序列数据:")
+                print(dataset_info['timeseries'])
+            else:
+                print("\n无时间序列数据（请指定 t_range）")
+
         else:
-            print("无时间序列数据（请指定 t_range）")
+            print(
+                f"存在于 {dataset_count} 个数据集中: {', '.join(datasets_info.keys())}"
+            )
+
+            for dataset_name, dataset_info in datasets_info.items():
+                print(f"\n--- {dataset_name} ---")
+                print("静态属性:")
+                print(dataset_info['static_attrs'])
+
+                if dataset_info['timeseries'] is not None:
+                    print("时间序列数据:")
+                    print(dataset_info['timeseries'])
+                else:
+                    print("无时间序列数据（请指定 t_range）")
+
+
+def print_multi_dataset_stations(
+    station_id_lst: list[str] or str,
+    t_range: list = None,
+    static_lst: list = None,
+    dynamic_lst: list = None,
+):
+    """
+    专门用于打印多数据集站点信息的函数。
+
+    参数:
+    - station_id_lst: 站点ID列表或单个ID
+    - t_range: 时间范围
+    - static_lst: 静态属性列表
+    - dynamic_lst: 动态变量列表
+    """
+    unified = UnifiedCamelsDataset()
+
+    # 首先检测哪些是多数据集ID
+    if isinstance(station_id_lst, str):
+        station_id_lst = [station_id_lst]
+
+    multi_dataset_ids = unified.detect_multi_dataset_ids(station_id_lst)
+
+    if not multi_dataset_ids:
+        print("指定的ID中没有存在于多个数据集中的站点")
+        return
+
+    print(f"发现 {len(multi_dataset_ids)} 个多数据集站点")
+
+    # 只处理多数据集ID
+    results = unified.auto_get_station_info(
+        list(multi_dataset_ids.keys()), t_range, static_lst, dynamic_lst
+    )
+
+    for station_id, info in results.items():
+        print(f"\n{'='*80}")
+        print(f"多数据集站点 ID: {station_id}")
+
+        datasets_info = info['datasets']
+        print(
+            f"存在于 {len(datasets_info)} 个数据集中: {', '.join(datasets_info.keys())}"
+        )
+
+        for dataset_name, dataset_info in datasets_info.items():
+            print(f"\n{'='*40} {dataset_name} {'='*40}")
+            print("静态属性:")
+            print(dataset_info['static_attrs'])
+
+            if dataset_info['timeseries'] is not None:
+                print("\n时间序列数据:")
+                print(dataset_info['timeseries'])
+            else:
+                print("\n无时间序列数据（请指定 t_range）")
+
+
+def compare_station_across_datasets(
+    station_id: str,
+    t_range: list = None,
+    static_lst: list = None,
+    dynamic_lst: list = None,
+):
+    """
+    比较站点在不同数据集中的信息。
+
+    参数:
+    - station_id: 站点ID
+    - t_range: 时间范围
+    - static_lst: 静态属性列表
+    - dynamic_lst: 动态变量列表
+    """
+    unified = UnifiedCamelsDataset()
+
+    # 检测该ID存在于哪些数据集中
+    datasets_for_id = unified._find_datasets_for_id(station_id)
+
+    if len(datasets_for_id) <= 1:
+        print(f"站点 {station_id} 只存在于 {len(datasets_for_id)} 个数据集中，无需比较")
+        return
+
+    print(f"=== 站点 {station_id} 跨数据集比较 ===")
+    print(
+        f"存在于 {len(datasets_for_id)} 个数据集中: {', '.join(datasets_for_id.keys())}"
+    )
+
+    results = unified.auto_get_station_info(
+        [station_id], t_range, static_lst, dynamic_lst
+    )
+
+    station_info = results[station_id]
+    datasets_info = station_info['datasets']
+
+    # 比较静态属性
+    print(f"\n--- 静态属性比较 ---")
+    static_comparison = {}
+    for dataset_name, dataset_info in datasets_info.items():
+        static_df = dataset_info['static_attrs']
+        if static_df is not None:
+            static_comparison[dataset_name] = static_df
+            print(f"\n{dataset_name} 静态属性:")
+            print(static_df)
+
+    # 比较时间序列
+    if t_range is not None:
+        print(f"\n--- 时间序列比较 ---")
+        for dataset_name, dataset_info in datasets_info.items():
+            timeseries_df = dataset_info['timeseries']
+            if timeseries_df is not None:
+                print(f"\n{dataset_name} 时间序列:")
+                print(timeseries_df)
+            else:
+                print(f"\n{dataset_name}: 无时间序列数据")
