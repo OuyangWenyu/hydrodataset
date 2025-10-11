@@ -170,34 +170,16 @@ class CamelsGb(HydroDataset):
         var_lst = self.aqua_fetch.dynamic_features
 
         units = [
-            "m^3/s",
-            "ML/day",
-            "mm/day",
-            "mm/day",
-            "mm/day",
-            "mm/day",
-            "mm/day",
-            "mm/day",
-            "mm/day",
-            "mm/day",
-            "mm/day",
-            "mm/day",
-            'mm/day',
-            'dimensionless',
-            '°C',
-            '°C',
-            'hPa',
-            'hPa',
-            'hPa',
-            'W/m²',
-            '%',
-            '%',
-            '°C',
-            '°C',
-            'hPa',
-            'hPa',
-            '°C',
-            '°C',
+            "mm/day",  # pcp_mm
+            "mm/day",  # pet_mm
+            "°C",  # airtemp_C_mean
+            "mm/day",  # q_mm_obs
+            "m^3/s",  # q_cms_obs
+            "mm/day",  # pet_mm_intercep
+            "g/kg",  # rh_%
+            "W/m^2",  # solrad_wm2
+            "W/m^2",  # lwdownrad_wm2
+            "m/s",  # windspeed_mps
         ]
 
         batch_data = self.aqua_fetch.fetch_stations_features(

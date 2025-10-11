@@ -170,34 +170,34 @@ class CamelsAus(HydroDataset):
         var_lst = self.aqua_fetch.dynamic_features
 
         units = [
-            "m^3/s",
-            "ML/day",
-            "mm/day",
-            "mm/day",
-            "mm/day",
-            "mm/day",
-            "mm/day",
-            "mm/day",
-            "mm/day",
-            "mm/day",
-            "mm/day",
-            "mm/day",
-            'mm/day',
-            'dimensionless',
-            '°C',
-            '°C',
-            'hPa',
-            'hPa',
-            'hPa',
-            'W/m²',
-            '%',
-            '%',
-            '°C',
-            '°C',
-            'hPa',
-            'hPa',
-            '°C',
-            '°C',
+            "mm^3/s",  # q_cms_obs ML/day->mm^3/s,×1.1574 × 10⁻2
+            "ML/day",  # streamflow_MLd
+            "mm/day",  # q_mm_obs
+            "mm/day",  # aet_mm_silo_morton
+            "mm/day",  # aet_mm_silo_morton_point
+            "mm/day",  # et_morton_wet_SILO
+            "mm/day",  # aet_mm_silo_short_crop
+            "mm/day",  # aet_mm_silo_tall_crop
+            "mm/day",  # evap_morton_lake_SILO
+            "mm/day",  # evap_pan_SILO
+            "mm/day",  # evap_syn_SILO
+            "mm/day",  # pcp_mm_agcd
+            'mm/day',  # pcp_mm_silo
+            'mm^2/d^2 ',  # precipitation_var_AGCD
+            '°C',  # airtemp_C_agcd_max
+            '°C',  # airtemp_C_agcd_min
+            'hPa',  # vp_hpa_agcd_h09
+            'hPa',  # vp_hpa_agcd_h15
+            'hPa',  # mslp_SILO
+            'MJ/m²',  # solrad_wm2_silo
+            '%',  # rh_%_silo_tmax
+            '%',  # rh_%_silo_tmin
+            '°C',  # airtemp_C_silo_max
+            '°C',  # airtemp_C_silo_min
+            'hPa',  # vp_deficit_SILO
+            'hPa',  # vp_hpa_silo
+            '°C',  # airtemp_C_mean_silo
+            '°C',  # airtemp_C_mean_agcd
         ]
 
         batch_data = self.aqua_fetch.fetch_stations_features(

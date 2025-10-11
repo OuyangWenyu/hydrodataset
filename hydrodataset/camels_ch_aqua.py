@@ -157,15 +157,15 @@ class CamelsCh(HydroDataset):
         var_lst = self.aqua_fetch.dynamic_features
 
         units = [
-            "m^3/s",
-            "mm",
-            "m",
-            "mm",
-            "°C",
-            "°C",
-            "°C",
-            "%",
-            "mm",
+            "m^3/s",  # q_cms_obs
+            "mm/day",  # q_mm_obs
+            "m",  # waterlevel(m)
+            "mm/day",  # pcp_mm
+            "°C",  # airtemp_C_min
+            "°C",  # airtemp_C_mean
+            "°C",  # airtemp_C_max
+            "%",  # rel_sun_dur(%)
+            "mm",  # swe_mm
         ]
 
         batch_data = self.aqua_fetch.fetch_stations_features(

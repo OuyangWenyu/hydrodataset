@@ -19,19 +19,18 @@ def main():
     print('--------------------------------')
     attr_all = ds.read_attr_all()
     print(attr_all)
-    '''
+    print('--------------------------------')
     ts_data = ds.read_ts_xrdataset(
-        gage_id_lst=gage_ids[:2],
+        gage_id_lst=['2349'],
         t_range=["1981-01-01", "1981-01-01"],
     )
     print(ts_data)
-
+    print('--------------------------------')
     attr_data = ds.read_attr_xrdataset(
         gage_id_lst=gage_ids[:2],
         var_lst=["p_mean"],
     )
     print(attr_data)
-    '''
 
 
 if __name__ == "__main__":

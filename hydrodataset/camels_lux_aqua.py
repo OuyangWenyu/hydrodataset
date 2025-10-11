@@ -170,34 +170,31 @@ class CamelsLux(HydroDataset):
         var_lst = self.aqua_fetch.dynamic_features
 
         units = [
-            "m^3/s",
-            "ML/day",
-            "mm/day",
-            "mm/day",
-            "mm/day",
-            "mm/day",
-            "mm/day",
-            "mm/day",
-            "mm/day",
-            "mm/day",
-            "mm/day",
-            "mm/day",
-            'mm/day',
-            'dimensionless',
-            '°C',
-            '°C',
-            'hPa',
-            'hPa',
-            'hPa',
-            'W/m²',
-            '%',
-            '%',
-            '°C',
-            '°C',
-            'hPa',
-            'hPa',
-            '°C',
-            '°C',
+            "m^3/s",  # q_cms_obs
+            "mm",  # q_mm_obs
+            "none",  # Qflag
+            "mm",  # pcp_mm_radar
+            "mm/5Min/1x1km",  # RR_min_rad
+            "mm/5Min/1x1km",  # RR_max_rad
+            "none",  # RR_flag_rad
+            "mm",  # pcp_mm_station
+            "mm",  # pcp_mm_era5
+            "°C",  # airtemp_C_mean
+            "mm",  # pet_mm_oudin
+            "mm",  # pet_mm_pm
+            "J/kg",  # cape
+            "J/kg",  # cin
+            "°C",  # kx
+            "kg/kg",  # spechum_gkg
+            "%",  # rh_%
+            "kg/m^2",  # tcwv
+            "m/s",  # windspeed_mps
+            "m/s",  # lls
+            "m/s",  # dls
+            "m^3/m^3",  # sml1
+            "m^3/m^3",  # sml2
+            "m^3/m^3",  # sml3
+            "m^3/m^3",  # sml4
         ]
 
         batch_data = self.aqua_fetch.fetch_stations_features(

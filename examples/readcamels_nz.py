@@ -22,7 +22,7 @@ def main():
     print('--------------------------------')
     ts_data = ds.read_ts_xrdataset(
         gage_id_lst=gage_ids[:2],
-        t_range=["1981-01-01", "1981-01-01"],
+        t_range=["1972-01-06", "1972-01-06"],
     )
     print(ts_data)
     print('--------------------------------')

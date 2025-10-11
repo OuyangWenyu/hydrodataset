@@ -170,34 +170,23 @@ class CamelsSk(HydroDataset):
         var_lst = self.aqua_fetch.dynamic_features
 
         units = [
-            "m^3/s",
-            "ML/day",
-            "mm/day",
-            "mm/day",
-            "mm/day",
-            "mm/day",
-            "mm/day",
-            "mm/day",
-            "mm/day",
-            "mm/day",
-            "mm/day",
-            "mm/day",
-            'mm/day',
-            'dimensionless',
-            '°C',
-            '°C',
-            'hPa',
-            'hPa',
-            'hPa',
-            'W/m²',
-            '%',
-            '%',
-            '°C',
-            '°C',
-            'hPa',
-            'hPa',
-            '°C',
-            '°C',
+            "unknown",  # total_precipitation
+            "unknown",  # temperature_2m
+            "unknown",  # dewpoint_temperature_2m
+            "unknown",  # snow_cover
+            "unknown",  # snow_depth
+            "unknown",  # potential_evaporation
+            "unknown",  # u_component_of_wind_10m
+            "unknown",  # v_component_of_wind_10m
+            "unknown",  # surface_pressure
+            "unknown",  # surface_net_thermal_radiation
+            "unknown",  # surface_net_solar_radiation
+            "unknown",  # precip_obs
+            "unknown",  # air_temp_obs
+            "unknown",  # wind_dir_obs
+            "unknown",  # wind_sp_obs
+            "unknown",  # q_cms_obs
+            "unknown",  # water_level
         ]
 
         batch_data = self.aqua_fetch.fetch_stations_features(

@@ -19,29 +19,16 @@ def main():
     print('--------------------------------')
     attr_all = ds.read_attr_all()
     print(attr_all)
-    '''
     ts_data = ds.read_ts_xrdataset(
         gage_id_lst=gage_ids[:2],
         t_range=["1981-01-01", "1981-01-01"],
     )
     print(ts_data)
-
     attr_data = ds.read_attr_xrdataset(
         gage_id_lst=gage_ids[:2],
         var_lst=["p_mean"],
     )
     print(attr_data)
-    '''
-    file_path = os.path.join(
-        data_path,
-        "CAMELS_DE",
-        "camels_de",
-        "timeseries",
-        "CAMELS_DE_hydromet_timeseries_DE110010.csv",
-    )
-    dx = pd.read_csv(file_path)
-    result_2 = dx[dx['date'] == '1981-01-04']['discharge_vol'].values[0]
-    print(result_2)
 
 
 if __name__ == "__main__":

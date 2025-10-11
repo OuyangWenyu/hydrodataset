@@ -157,27 +157,27 @@ class CamelsDe(HydroDataset):
         var_lst = self.aqua_fetch.dynamic_features
 
         units = [
-            "m^3/s",  # q_cms_obs - 立方米每秒
-            "mm",  # q_mm_obs - 毫米
-            "m",  # water_level - 米
-            "mm",  # pcp_mm_mean - 毫米
-            "mm",  # pcp_mm_min - 毫米
-            "mm",  # pcp_mm_median - 毫米
-            "mm",  # pcp_mm_max - 毫米
-            "mm",  # pcp_mm_std - 毫米
-            "%",  # rh_% - 百分比
-            "%",  # rh_%_min - 百分比
-            "%",  # rh_%_med - 百分比
-            "%",  # rh_%_max - 百分比
-            "%",  # rh_%_std - 百分比
-            "W/m^2",  # solrad_wm2_mean - 瓦特每平方米
-            "W/m^2",  # solrad_wm2_min - 瓦特每平方米
-            "W/m^2",  # solrad_wm2_med - 瓦特每平方米
-            "W/m^2",  # solrad_wm2_max - 瓦特每平方米
-            "W/m^2",  # solrad_wm2_std - 瓦特每平方米
-            "°C",  # airtemp_C_mean - 摄氏度
-            "°C",  # airtemp_C_min - 摄氏度
-            "°C",  # airtemp_C_max - 摄氏度
+            "m^3/s",  # q_cms_obs
+            "mm/day",  # q_mm_obs
+            "m",  # water_level
+            "mm/day",  # pcp_mm_mean
+            "mm/day",  # pcp_mm_min
+            "mm/day",  # pcp_mm_median
+            "mm/day",  # pcp_mm_max
+            "mm/day",  # pcp_mm_std
+            "%",  # rh_%
+            "%",  # rh_%_min
+            "%",  # rh_%_med
+            "%",  # rh_%_max
+            "%",  # rh_%_std
+            "Wm^2",  # solrad_wm2_mean
+            "Wm^2",  # solrad_wm2_min
+            "Wm^2",  # solrad_wm2_med
+            "Wm^2",  # solrad_wm2_max
+            "Wm^2",  # solrad_wm2_std
+            "°C",  # airtemp_C_mean
+            "°C",  # airtemp_C_min
+            "°C",  # airtemp_C_max
         ]
 
         batch_data = self.aqua_fetch.fetch_stations_features(
