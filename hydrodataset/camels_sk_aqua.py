@@ -249,11 +249,13 @@ class CamelsSk(HydroDataset):
         except FileNotFoundError:
             self.cache_attributes_xrdataset()
             attr = xr.open_dataset(CACHE_DIR.joinpath("camels_sk_attributes.nc"))
+
+        attr = attr.rename({"STAID": "basin"})
         if var_lst is None or len(var_lst) == 0:
             var_lst = self.read_attr_all()
-            return attr[var_lst].sel(STAID=gage_id_lst)
+            return attr[var_lst].sel(basin=gage_id_lst)
         else:
-            return attr[var_lst].sel(STAID=gage_id_lst)
+            return attr[var_lst].sel(basin=gage_id_lst)
 
     def read_ts_xrdataset(
         self,
@@ -280,8 +282,8 @@ class CamelsSk(HydroDataset):
             gage_id_lst,
             ['p_mean'],
         )
-        data_output_ds_ = (
+        '''data_output_ds_ = (
             data_output_ds_
             .rename({'STAID': 'basin'})  # 重命名 STAID 为 basin
-        )
+        )'''
         return data_output_ds_
