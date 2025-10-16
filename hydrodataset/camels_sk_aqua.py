@@ -274,3 +274,14 @@ class CamelsSk(HydroDataset):
         if any(var not in ts.variables for var in var_lst):
             raise ValueError(f"var_lst must all be in {all_vars}")
         return ts[var_lst].sel(basin=gage_id_lst, time=slice(t_range[0], t_range[1]))
+
+    def read_mean_prcp(self, gage_id_lst, unit="mm/d") -> xr.Dataset:
+        data_output_ds_ = self.read_attr_xrdataset(
+            gage_id_lst,
+            ['p_mean'],
+        )
+        data_output_ds_ = (
+            data_output_ds_
+            .rename({'STAID': 'basin'})  # 重命名 STAID 为 basin
+        )
+        return data_output_ds_
