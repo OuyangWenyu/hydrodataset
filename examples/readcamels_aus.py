@@ -1,10 +1,5 @@
-from hydrodataset.camels_aus_aqua import CamelsAus
-import pandas as pd
-import os
-from hydrodataset import CACHE_DIR, SETTING
-import xarray as xr
-import netCDF4 as nc
-import numpy as np
+from hydrodataset.camels_aus import CamelsAus
+from hydrodataset import SETTING
 
 data_path = SETTING["local_data_path"][
     "datasets-origin"
