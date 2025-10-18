@@ -13,16 +13,15 @@ from hydrodataset import CACHE_DIR, HydroDataset, CAMELS_REGIONS
 import json
 import collections
 from pathlib import Path
-from water_datasets import CAMELSH
+from water_datasets import GRDCCaravan
 from hydrodataset import CACHE_DIR, SETTING
 import warnings
 import re
 
+class GrdcCaravan(HydroDataset):
+    """GRDCCaravan dataset class extending RainfallRunoff.
 
-class Camelsh(HydroDataset):
-    """CAMELSH (CAMELS-Hourly) dataset class extending RainfallRunoff.
-
-    This class provides access to the CAMELSH dataset, which contains hourly
+    This class provides access to the GRDCCaravan dataset, which contains hourly
     hydrological and meteorological data for various watersheds.
 
     Attributes:
@@ -32,48 +31,19 @@ class Camelsh(HydroDataset):
     """
 
     def __init__(self, data_path, region=None, download=False):
-        """Initialize CAMELSH dataset.
+        """Initialize GRDCCaravan dataset.
 
         Args:
-            data_path: Path to the CAMELSH data directory
+            data_path: Path to the GRDCCaravan data directory
             region: Geographic region identifier (optional)
             download: Whether to download data automatically (default: False)
         """
-        # Call parent class RainfallRunoff constructor with CAMELSH dataset
+        # Call parent class RainfallRunoff constructor with GRDCCaravan dataset
         # Set additional attributes
         self.data_path = data_path
         self.region = region
         self.download = download
-        self.aqua_fetch = CAMELSH(data_path)
-        self.set_data_source_describe()
-
-    def set_data_source_describe(self):
-        """Set up dataset file path descriptions.
-
-        Configures paths for various dataset components including timeseries,
-        attributes, shapefiles, site info, and hourly data files.
-        """
-        self.ds_description = OrderedDict()
-        self.ds_description["timeseries_dir"] = os.path.join(
-            self.data_path,
-            "CAMELSH",
-            "timeseries",
-            "Data",
-            "CAMELSH",
-            "timeseries",
-        )  # timeseries_nonobs
-        self.ds_description["attributes_file"] = os.path.join(
-            self.data_path, "CAMELSH", "attributes"
-        )
-        self.ds_description["shapefile_dir"] = os.path.join(
-            self.data_path, "CAMELSH", "shapefiles"
-        )
-        self.ds_description["site_info_file"] = os.path.join(
-            self.data_path, "CAMELSH", "info.csv"
-        )
-        self.ds_description["Hourly2_file"] = os.path.join(
-            self.data_path, "CAMELSH", "Hourly2", "Hourly2"
-        )
+        self.aqua_fetch = GRDCCaravan(data_path)
 
     def read_object_ids(self) -> np.ndarray:
         """Read watershed station ID list.
@@ -175,18 +145,18 @@ class Camelsh(HydroDataset):
 
             # 3. 其他匹配规则...
 
-            return "undefined"  # 默认值
+            return 'undefined'  # 默认值
 
         for var in ds_attr.data_vars:
             unit = get_unit(var)
-            ds_attr[var].attrs["units"] = unit
+            ds_attr[var].attrs['units'] = unit
 
             # 为分类变量添加描述
-            if unit == "class":
-                ds_attr[var].attrs["description"] = "Classification code"
+            if unit == 'class':
+                ds_attr[var].attrs['description'] = 'Classification code'
 
         print("savepath:", CACHE_DIR)
-        ds_attr.to_netcdf(CACHE_DIR.joinpath("camelsh_attributes.nc"))
+        ds_attr.to_netcdf(CACHE_DIR.joinpath("caravan_attributes.nc"))
         return
 
     def cache_timeseries_xrdataset(self):
@@ -198,7 +168,7 @@ class Camelsh(HydroDataset):
         batch_size = 100
         output_dir = CACHE_DIR
 
-        print("开始CAMELSH时间序列数据缓存...")
+        print("开始CARAVAN时间序列数据缓存...")
 
         try:
             # 获取所有可用站点
@@ -207,12 +177,9 @@ class Camelsh(HydroDataset):
             # 获取动态特征列表
             var_lst = self.aqua_fetch.dynamic_features
 
-            # 获取时间范围
-            timeseries_dir = Path(self.ds_description["timeseries_dir"])
-            data_files = list(timeseries_dir.glob("*.nc"))
-            with xr.open_dataset(data_files[0]) as ds:
-                st = str(ds.DateTime.min().values)
-                en = str(ds.DateTime.max().values)
+            
+            st = "1950-01-02"
+            en = "2023-05-18"
 
             n_stations = len(gage_id_lst)
             n_batches = (n_stations + batch_size - 1) // batch_size
@@ -233,7 +200,7 @@ class Camelsh(HydroDataset):
                 "​​J/kg​​ ",
                 "kg/m^2",
                 "kg/m^2",
-                "W/m²​​ ",
+                'W/m²​​ ',
             ]
 
             for batch_idx in range(n_batches):
@@ -263,7 +230,7 @@ class Camelsh(HydroDataset):
                 # 转换为目标结构
                 new_data_vars = {}
                 # 获取时间坐标（从原始数据中提取）
-                time_coord = dynamic_data.coords["time"]
+                time_coord = dynamic_data.coords['time']
 
                 for var_idx, var_name in enumerate(var_lst):
                     var_data = []
@@ -273,15 +240,15 @@ class Camelsh(HydroDataset):
                             station_data = dynamic_data[station].sel(
                                 dynamic_features=var_name
                             )
-                            if "dynamic_features" in station_data.coords:
-                                station_data = station_data.drop("dynamic_features")
+                            if 'dynamic_features' in station_data.coords:
+                                station_data = station_data.drop('dynamic_features')
                             var_data.append(station_data)
 
                     if var_data:
-                        combined = xr.concat(var_data, dim="basin")
-                        combined["basin"] = batch_stations
-                        combined.attrs["units"] = (
-                            units[var_idx] if var_idx < len(units) else "unknown"
+                        combined = xr.concat(var_data, dim='basin')
+                        combined['basin'] = batch_stations
+                        combined.attrs['units'] = (
+                            units[var_idx] if var_idx < len(units) else 'unknown'
                         )
                         new_data_vars[var_name] = combined
 
@@ -289,22 +256,22 @@ class Camelsh(HydroDataset):
                 new_ds = xr.Dataset(
                     data_vars=new_data_vars,
                     coords={
-                        "basin": batch_stations,
-                        "time": time_coord,
+                        'basin': batch_stations,
+                        'time': time_coord,
                     },
                 )
 
                 # 添加全局属性
                 new_ds.attrs.update(
                     {
-                        "title": "CAMELSH Dataset",
-                        "batch": f"{batch_idx + 1}/{n_batches}",
-                        "stations": f"{start_idx + 1}-{end_idx}",
+                        'title': 'CARAVAN Dataset',
+                        'batch': f'{batch_idx + 1}/{n_batches}',
+                        'stations': f'{start_idx + 1}-{end_idx}',
                     }
                 )
 
                 # 保存文件
-                batch_filename = f"camelsh_timeseries_batch_{batch_idx + 1:03d}.nc"
+                batch_filename = f"caravan_timeseries_batch_{batch_idx + 1:03d}.nc"
                 batch_filepath = CACHE_DIR / batch_filename
 
                 # 确保缓存目录存在且有写入权限
@@ -324,15 +291,15 @@ class Camelsh(HydroDataset):
     def read_attr_xrdataset(self, gage_id_lst=None, var_lst=None, **kwargs):
 
         try:
-            attr = xr.open_dataset(CACHE_DIR.joinpath("camelsh_attributes.nc"))
+            attr = xr.open_dataset(CACHE_DIR.joinpath("caravan_attributes.nc"))
         except FileNotFoundError:
             self.cache_attributes_xrdataset()
-            attr = xr.open_dataset(CACHE_DIR.joinpath("camelsh_attributes.nc"))
+            attr = xr.open_dataset(CACHE_DIR.joinpath("caravan_attributes.nc"))
         if var_lst is None or len(var_lst) == 0:
             var_lst = self.read_attr_all()
-            return attr[var_lst].sel(STAID=gage_id_lst)
+            return attr[var_lst].sel(gauge_id=gage_id_lst)
         else:
-            return attr[var_lst].sel(STAID=gage_id_lst)
+            return attr[var_lst].sel(gauge_id=gage_id_lst)
 
     def read_ts_xrdataset(
         self,
@@ -359,13 +326,13 @@ class Camelsh(HydroDataset):
         if t_range is None:
             t_range = ["1980-01-01", "2024-12-31"]
         # 检查缓存文件是否存在
-        ts_files = sorted(CACHE_DIR.glob("camelsh_timeseries_batch_*.nc"))
+        ts_files = sorted(CACHE_DIR.glob("caravan_timeseries_batch_*.nc"))
 
         # 如果没有缓存文件，自动创建
         if not ts_files:
             print("未找到缓存文件，正在创建时间序列缓存...")
             self.cache_timeseries_xrdataset()
-            ts_files = sorted(CACHE_DIR.glob("camelsh_timeseries_batch_*.nc"))
+            ts_files = sorted(CACHE_DIR.glob("caravan_timeseries_batch_*.nc"))
             if not ts_files:
                 raise FileNotFoundError("创建缓存文件失败")
 
@@ -395,12 +362,3 @@ class Camelsh(HydroDataset):
             raise ValueError("未找到匹配的数据，请检查参数")
 
         return result_ds
-
-    @property
-    def streamflow_unit(self):
-        """Get streamflow unit.
-
-        Returns:
-            str: Streamflow unit string
-        """
-        return "foot^3/s"

@@ -1,7 +1,7 @@
 """
 Author: Wenyu Ouyang
 Date: 2022-09-05 23:20:24
-LastEditTime: 2024-03-22 10:52:33
+LastEditTime: 2025-10-18 17:39:18
 LastEditors: Wenyu Ouyang
 Description: set file dir
 FilePath: \hydrodataset\hydrodataset\__init__.py
@@ -83,7 +83,6 @@ MOPEX_REGIONS = ["CA"]
 REGIONS = CAMELS_REGIONS + LAMAH_REGIONS + MOPEX_REGIONS
 from .hydro_dataset import *
 from .camels import *
+from .camels_sk_aqua import *
 from .multi_datasets import *
 from .lamah import *
-# from .camelsh import *
-from .camelshourly import *
