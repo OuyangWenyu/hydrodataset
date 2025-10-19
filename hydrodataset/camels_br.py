@@ -439,7 +439,11 @@ class CamelsBr(Camels):
         var_lst: list = None,
         **kwargs,
     ):
-        """Read time series data from cache or generate it and return an xarray.Dataset"""
+        """Read time series data from cache or generate it and return an xarray.Dataset
+        TODO: For p_ana_gauges, they are rainfall gauges, we need to calculate basin-averaged precipitation from them,
+        if we want to use them as basin-averaged precipitation.
+        
+        """
         if var_lst is None:
             return None
         camels_ts_cache_file = CACHE_DIR.joinpath("camelsbr_timeseries.nc")
