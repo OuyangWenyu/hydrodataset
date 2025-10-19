@@ -1,9 +1,5 @@
-import os
-import xarray as xr
 from hydrodataset import HydroDataset
-from tqdm import tqdm
-import numpy as np
-from water_datasets import CAMELS_GB
+from aqua_fetch import CAMELS_GB
 
 
 class CamelsGb(HydroDataset):
@@ -18,16 +14,15 @@ class CamelsGb(HydroDataset):
         ds_description: Dictionary containing dataset file paths
     """
 
-    def __init__(self, data_path, region=None, download=False, cache_path=None):
+    def __init__(self, data_path, region=None, download=False):
         """Initialize CAMELS_GB dataset.
 
         Args:
             data_path: Path to the CAMELS_GB data directory
             region: Geographic region identifier (optional)
             download: Whether to download data automatically (default: False)
-            cache_path: Path to the cache directory
         """
-        super().__init__(data_path, cache_path=cache_path)
+        super().__init__(data_path)
         self.region = region
         self.download = download
         self.aqua_fetch = CAMELS_GB(data_path)
@@ -43,10 +38,6 @@ class CamelsGb(HydroDataset):
     @property
     def default_t_range(self):
         return ["1970-10-01", "2015-09-30"]
-
-
-
-
 
     def _get_attribute_units(self):
         return {
