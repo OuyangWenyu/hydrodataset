@@ -54,7 +54,8 @@ def main():
         # default="camels_fi",
         # default="camels_fr",
         # default="camels_gb",
-        default="camels_ind",
+        # default="camels_ind",
+        default="camels_lux",
         help="Name of the dataset to read.",
         choices=DATASET_MAPPING.keys(),
     )

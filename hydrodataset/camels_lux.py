@@ -1,9 +1,7 @@
-import os
-import xarray as xr
 from hydrodataset import HydroDataset
 from tqdm import tqdm
-import numpy as np
-from water_datasets import CAMELS_LUX
+from aqua_fetch import CAMELS_LUX
+from hydroutils import hydro_file
 
 
 class CamelsLux(HydroDataset):
@@ -30,7 +28,23 @@ class CamelsLux(HydroDataset):
         super().__init__(data_path, cache_path=cache_path)
         self.region = region
         self.download = download
-        self.aqua_fetch = CAMELS_LUX(data_path)
+        try:
+            self.aqua_fetch = CAMELS_LUX(data_path)
+        except Exception as e:
+            print(e)
+            check_zip_extract = False
+            # The zip files that should be downloaded for CAMELS-LUX
+            zip_files = ["CAMELS-LUX.zip", "CAMELS-LUX_shapefiles.zip"]
+            for filename in tqdm(zip_files, desc="Checking zip files"):
+                extracted_dir = self.data_source_dir.joinpath(
+                    "CAMELS_LUX", filename[:-4]
+                )
+                if not extracted_dir.exists():
+                    check_zip_extract = True
+                    break
+            if check_zip_extract:
+                hydro_file.zip_extract(self.data_source_dir.joinpath("CAMELS_LUX"))
+            self.aqua_fetch = CAMELS_LUX(data_path)
 
     @property
     def _attributes_cache_filename(self):
@@ -43,10 +57,6 @@ class CamelsLux(HydroDataset):
     @property
     def default_t_range(self):
         return ["2004-01-01", "2021-12-31"]
-
-
-
-
 
     def _get_attribute_units(self):
         return {
