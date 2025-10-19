@@ -6,10 +6,10 @@ import numpy as np
 from aqua_fetch import CAMELS_SK
 
 
-class CamelsSk(HydroDataset):
-    """CAMELS_SK dataset class extending RainfallRunoff.
+class CamelshKr(HydroDataset):
+    """CAMELSH_KR dataset class extending RainfallRunoff.
 
-    This class provides access to the CAMELS_SK dataset, which contains hourly
+    This class provides access to the CAMELSH_KR dataset, which contains hourly
     hydrological and meteorological data for various watersheds.
 
     Attributes:
@@ -19,10 +19,10 @@ class CamelsSk(HydroDataset):
     """
 
     def __init__(self, data_path, region=None, download=False, cache_path=None):
-        """Initialize CAMELS_SK dataset.
+        """Initialize CAMELSH_KR dataset.
 
         Args:
-            data_path: Path to the CAMELS_SK data directory
+            data_path: Path to the CAMELSH_KR data directory
             region: Geographic region identifier (optional)
             download: Whether to download data automatically (default: False)
             cache_path: Path to the cache directory
@@ -30,6 +30,7 @@ class CamelsSk(HydroDataset):
         super().__init__(data_path, cache_path=cache_path)
         self.region = region
         self.download = download
+        # In aqua_fetch, CAMELS_SK is the alias of CAMELSH_KR
         self.aqua_fetch = CAMELS_SK(data_path)
 
     @property
