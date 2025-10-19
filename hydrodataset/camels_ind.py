@@ -1,9 +1,7 @@
-import os
-import xarray as xr
 from hydrodataset import HydroDataset
+from aqua_fetch import CAMELS_IND
+from hydroutils import hydro_file
 from tqdm import tqdm
-import numpy as np
-from water_datasets import CAMELS_IND
 
 
 class CamelsInd(HydroDataset):
@@ -30,7 +28,27 @@ class CamelsInd(HydroDataset):
         super().__init__(data_path, cache_path=cache_path)
         self.region = region
         self.download = download
-        self.aqua_fetch = CAMELS_IND(data_path)
+        try:
+            self.aqua_fetch = CAMELS_IND(data_path)
+        except Exception as e:
+            print(e)
+            check_zip_extract = False
+            # The zip files that should be downloaded for CAMELS-IND
+            zip_files = [
+                "CAMELS_IND_All_Catchments.zip",
+                "CAMELS_IND_Catchments_Streamflow_Sufficient.zip",
+            ]
+            for filename in tqdm(zip_files, desc="Checking zip files"):
+                # The extracted directory name (without .zip extension)
+                extracted_dir = self.data_source_dir.joinpath(
+                    "CAMELS_IND", filename[:-4]
+                )
+                if not extracted_dir.exists():
+                    check_zip_extract = True
+                    break
+            if check_zip_extract:
+                hydro_file.zip_extract(self.data_source_dir.joinpath("CAMELS_IND"))
+            self.aqua_fetch = CAMELS_IND(data_path)
 
     @property
     def _attributes_cache_filename(self):
@@ -43,10 +61,6 @@ class CamelsInd(HydroDataset):
     @property
     def default_t_range(self):
         return ["1980-01-01", "2020-12-31"]
-
-
-
-
 
     def _get_attribute_units(self):
         return {
@@ -123,20 +137,20 @@ class CamelsInd(HydroDataset):
             "mm/day",
             "mm/day",
             "mm/day",
-            'mm/day',
-            'dimensionless',
-            '°C',
-            '°C',
-            'hPa',
-            'hPa',
-            'hPa',
-            'W/m²',
-            '%',
-            '%',
-            '°C',
-            '°C',
-            'hPa',
-            'hPa',
-            '°C',
-            '°C',
+            "mm/day",
+            "dimensionless",
+            "°C",
+            "°C",
+            "hPa",
+            "hPa",
+            "hPa",
+            "W/m²",
+            "%",
+            "%",
+            "°C",
+            "°C",
+            "hPa",
+            "hPa",
+            "°C",
+            "°C",
         ]

@@ -1,7 +1,7 @@
 """
 Author: Wenyu Ouyang
 Date: 2022-09-05 23:20:24
-LastEditTime: 2025-10-19 19:32:22
+LastEditTime: 2025-10-19 20:51:58
 LastEditors: Wenyu Ouyang
 Description: main modules for hydrodataset
 FilePath: \hydrodataset\hydrodataset\hydro_dataset.py
@@ -104,7 +104,8 @@ class HydroDataset(ABC):
     def dynamic_features(self) -> list:
         """the dynamic features in this data_source"""
         if hasattr(self, "aqua_fetch"):
-            return self.aqua_fetch.dynamic_features
+            original_features = self.aqua_fetch.dynamic_features
+            return self._clean_feature_names(original_features)
         raise NotImplementedError
 
     @staticmethod
@@ -160,12 +161,15 @@ class HydroDataset(ABC):
     def cache_timeseries_xrdataset(self):
         if hasattr(self, "aqua_fetch"):
             gage_id_lst = self.read_object_ids().tolist()
-            var_lst = self.dynamic_features()
+            # Get original variable names from aqua_fetch
+            original_var_lst = self.aqua_fetch.dynamic_features
+            # Get cleaned variable names
+            cleaned_var_lst = self.dynamic_features()
             units = self._get_timeseries_units()
 
             batch_data = self.aqua_fetch.fetch_stations_features(
                 stations=gage_id_lst,
-                dynamic_features=var_lst,
+                dynamic_features=original_var_lst,
                 static_features=None,
                 st=self.default_t_range[0],
                 en=self.default_t_range[1],
@@ -179,14 +183,18 @@ class HydroDataset(ABC):
             new_data_vars = {}
             time_coord = dynamic_data.coords["time"]
 
-            for var_idx, var_name in enumerate(
-                tqdm(var_lst, desc="Processing variables")
+            for var_idx, (original_var, cleaned_var) in enumerate(
+                tqdm(
+                    zip(original_var_lst, cleaned_var_lst),
+                    desc="Processing variables",
+                    total=len(original_var_lst),
+                )
             ):
                 var_data = []
                 for station in gage_id_lst:
                     if station in dynamic_data.data_vars:
                         station_data = dynamic_data[station].sel(
-                            dynamic_features=var_name
+                            dynamic_features=original_var
                         )
                         if "dynamic_features" in station_data.coords:
                             station_data = station_data.drop("dynamic_features")
@@ -198,7 +206,8 @@ class HydroDataset(ABC):
                     combined.attrs["units"] = (
                         units[var_idx] if var_idx < len(units) else "unknown"
                     )
-                    new_data_vars[var_name] = combined
+                    # Use cleaned variable name as the key
+                    new_data_vars[cleaned_var] = combined
 
             new_ds = xr.Dataset(
                 data_vars=new_data_vars,
