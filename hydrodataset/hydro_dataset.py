@@ -1,10 +1,10 @@
 """
 Author: Wenyu Ouyang
 Date: 2022-09-05 23:20:24
-LastEditTime: 2025-01-02 10:04:16
+LastEditTime: 2025-10-19 14:48:30
 LastEditors: Wenyu Ouyang
 Description: main modules for hydrodataset
-FilePath: /hydrodataset/hydrodataset/hydro_dataset.py
+FilePath: \hydrodataset\hydrodataset\hydro_dataset.py
 Copyright (c) 2021-2022 Wenyu Ouyang. All rights reserved.
 """
 
@@ -87,6 +87,14 @@ class HydroDataset(ABC):
 
     def get_other_cols(self) -> dict:
         """the other cols in this data_source"""
+        raise NotImplementedError
+
+    def dynamic_features(self) -> list:
+        """the dynamic features in this data_source"""
+        raise NotImplementedError
+
+    def static_features(self) -> list:
+        """the static features in this data_source"""
         raise NotImplementedError
 
     def cache_xrdataset(self, **kwargs):

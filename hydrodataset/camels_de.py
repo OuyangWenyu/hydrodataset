@@ -1,22 +1,10 @@
 import os
-import glob
-import zipfile
-import pandas as pd
 import xarray as xr
-from collections import OrderedDict
-from hydrodataset import HydroDataset
-from tqdm import tqdm
 import numpy as np
-from typing import Union
-from hydroutils import hydro_time, hydro_file
-from hydrodataset import CACHE_DIR, HydroDataset, CAMELS_REGIONS
-import json
-import collections
-from pathlib import Path
-from water_datasets import CAMELS_DE
-from hydrodataset import CACHE_DIR, SETTING
-import warnings
-import re
+from aqua_fetch import CAMELS_DE
+from hydrodataset import CACHE_DIR, HydroDataset
+from tqdm import tqdm
+from hydroutils import hydro_file
 
 
 class CamelsDe(HydroDataset):
@@ -28,10 +16,25 @@ class CamelsDe(HydroDataset):
 
     def __init__(self, data_path, region=None, download=False):
         """Initialize CAMELS-DE dataset."""
+        super().__init__(data_path)
         self.data_path = data_path
         self.region = region
         self.download = download
-        self.aqua_fetch = CAMELS_DE(data_path)
+        try:
+            self.aqua_fetch = CAMELS_DE(data_path)
+        except Exception:
+            check_zip_extract = False
+            zip_files = ["camels_de.zip"]
+            for filename in tqdm(zip_files, desc="Checking zip files"):
+                extracted_dir = self.data_source_dir.joinpath(
+                    "CAMELS_DE", filename[:-4]
+                )
+                if not extracted_dir.exists():
+                    check_zip_extract = True
+                    break
+            if check_zip_extract:
+                hydro_file.zip_extract(self.data_source_dir.joinpath("CAMELS_DE"))
+            self.aqua_fetch = CAMELS_DE(data_path)
 
     def read_object_ids(self) -> np.ndarray:
         """Read watershed station ID list.
@@ -45,13 +48,13 @@ class CamelsDe(HydroDataset):
         stations_list = self.aqua_fetch.stations()
 
         # Convert to numpy array and return
-        return np.array(stations_list)
+        return np.sort(np.array(stations_list))
 
-    def read_ts_all(self):
+    def dynamic_features(self):
 
         return self.aqua_fetch.dynamic_features
 
-    def read_attr_all(self):
+    def static_features(self):
         return self.aqua_fetch.static_features
 
     def cache_attributes_xrdataset(self):
@@ -133,15 +136,15 @@ class CamelsDe(HydroDataset):
 
             # 3. 其他匹配规则...
 
-            return 'undefined'  # 默认值
+            return "undefined"  # 默认值
 
         for var in ds_attr.data_vars:
             unit = get_unit(var)
-            ds_attr[var].attrs['units'] = unit
+            ds_attr[var].attrs["units"] = unit
 
             # 为分类变量添加描述
-            if unit == 'class':
-                ds_attr[var].attrs['description'] = 'Classification code'
+            if unit == "class":
+                ds_attr[var].attrs["description"] = "Classification code"
 
         print("savepath:", CACHE_DIR)
         ds_attr.to_netcdf(CACHE_DIR.joinpath("camels_de_attributes.nc"))
@@ -184,8 +187,8 @@ class CamelsDe(HydroDataset):
             stations=gage_id_lst,
             dynamic_features=var_lst,
             static_features=None,
-            st='1951-01-01',
-            en='2020-12-31',
+            st="1951-01-01",
+            en="2020-12-31",
             as_dataframe=False,
         )
 
@@ -194,7 +197,7 @@ class CamelsDe(HydroDataset):
         # 转换为目标结构
         new_data_vars = {}
         # 获取时间坐标（从原始数据中提取）
-        time_coord = dynamic_data.coords['time']
+        time_coord = dynamic_data.coords["time"]
 
         for var_idx, var_name in enumerate(var_lst):
             var_data = []
@@ -202,15 +205,15 @@ class CamelsDe(HydroDataset):
                 if station in dynamic_data.data_vars:
                     # 提取变量数据并移除dynamic_features坐标
                     station_data = dynamic_data[station].sel(dynamic_features=var_name)
-                    if 'dynamic_features' in station_data.coords:
-                        station_data = station_data.drop('dynamic_features')
+                    if "dynamic_features" in station_data.coords:
+                        station_data = station_data.drop("dynamic_features")
                     var_data.append(station_data)
 
             if var_data:
-                combined = xr.concat(var_data, dim='basin')
-                combined['basin'] = gage_id_lst
-                combined.attrs['units'] = (
-                    units[var_idx] if var_idx < len(units) else 'unknown'
+                combined = xr.concat(var_data, dim="basin")
+                combined["basin"] = gage_id_lst
+                combined.attrs["units"] = (
+                    units[var_idx] if var_idx < len(units) else "unknown"
                 )
                 new_data_vars[var_name] = combined
 
@@ -218,8 +221,8 @@ class CamelsDe(HydroDataset):
         new_ds = xr.Dataset(
             data_vars=new_data_vars,
             coords={
-                'basin': gage_id_lst,
-                'time': time_coord,
+                "basin": gage_id_lst,
+                "time": time_coord,
             },
         )
 
@@ -241,7 +244,7 @@ class CamelsDe(HydroDataset):
             self.cache_attributes_xrdataset()
             attr = xr.open_dataset(CACHE_DIR.joinpath("camels_de_attributes.nc"))
         if var_lst is None or len(var_lst) == 0:
-            var_lst = self.read_attr_all()
+            var_lst = self.static_features()
             return attr[var_lst].sel(gauge_id=gage_id_lst)
         else:
             return attr[var_lst].sel(gauge_id=gage_id_lst)
@@ -254,7 +257,7 @@ class CamelsDe(HydroDataset):
         **kwargs,
     ):
         if var_lst is None:
-            var_lst = self.read_ts_all()
+            var_lst = self.dynamic_features()
         if t_range is None:
             t_range = ["1951-01-01", "2020-12-31"]
         camels_de_tsnc = CACHE_DIR.joinpath("camels_de_timeseries.nc")
