@@ -28,6 +28,7 @@ DATASET_MAPPING = {
     "camels_lux": ("hydrodataset.camels_lux", "CamelsLux"),
     "camels_nz": ("hydrodataset.camels_nz", "CamelsNz"),
     "camels_se": ("hydrodataset.camels_se", "CamelsSe"),
+    "camels_us": ("hydrodataset.camels", "Camels"),
     "camelsh": ("hydrodataset.camelsh", "Camelsh"),
     "camelsh_kr": ("hydrodataset.camelsh_kr", "CamelshKr"),
     "caravan": ("hydrodataset.caravan", "Caravan"),
@@ -57,7 +58,8 @@ def main():
         # default="camels_ind",
         # default="camels_lux",
         # default="camels_nz",
-        default="camels_se",
+        # default="camels_se",
+        default="camels_us",
         help="Name of the dataset to read.",
         choices=DATASET_MAPPING.keys(),
     )

@@ -1,7 +1,7 @@
 """
 Author: Wenyu Ouyang
 Date: 2022-01-05 18:01:11
-LastEditTime: 2025-10-19 11:23:36
+LastEditTime: 2025-10-19 21:46:06
 LastEditors: Wenyu Ouyang
 Description: Read Camels ("UnitedStates") dataset
 FilePath: \hydrodataset\hydrodataset\camels.py
@@ -84,11 +84,11 @@ def time_intersect_dynamic_data(obs: np.array, date: np.array, t_range: list):
 class Camels(HydroDataset):
     def __init__(
         self,
-        data_path=os.path.join("camels", "camels_us"),
+        data_path,
         download=False,
         region: str = "US",
-        cache_path=None,
     ):
+        print("Initializing Camels class...")
         """
         Initialization for CAMELS series dataset
 
@@ -104,10 +104,9 @@ class Camels(HydroDataset):
         region
             the default is CAMELS(-US), since it's the first CAMELS dataset.
             All are included in CAMELS_REGIONS
-        cache_path
-            the path to cache the dataset
         """
-        super().__init__(data_path, cache_path=cache_path)
+        self.data_path = os.path.join(data_path, "CAMELS_US")
+        super().__init__(self.data_path)
         if region not in CAMELS_REGIONS:
             raise NotImplementedError(
                 f"Please chose one region in: {str(CAMELS_REGIONS)}"
@@ -150,8 +149,80 @@ class Camels(HydroDataset):
     def default_t_range(self):
         return ["1980-01-01", "2014-12-31"]
 
+    def _get_attribute_units(self):
+        return {
+            "gauge_lat": "degree",
+            "gauge_lon": "degree",
+            "elev_mean": "m",
+            "slope_mean": "m/km",
+            "area_gages2": "km^2",
+            "area_geospa_fabric": "km^2",
+            "geol_1st_class": "dimensionless",
+            "glim_1st_class_frac": "dimensionless",
+            "geol_2nd_class": "dimensionless",
+            "glim_2nd_class_frac": "dimensionless",
+            "carbonate_rocks_frac": "dimensionless",
+            "geol_porostiy": "dimensionless",
+            "geol_permeability": "m^2",
+            "frac_forest": "dimensionless",
+            "lai_max": "dimensionless",
+            "lai_diff": "dimensionless",
+            "gvf_max": "dimensionless",
+            "gvf_diff": "dimensionless",
+            "dom_land_cover_frac": "dimensionless",
+            "dom_land_cover": "dimensionless",
+            "root_depth_50": "m",
+            "root_depth_99": "m",
+            "q_mean": "mm/day",
+            "runoff_ratio": "dimensionless",
+            "slope_fdc": "dimensionless",
+            "baseflow_index": "dimensionless",
+            "stream_elas": "dimensionless",
+            "q5": "mm/day",
+            "q95": "mm/day",
+            "high_q_freq": "day/year",
+            "high_q_dur": "day",
+            "low_q_freq": "day/year",
+            "low_q_dur": "day",
+            "zero_q_freq": "percent",
+            "hfd_mean": "dimensionless",
+            "soil_depth_pelletier": "m",
+            "soil_depth_statsgo": "m",
+            "soil_porosity": "dimensionless",
+            "soil_conductivity": "cm/hr",
+            "max_water_content": "m",
+            "sand_frac": "percent",
+            "silt_frac": "percent",
+            "clay_frac": "percent",
+            "water_frac": "percent",
+            "organic_frac": "percent",
+            "other_frac": "percent",
+            "p_mean": "mm/day",
+            "pet_mean": "mm/day",
+            "p_seasonality": "dimensionless",
+            "frac_snow": "dimensionless",
+            "aridity": "dimensionless",
+            "high_prec_freq": "days/year",
+            "high_prec_dur": "day",
+            "high_prec_timing": "dimensionless",
+            "low_prec_freq": "days/year",
+            "low_prec_dur": "day",
+            "low_prec_timing": "dimensionless",
+            "huc_02": "dimensionless",
+            "gauge_name": "dimensionless",
+        }
+
+    def _get_timeseries_units(self):
+        return ["s", "mm/day", "W/m^2", "mm", "°C", "°C", "Pa", "mm/day"]
+
     def get_name(self):
         return "CAMELS_" + self.region
+
+    def dynamic_features(self) -> list:
+        return self.get_relevant_cols().tolist() + ["streamflow"]
+
+    def static_features(self) -> list:
+        return self.get_constant_cols().tolist()
 
     def set_data_source_describe(self) -> collections.OrderedDict:
         """
