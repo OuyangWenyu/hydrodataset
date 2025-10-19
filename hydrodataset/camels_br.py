@@ -532,17 +532,6 @@ class CamelsBr(Camels):
         )
         ds_full.to_netcdf(self.cache_dir.joinpath(self._attributes_cache_filename))
 
-    def read_attr_xrdataset(self, gage_id_lst=None, var_lst=None, **kwargs):
-        attr_cache_file = self.cache_dir.joinpath(self._attributes_cache_filename)
-        try:
-            attr = xr.open_dataset(attr_cache_file)
-        except FileNotFoundError:
-            self.cache_attributes_xrdataset()
-            attr = xr.open_dataset(attr_cache_file)
-        if var_lst is None or len(var_lst) == 0:
-            var_lst = self.static_features()
-        return attr[var_lst].sel(basin=gage_id_lst)
-
     def read_mean_prcp(self, gage_id_lst, unit="mm/d") -> xr.Dataset:
         """Read mean precipitation data
 

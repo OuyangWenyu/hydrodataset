@@ -1,7 +1,7 @@
 """
 Author: Wenyu Ouyang
 Date: 2022-09-05 23:20:24
-LastEditTime: 2025-10-19 17:07:01
+LastEditTime: 2025-10-19 19:16:13
 LastEditors: Wenyu Ouyang
 Description: main modules for hydrodataset
 FilePath: \hydrodataset\hydrodataset\hydro_dataset.py
@@ -217,7 +217,15 @@ class HydroDataset(ABC):
 
     def cache_attributes_xrdataset(self):
         if hasattr(self, "aqua_fetch"):
-            ds_attr = self.aqua_fetch.fetch_static_features().to_xarray()
+            df_attr = self.aqua_fetch.fetch_static_features()
+            # Remove duplicate columns if any (keep first occurrence)
+            if df_attr.columns.duplicated().any():
+                df_attr = df_attr.loc[:, ~df_attr.columns.duplicated()]
+            ds_attr = df_attr.to_xarray()
+            # Check if the coordinate is named 'basin', if not rename it
+            coord_names = list(ds_attr.dims.keys())
+            if len(coord_names) > 0 and coord_names[0] != "basin":
+                ds_attr = ds_attr.rename({coord_names[0]: "basin"})
             units_map = self._get_attribute_units()
             ds_attr = self._assign_units_to_dataset(ds_attr, units_map)
             ds_attr.to_netcdf(self.cache_dir.joinpath(self._attributes_cache_filename))
@@ -233,7 +241,7 @@ class HydroDataset(ABC):
             attr = xr.open_dataset(attr_cache_file)
         if var_lst is None or len(var_lst) == 0:
             var_lst = self.static_features()
-        return attr[var_lst].sel(station_id=gage_id_lst)
+        return attr[var_lst].sel(basin=gage_id_lst)
 
     def read_ts_xrdataset(
         self,
