@@ -58,6 +58,58 @@ class CamelsBr(Camels):
     def default_t_range(self):
         return ["1980-01-01", "2024-07-31"]
 
+    def _get_attribute_units(self):
+        # TODO: Verify the units of the attributes
+        return {
+            # topography
+            "area": "km2",
+            "elevation": "m",
+            "slope": "%",
+            "aspect": "degree",
+            "geomorphons": "-",
+            # climate
+            "p_mean": "mm/day",
+            "et_mean": "mm/day",
+            "aridity": "-",
+            "pet_mean": "mm/day",
+            "p_seasonality": "-",
+            "t_mean": "C",
+            "t_seasonality": "-",
+            # soil
+            "soil_depth": "cm",
+            "soil_texture": "-",
+            "soil_porosity": "-",
+            "soil_conductivity": "mm/h",
+            # geology
+            "geology_class": "-",
+            "geology_permeability": "m/day",
+            # land_cover
+            "land_cover_class": "-",
+            "land_cover_percentage": "%",
+            # hydrology
+            "q_mean": "mm/day",
+            "runoff_ratio": "-",
+            "baseflow_index": "-",
+            "flow_seasonality": "-",
+            # human_intervention
+            "dam_density": "dams/km2",
+            "population_density": "people/km2",
+        }
+
+    def _get_timeseries_units(self):
+        # TODO: Verify the order and units of the timeseries
+        return [
+            "mm/day",  # streamflow
+            "m3/s",  # streamflow
+            "mm/day",  # precipitation
+            "mm/day",  # evapotranspiration
+            "mm/day",  # potential_evapotranspiration
+            "C",  # temperature_mean
+            "C",  # temperature_min
+            "C",  # temperature_max
+            "%",  # soil_moisture
+        ]
+
     def _build_variable_map(self):
         """
         Scans all time-series directories to build a map from each variable
@@ -479,6 +531,17 @@ class CamelsBr(Camels):
             gage_id_lst=all_basins, var_lst=all_vars, **kwargs
         )
         ds_full.to_netcdf(self.cache_dir.joinpath(self._attributes_cache_filename))
+
+    def read_attr_xrdataset(self, gage_id_lst=None, var_lst=None, **kwargs):
+        attr_cache_file = self.cache_dir.joinpath(self._attributes_cache_filename)
+        try:
+            attr = xr.open_dataset(attr_cache_file)
+        except FileNotFoundError:
+            self.cache_attributes_xrdataset()
+            attr = xr.open_dataset(attr_cache_file)
+        if var_lst is None or len(var_lst) == 0:
+            var_lst = self.static_features()
+        return attr[var_lst].sel(basin=gage_id_lst)
 
     def read_mean_prcp(self, gage_id_lst, unit="mm/d") -> xr.Dataset:
         """Read mean precipitation data

@@ -44,7 +44,8 @@ def main():
     parser.add_argument(
         "dataset",
         nargs="?",  # make it optional
-        default="camels_aus",  # change this to test different datasets
+        # default="camels_aus",  # change this to test different datasets
+        default="camels_br",  # change this to test different datasets
         help="Name of the dataset to read.",
         choices=DATASET_MAPPING.keys(),
     )
