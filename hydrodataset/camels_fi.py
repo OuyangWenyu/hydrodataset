@@ -1,8 +1,4 @@
-import os
-import xarray as xr
 from hydrodataset import HydroDataset
-from tqdm import tqdm
-import numpy as np
 from aqua_fetch import CAMELS_FI
 
 

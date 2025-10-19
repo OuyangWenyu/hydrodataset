@@ -1,9 +1,7 @@
-import os
-import xarray as xr
-from hydrodataset import HydroDataset
+from hydroutils import hydro_file
 from tqdm import tqdm
-import numpy as np
-from water_datasets import CAMELS_FR
+from hydrodataset import HydroDataset
+from aqua_fetch import CAMELS_FR
 
 
 class CamelsFr(HydroDataset):
@@ -30,7 +28,29 @@ class CamelsFr(HydroDataset):
         super().__init__(data_path, cache_path=cache_path)
         self.region = region
         self.download = download
-        self.aqua_fetch = CAMELS_FR(data_path)
+        try:
+            self.aqua_fetch = CAMELS_FR(data_path)
+        except Exception as e:
+            print(e)
+            check_zip_extract = False
+            # The zip files that should be downloaded for CAMELS-CH
+            zip_files = [
+                "ADDITIONAL_LICENSES.zip",
+                "CAMELS_FR_attributes.zip",
+                "CAMELS_FR_geography.zip",
+                "CAMELS_FR_time_series.zip",
+            ]
+            for filename in tqdm(zip_files, desc="Checking zip files"):
+                # The extracted directory name (without .zip extension)
+                extracted_dir = self.data_source_dir.joinpath(
+                    "CAMELS_FR", filename[:-4]
+                )
+                if not extracted_dir.exists():
+                    check_zip_extract = True
+                    break
+            if check_zip_extract:
+                hydro_file.zip_extract(self.data_source_dir.joinpath("CAMELS_FR"))
+            self.aqua_fetch = CAMELS_FR(data_path)
 
     @property
     def _attributes_cache_filename(self):
@@ -43,10 +63,6 @@ class CamelsFr(HydroDataset):
     @property
     def default_t_range(self):
         return ["1970-01-01", "2021-12-31"]
-
-
-
-
 
     def _get_attribute_units(self):
         return {
@@ -121,16 +137,16 @@ class CamelsFr(HydroDataset):
             "mm/day",  # pcp_mm
             "none",  # pcp_mm_solfrac
             "°C",  # airtemp_C_mean
-            'mm/day',  # pet_mm_ou
-            'mm/day',  # pet_mm_pe
-            'mm/day',  # pet_mm_pm
-            'm/s',  # windspeed_mps
-            'g/kg',  # spechum_gkg
-            'J/cm²',  # lwdownrad_wm2
-            'J/cm²',  # solrad_wm2
-            'none',  # tsd_swi_gr
-            'none',  # tsd_swi_isba
-            'mm/day',  # tsd_swe_isba
-            '°C',  # airtemp_C_min
-            '°C',  # airtemp_C_max
+            "mm/day",  # pet_mm_ou
+            "mm/day",  # pet_mm_pe
+            "mm/day",  # pet_mm_pm
+            "m/s",  # windspeed_mps
+            "g/kg",  # spechum_gkg
+            "J/cm²",  # lwdownrad_wm2
+            "J/cm²",  # solrad_wm2
+            "none",  # tsd_swi_gr
+            "none",  # tsd_swi_isba
+            "mm/day",  # tsd_swe_isba
+            "°C",  # airtemp_C_min
+            "°C",  # airtemp_C_max
         ]
