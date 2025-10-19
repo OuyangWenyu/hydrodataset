@@ -52,7 +52,7 @@ class CamelsCh(HydroDataset):
         stations_list = self.aqua_fetch.stations()
 
         # Convert to numpy array and return
-        return np.array(stations_list)
+        return np.sort(np.array(stations_list))
 
     def dynamic_features(self):
 

@@ -1,7 +1,7 @@
 """
 Author: Wenyu Ouyang
 Date: 2022-01-05 18:01:11
-LastEditTime: 2025-10-19 09:32:41
+LastEditTime: 2025-10-19 11:23:36
 LastEditors: Wenyu Ouyang
 Description: Read Camels ("UnitedStates") dataset
 FilePath: \hydrodataset\hydrodataset\camels.py
@@ -304,7 +304,7 @@ class Camels(HydroDataset):
         np.array
             gage/station ids
         """
-        return self.sites["gauge_id"].values
+        return np.sort(self.sites["gauge_id"].values)
 
     def read_usgs_gage(self, usgs_id, t_range):
         """

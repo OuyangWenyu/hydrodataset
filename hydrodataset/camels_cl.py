@@ -1,414 +1,258 @@
-import fnmatch
 import os
-import collections
-import pandas as pd
+import xarray as xr
 import numpy as np
-from pathlib import Path
-from pandas.api.types import is_string_dtype, is_numeric_dtype
-from typing import Union
+from aqua_fetch import CAMELS_CL
+from hydrodataset import CACHE_DIR, HydroDataset
 from tqdm import tqdm
-from hydroutils import hydro_time, hydro_file
-from hydrodataset import CACHE_DIR, HydroDataset, CAMELS_REGIONS
-from hydrodataset.camels import Camels
-
-CAMELS_NO_DATASET_ERROR_LOG = (
-    "We cannot read this dataset now. Please check if you choose correctly:\n"
-    + str(CAMELS_REGIONS)
-)
 
 
-class CamelsCl(Camels):
-    def __init__(
-        self,
-        data_path=os.path.join("camels", "camels_cl"),
-        download=False,
-        region: str = "CL",
-    ):
+class CamelsCl(HydroDataset):
+    """CAMELS_CL dataset class extending RainfallRunoff.
+
+    This class provides access to the CAMELS_CL dataset, which contains hourly
+    hydrological and meteorological data for various watersheds.
+
+    Attributes:
+        region: Geographic region identifier
+        download: Whether to download data automatically
+        ds_description: Dictionary containing dataset file paths
+    """
+
+    def __init__(self, data_path, region=None, download=False):
+        """Initialize CAMELS_CL dataset.
+
+        Args:
+            data_path: Path to the CAMELS_CL data directory
+            region: Geographic region identifier (optional)
+            download: Whether to download data automatically (default: False)
         """
-        Initialization for CAMELS-CL dataset
+        # Call parent class RainfallRunoff constructor with CAMELS_CL dataset
+        # Set additional attributes
+        self.data_path = data_path
+        self.region = region
+        self.download = download
+        self.aqua_fetch = CAMELS_CL(data_path)
 
-        Parameters
-        ----------
-        data_path
-            where we put the dataset.
-            we already set the ROOT directory for hydrodataset,
-            so here just set it as a relative path,
-            by default "camels/camels_cl"
-        download
-            if true, download, by default False
-        region
-            the default is CAMELS-CL
+    def read_object_ids(self) -> np.ndarray:
+        """Read watershed station ID list.
+
+        Uses parent class RainfallRunoff's stations method to get all available station IDs.
+
+        Returns:
+            np.ndarray: Array containing all station IDs
         """
-        super().__init__(data_path, download, region)
+        # Call parent class stations method to get all station IDs
+        stations_list = self.aqua_fetch.stations()
 
-    def set_data_source_describe(self) -> collections.OrderedDict:
-        """
-        the files in the dataset and their location in file system
+        # Convert to numpy array and return
+        return np.sort(np.array(stations_list))
 
-        Returns
-        -------
-        collections.OrderedDict
-            the description for a CAMELS-CL dataset
-        """
-        if self.region != "CL":
-            raise NotImplementedError(CAMELS_NO_DATASET_ERROR_LOG)
-        camels_db = self.data_source_dir
-        return self._set_data_source_camelscl_describe(camels_db)
+    def dynamic_features(self):
 
-    def _set_data_source_camelscl_describe(self, camels_db):
-        # attr
-        attr_dir = camels_db.joinpath("1_CAMELScl_attributes")
-        attr_file = attr_dir.joinpath("1_CAMELScl_attributes.txt")
-        # shp file of basins
-        camels_shp_file = camels_db.joinpath(
-            "CAMELScl_catchment_boundaries",
-            "catchments_camels_cl_v1.3.shp",
-        )
-        # config of flow data
-        flow_dir_m3s = camels_db.joinpath("2_CAMELScl_streamflow_m3s")
-        flow_dir_mm = camels_db.joinpath("3_CAMELScl_streamflow_mm")
+        return self.aqua_fetch.dynamic_features
 
-        # forcing
-        forcing_dir_precip_cr2met = camels_db.joinpath("4_CAMELScl_precip_cr2met")
-        forcing_dir_precip_chirps = camels_db.joinpath("5_CAMELScl_precip_chirps")
-        forcing_dir_precip_mswep = camels_db.joinpath("6_CAMELScl_precip_mswep")
-        forcing_dir_precip_tmpa = camels_db.joinpath("7_CAMELScl_precip_tmpa")
-        forcing_dir_tmin_cr2met = camels_db.joinpath("8_CAMELScl_tmin_cr2met")
-        forcing_dir_tmax_cr2met = camels_db.joinpath("9_CAMELScl_tmax_cr2met")
-        forcing_dir_tmean_cr2met = camels_db.joinpath("10_CAMELScl_tmean_cr2met")
-        forcing_dir_pet_8d_modis = camels_db.joinpath("11_CAMELScl_pet_8d_modis")
-        forcing_dir_pet_hargreaves = camels_db.joinpath("12_CAMELScl_pet_hargreaves")
-        forcing_dir_swe = camels_db.joinpath("13_CAMELScl_swe")
-        return collections.OrderedDict(
-            CAMELS_DIR=camels_db,
-            CAMELS_FLOW_DIR=[flow_dir_m3s, flow_dir_mm],
-            CAMELS_FORCING_DIR=[
-                forcing_dir_precip_cr2met,
-                forcing_dir_precip_chirps,
-                forcing_dir_precip_mswep,
-                forcing_dir_precip_tmpa,
-                forcing_dir_tmin_cr2met,
-                forcing_dir_tmax_cr2met,
-                forcing_dir_tmean_cr2met,
-                forcing_dir_pet_8d_modis,
-                forcing_dir_pet_hargreaves,
-                forcing_dir_swe,
-            ],
-            CAMELS_ATTR_DIR=attr_dir,
-            CAMELS_GAUGE_FILE=attr_file,
-            CAMELS_BASINS_SHP_FILE=camels_shp_file,
-        )
+    def static_features(self):
+        return self.aqua_fetch.static_features
 
-    def read_site_info(self) -> pd.DataFrame:
-        """
-        Read the basic information of gages in a CAMELS-CL dataset
+    def cache_attributes_xrdataset(self):
+        ds_attr = self.aqua_fetch.fetch_static_features().to_xarray()
+        BASE_UNITS = {
+            # 地形特征
+            "dis_m3_": "m^3/s",
+            "run_mm_": "millimeter",
+            "inu_pc_": "percent",
+            "lka_pc_": "1e-1 * percent",
+            "lkv_mc_": "1e6 * m^3",
+            "rev_mc_": "1e6 * m^3",
+            "dor_pc_": "percent (x10)",
+            "ria_ha_": "hectares",
+            "riv_tc_": "1e3 * m^3",
+            "gwt_cm_": "centimeter",
+            "ele_mt_": "meter",
+            "slp_dg_": "1e-1 * degree",
+            "sgr_dk_": "decimeter/km",
+            "clz_cl_": "dimensionless",
+            "cls_cl_": "dimensionless",
+            "tmp_dc_": "degree_Celsius",
+            "pre_mm_": "millimeters",
+            "pet_mm_": "millimeters",
+            "aet_mm_": "millimeters",
+            "ari_ix_": "1e-2",
+            "cmi_ix_": "1e-2",
+            "snw_pc_": "percent",
+            "glc_cl_": "dimensionless",
+            "glc_pc_": "percent",
+            "pnv_cl_": "dimensionless",
+            "pnv_pc_": "percent",
+            "wet_cl_": "dimensionless",
+            "wet_pc_": "percent",
+            "for_pc_": "percent",
+            "crp_pc_": "percent",
+            "pst_pc_": "percent",
+            "ire_pc_": "percent",
+            "gla_pc_": "percent",
+            "prm_pc_": "percent",
+            "pac_pc_": "percent",
+            "tbi_cl_": "dimensionless",
+            "tec_cl_": "dimensionless",
+            "fmh_cl_": "dimensionless",
+            "fec_cl_": "dimensionless",
+            "cly_pc_": "percent",
+            "slt_pc_": "percent",
+            "snd_pc_": "percent",
+            "soc_th_": "tonne/hectare",
+            "swc_pc_": "percent",
+            "lit_cl_": "dimensionless",
+            "kar_pc_": "percent",
+            "ero_kh_": "kg/hectare/year",
+            "pop_ct_": "1e3",
+            "ppd_pk_": "1/km^2",
+            "urb_pc_": "percent",
+            "nli_ix_": "1e-2",
+            "rdd_mk_": "meter/km^2",
+            "hft_ix_": "1e-1",
+            "gad_id_": "dimensionless",
+            "gdp_ud_": "dimensionless",
+            "hdi_ix_": "1e-3",
+        }
 
-        Returns
-        -------
-        pd.DataFrame
-            basic info of gages
-        """
-        camels_file = self.data_source_description["CAMELS_GAUGE_FILE"]
-        return pd.read_csv(camels_file, sep="\t", index_col=0)
+        def get_unit_by_prefix(var_name):
+            """通过前缀匹配基础单位"""
+            for prefix, unit in BASE_UNITS.items():
+                if var_name.startswith(prefix):
+                    return unit
+            return None  # 未匹配时返回None
 
-    def get_constant_cols(self) -> np.ndarray:
-        """
-        all readable attrs in CAMELS-CL
+        # 智能单位分配函数
+        def get_unit(var_name):
+            """综合单位分配函数"""
+            # 1. 先尝试前缀匹配
+            prefix_unit = get_unit_by_prefix(var_name)
+            if prefix_unit:
+                return prefix_unit
 
-        Returns
-        -------
-        np.array
-            attribute types
-        """
-        camels_cl_attr_data = self.sites
-        # exclude station id
-        return camels_cl_attr_data.index.values
+            # 3. 其他匹配规则...
 
-    def get_relevant_cols(self) -> np.ndarray:
-        """
-        all readable forcing types in CAMELS-CL
+            return "undefined"  # 默认值
 
-        Returns
-        -------
-        np.array
-            forcing types
-        """
-        return np.array(
-            [
-                "_".join(str(forcing_dir).split(os.sep)[-1].split("_")[2:])
-                for forcing_dir in self.data_source_description["CAMELS_FORCING_DIR"]
-            ]
-        )
+        for var in ds_attr.data_vars:
+            unit = get_unit(var)
+            ds_attr[var].attrs["units"] = unit
 
-    def get_target_cols(self) -> np.ndarray:
-        """
-        For CAMELS-CL, the target vars are streamflows
+            # 为分类变量添加描述
+            if unit == "class":
+                ds_attr[var].attrs["description"] = "Classification code"
 
-        Returns
-        -------
-        np.array
-            streamflow types
-        """
-        return np.array(
-            [
-                str(flow_dir).split(os.sep)[-1][11:]
-                for flow_dir in self.data_source_description["CAMELS_FLOW_DIR"]
-            ]
-        )
+        print("savepath:", CACHE_DIR)
+        ds_attr.to_netcdf(CACHE_DIR.joinpath("camels_cl_attributes.nc"))
+        return
 
-    def read_object_ids(self, **kwargs) -> np.ndarray:
-        """
-        read station ids
+    def cache_timeseries_xrdataset(self):
 
-        Parameters
-        ----------
-        **kwargs
-            optional params if needed
+        output_dir = CACHE_DIR
 
-        Returns
-        -------
-        np.array
-            gage/station ids
-        """
-        station_ids = self.sites.columns.values
-        # for 7-digit id, replace the space with 0 to get a 8-digit id
-        cl_station_ids = [
-            station_id.split(" ")[-1].zfill(8) for station_id in station_ids
+        gage_id_lst = self.aqua_fetch.stations()
+
+        # 获取动态特征列表
+        var_lst = self.aqua_fetch.dynamic_features
+
+        units = [
+            "m^3/s",  # q_cms_obs
+            "mm/day",  # q_mm_obs
+            "mm/day",  # pcp_mm_cr2met
+            "mm/day",  # pcp_mm_chirps
+            "mm/day",  # pcp_mm_mswep
+            "mm/day",  # pcp_mm_tmpa
+            "°C",  # airtemp_C_min
+            "°C",  # airtemp_C_max
+            "°C",  # airtemp_C_mean
+            "mm/day",  # pet_mm_modis
+            "mm/day",  # pet_mm_hargreaves
+            "mm",  # swe
         ]
-        return np.array(cl_station_ids)
 
-    def read_target_cols(
-        self,
-        gage_id_lst: Union[list, np.array] = None,
-        t_range: list = None,
-        target_cols: Union[list, np.array] = None,
-        **kwargs,
-    ) -> np.ndarray:
-        """
-        read target values; for CAMELS-CL, they are streamflows
+        batch_data = self.aqua_fetch.fetch_stations_features(
+            stations=gage_id_lst,
+            dynamic_features=var_lst,
+            static_features=None,
+            st="19130215",
+            en="20180309",
+            as_dataframe=False,
+        )
 
-        default target_cols is an one-value list
-        Notice: the unit of target outputs in different regions are not totally same
+        dynamic_data = batch_data[1] if isinstance(batch_data, tuple) else batch_data
 
-        Parameters
-        ----------
-        gage_id_lst
-            station ids
-        t_range
-            the time range, for example, ["1990-01-01", "2000-01-01"]
-        target_cols
-            the default is None, but we need at least one default target.
-            For CAMELS-CL, it's ["streamflow_m3s"]
-        kwargs
-            some other params if needed
+        # 转换为目标结构
+        new_data_vars = {}
+        # 获取时间坐标（从原始数据中提取）
+        time_coord = dynamic_data.coords["time"]
 
-        Returns
-        -------
-        np.array
-            streamflow data, 3-dim [station, time, streamflow]
-        """
-        if target_cols is None:
-            return np.array([])
+        for var_idx, var_name in enumerate(tqdm(var_lst, desc="Processing variables")):
+            var_data = []
+            for station in gage_id_lst:
+                if station in dynamic_data.data_vars:
+                    # 提取变量数据并移除dynamic_features坐标
+                    station_data = dynamic_data[station].sel(dynamic_features=var_name)
+                    if "dynamic_features" in station_data.coords:
+                        station_data = station_data.drop("dynamic_features")
+                    var_data.append(station_data)
+
+            if var_data:
+                combined = xr.concat(var_data, dim="basin")
+                combined["basin"] = gage_id_lst
+                combined.attrs["units"] = (
+                    units[var_idx] if var_idx < len(units) else "unknown"
+                )
+                new_data_vars[var_name] = combined
+
+                # 创建新数据集
+        new_ds = xr.Dataset(
+            data_vars=new_data_vars,
+            coords={
+                "basin": gage_id_lst,
+                "time": time_coord,
+            },
+        )
+
+        # 保存文件
+        batch_filename = f"camels_cl_timeseries.nc"
+        batch_filepath = CACHE_DIR / batch_filename
+
+        # 确保缓存目录存在且有写入权限
+
+        batch_filepath.parent.mkdir(parents=True, exist_ok=True)
+        new_ds.to_netcdf(batch_filepath)
+        print(f"成功保存到: {batch_filepath}")
+
+    def read_attr_xrdataset(self, gage_id_lst=None, var_lst=None, **kwargs):
+
+        try:
+            attr = xr.open_dataset(CACHE_DIR.joinpath("camels_cl_attributes.nc"))
+        except FileNotFoundError:
+            self.cache_attributes_xrdataset()
+            attr = xr.open_dataset(CACHE_DIR.joinpath("camels_cl_attributes.nc"))
+        if var_lst is None or len(var_lst) == 0:
+            var_lst = self.static_features()
+            return attr[var_lst].sel(index=gage_id_lst)
         else:
-            nf = len(target_cols)
-        t_range_list = hydro_time.t_range_days(t_range)
-        nt = t_range_list.shape[0]
-        y = np.full([len(gage_id_lst), nt, nf], np.nan)
-        for k in tqdm(
-            range(len(target_cols)), desc="Read streamflow data of CAMELS-CL"
-        ):
-            if target_cols[k] == "streamflow_m3s":
-                flow_data = pd.read_csv(
-                    os.path.join(
-                        self.data_source_description["CAMELS_FLOW_DIR"][0],
-                        "2_CAMELScl_streamflow_m3s.txt",
-                    ),
-                    sep="\t",
-                    index_col=0,
-                )
-            elif target_cols[k] == "streamflow_mm":
-                flow_data = pd.read_csv(
-                    os.path.join(
-                        self.data_source_description["CAMELS_FLOW_DIR"][1],
-                        "3_CAMELScl_streamflow_mm.txt",
-                    ),
-                    sep="\t",
-                    index_col=0,
-                )
-            else:
-                raise NotImplementedError(CAMELS_NO_DATASET_ERROR_LOG)
-            date = pd.to_datetime(flow_data.index.values).values.astype("datetime64[D]")
-            [c, ind1, ind2] = np.intersect1d(date, t_range_list, return_indices=True)
-            station_ids = [id_.zfill(8) for id_ in flow_data.columns.values]
-            assert all(x < y for x, y in zip(station_ids, station_ids[1:]))
-            ind3 = [station_ids.index(tmp) for tmp in gage_id_lst]
-            # to guarantee the sequence is not changed we don't use np.intersect1d
-            chosen_data = flow_data.iloc[ind1, ind3].replace("\s+", np.nan, regex=True)
-            chosen_data = chosen_data.astype(float)
-            chosen_data[chosen_data < 0] = np.nan
-            y[:, ind2, k] = chosen_data.values.T
-        # Keep unit of streamflow unified: we use ft3/s here
-        # other units are m3/s -> ft3/s
-        y = y * 35.314666721489
-        return y
+            return attr[var_lst].sel(index=gage_id_lst)
 
-    def read_relevant_cols(
+    def read_ts_xrdataset(
         self,
         gage_id_lst: list = None,
         t_range: list = None,
         var_lst: list = None,
-        forcing_type="daymet",
         **kwargs,
-    ) -> np.ndarray:
-        """
-        Read forcing data
-
-        Parameters
-        ----------
-        gage_id_lst
-            station ids
-        t_range
-            the time range, for example, ["1990-01-01", "2000-01-01"]
-        var_lst
-            forcing variable types
-        forcing_type
-            now only for CAMELS-US, there are three types: daymet, nldas, maurer
-        Returns
-        -------
-        np.array
-            forcing data
-        """
-        t_range_list = hydro_time.t_range_days(t_range)
-        nt = t_range_list.shape[0]
-        x = np.full([len(gage_id_lst), nt, len(var_lst)], np.nan)
-        for k in tqdm(range(len(var_lst)), desc="Read forcing data of CAMELS-CL"):
-            for tmp in os.listdir(self.data_source_description["CAMELS_DIR"]):
-                if fnmatch.fnmatch(tmp, "*" + var_lst[k]):
-                    tmp_ = os.path.join(self.data_source_description["CAMELS_DIR"], tmp)
-                    if os.path.isdir(tmp_):
-                        forcing_file = os.path.join(tmp_, os.listdir(tmp_)[0])
-            forcing_data = pd.read_csv(forcing_file, sep="\t", index_col=0)
-            date = pd.to_datetime(forcing_data.index.values).values.astype(
-                "datetime64[D]"
-            )
-            [c, ind1, ind2] = np.intersect1d(date, t_range_list, return_indices=True)
-            station_ids = [id_.zfill(8) for id_ in forcing_data.columns.values]
-            assert all(x < y for x, y in zip(station_ids, station_ids[1:]))
-            ind3 = [station_ids.index(tmp) for tmp in gage_id_lst]
-            # to guarantee the sequence is not changed we don't use np.intersect1d
-            chosen_data = forcing_data.iloc[ind1, ind3].replace(
-                "\s+", np.nan, regex=True
-            )
-            x[:, ind2, k] = chosen_data.values.T
-        return x
-
-    def read_attr_all_in_one_file(self):
-        """
-        Read all attr data in CAMELS_CL
-
-        Returns
-        -------
-        np.array
-            all attr data in CAMELS_CL
-        """
-        attr_all_file = os.path.join(
-            self.data_source_description["CAMELS_ATTR_DIR"],
-            "1_CAMELScl_attributes.txt",
-        )
-        all_attr_tmp = pd.read_csv(attr_all_file, sep="\t", index_col=0)
-        all_attr = pd.DataFrame(
-            all_attr_tmp.values.T,
-            index=all_attr_tmp.columns,
-            columns=all_attr_tmp.index,
-        )
-        # some none str attributes are treated as str, we need to trans them to float
-        all_cols = all_attr.columns
-        for col in all_cols:
-            try:
-                all_attr[col] = all_attr[col].astype(float)
-            except Exception:
-                continue
-        # gage_all_attr = all_attr[all_attr['station_id'].isin(gage_id_lst)]
-        var_lst = self.get_constant_cols().tolist()
-        data_temp = all_attr[var_lst]
-        # for factorized data, we need factorize all gages' data to keep the factorized number same all the time
-        n_gage = len(self.read_object_ids())
-        out = np.full([n_gage, len(var_lst)], np.nan)
-        f_dict = {}
-        k = 0
-        for field in var_lst:
-            if is_string_dtype(data_temp[field]):
-                value, ref = pd.factorize(data_temp[field], sort=True)
-                out[:, k] = value
-                f_dict[field] = ref.tolist()
-            elif is_numeric_dtype(data_temp[field]):
-                out[:, k] = data_temp[field].values
-            k = k + 1
-        # keep same format with CAMELS_US
-        return out, var_lst, None, f_dict
-
-    def read_constant_cols(
-        self, gage_id_lst=None, var_lst=None, is_return_dict=False, **kwargs
-    ) -> np.ndarray:
-        """
-        Read Attributes data
-
-        Parameters
-        ----------
-        gage_id_lst
-            station ids
-        var_lst
-            attribute variable types
-        is_return_dict
-            if true, return var_dict and f_dict for CAMELS_US
-        Returns
-        -------
-        Union[tuple, np.array]
-            if attr var type is str, return factorized data.
-            When we need to know what a factorized value represents, we need return a tuple;
-            otherwise just return an array
-        """
-        attr_all, var_lst_all, var_dict, f_dict = self.read_attr_all_in_one_file()
-        ind_var = [var_lst_all.index(var) for var in var_lst]
-        id_lst_all = self.read_object_ids()
-        # Notice the sequence of station ids ! Some id_lst_all are not sorted, so don't use np.intersect1d
-        ind_grid = [id_lst_all.tolist().index(tmp) for tmp in gage_id_lst]
-        temp = attr_all[ind_grid, :]
-        out = temp[:, ind_var]
-        return (out, var_dict, f_dict) if is_return_dict else out
-
-    def read_area(self, gage_id_lst) -> np.ndarray:
-        return self.read_constant_cols(gage_id_lst, ["area"], is_return_dict=False)
-
-    def read_mean_prcp(self, gage_id_lst, unit="mm/d") -> xr.Dataset:
-        """Read mean precipitation data
-
-        Parameters
-        ----------
-        gage_id_lst : list
-            station ids
-        unit : str, optional
-            the unit of mean_prcp, by default "mm/d"
-
-        Returns
-        -------
-        xr.Dataset
-            mean precipitation data
-        """
-        # there are different p_mean values for different forcings, here we chose p_mean_cr2met now
-        data = self.read_constant_cols(
-            gage_id_lst, ["p_mean_cr2met"], is_return_dict=False
-        )
-        if unit in ["mm/d", "mm/day"]:
-            converted_data = data
-        elif unit in ["mm/h", "mm/hour"]:
-            converted_data = data / 24
-        elif unit in ["mm/3h", "mm/3hour"]:
-            converted_data = data / 8
-        elif unit in ["mm/8d", "mm/8day"]:
-            converted_data = data * 8
-        else:
-            raise ValueError(
-                "unit must be one of ['mm/d', 'mm/day', 'mm/h', 'mm/hour', 'mm/3h', 'mm/3hour', 'mm/8d', 'mm/8day']"
-            )
-        return converted_data
+    ):
+        if var_lst is None:
+            var_lst = self.dynamic_features()
+        if t_range is None:
+            t_range = ["19130215", "20180309"]
+        camels_cl_tsnc = CACHE_DIR.joinpath("camels_cl_timeseries.nc")
+        if not os.path.isfile(camels_cl_tsnc):
+            self.cache_timeseries_xrdataset()
+        ts = xr.open_dataset(camels_cl_tsnc)
+        all_vars = ts.data_vars
+        if any(var not in ts.variables for var in var_lst):
+            raise ValueError(f"var_lst must all be in {all_vars}")
+        return ts[var_lst].sel(basin=gage_id_lst, time=slice(t_range[0], t_range[1]))
