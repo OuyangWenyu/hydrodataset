@@ -1,10 +1,10 @@
 """
 Author: Wenyu Ouyang
 Date: 2022-01-05 18:01:11
-LastEditTime: 2025-01-02 11:21:54
+LastEditTime: 2025-10-19 09:32:41
 LastEditors: Wenyu Ouyang
 Description: Read Camels ("UnitedStates") dataset
-FilePath: /hydrodataset/hydrodataset/camels.py
+FilePath: \hydrodataset\hydrodataset\camels.py
 Copyright (c) 2021-2025 Wenyu Ouyang. All rights reserved.
 """
 
@@ -70,7 +70,7 @@ def time_intersect_dynamic_data(obs: np.array, date: np.array, t_range: list):
     np.array
         the chosen data
     """
-    t_lst = hydro_time.t_range_days(t_range)
+    t_lst = pd.date_range(start=t_range[0], end=t_range[1], freq="D").values
     nt = t_lst.shape[0]
     if len(obs) != nt:
         out = np.full([nt], np.nan)
@@ -111,8 +111,28 @@ class Camels(HydroDataset):
             )
         self.region = region
         self.data_source_description = self.set_data_source_describe()
-        if download:
-            self.download_data_source()
+        check_download = False
+        for url in self.data_source_description["CAMELS_DOWNLOAD_URL_LST"]:
+            fpath = os.path.join(self.data_source_dir, url.rsplit("/", 1)[1])
+            if not os.path.exists(fpath):
+                check_download = True
+                break
+        if check_download:
+            if download:
+                self.download_data_source()
+        check_zip_extract = False
+        # Check if zip files have been extracted
+        for url in self.data_source_description["CAMELS_DOWNLOAD_URL_LST"]:
+            filename = url.rsplit("/", 1)[1]
+            # Only check for zip files
+            if filename.endswith(".zip"):
+                # The extracted directory name (without .zip extension)
+                extracted_dir = self.data_source_dir / filename[:-4]
+                if not extracted_dir.exists():
+                    check_zip_extract = True
+                    break
+        if check_zip_extract:
+            hydro_file.zip_extract(self.data_source_description["CAMELS_DIR"])
         self.sites = self.read_site_info()
 
     def get_name(self):
@@ -196,27 +216,20 @@ class Camels(HydroDataset):
         None
         """
         camels_config = self.data_source_description
-        if self.region == "US":
-            self.data_source_dir.mkdir(exist_ok=True)
-            links = camels_config["CAMELS_DOWNLOAD_URL_LST"]
-            for url in links:
-                fzip = Path(self.data_source_dir, url.rsplit("/", 1)[1])
-                if fzip.exists():
-                    with urlopen(url) as response:
-                        if (
-                            int(response.info()["Content-length"])
-                            != fzip.stat().st_size
-                        ):
-                            fzip.unlink()
-            to_dl = [
-                url
-                for url in links
-                if not Path(self.data_source_dir, url.rsplit("/", 1)[1]).exists()
-            ]
-            hydro_file.download_zip_files(to_dl, self.data_source_dir)
-        else:
-            warnings.warn("We only provide downloading methods for CAMELS-US now")
-        hydro_file.zip_extract(camels_config["CAMELS_DIR"])
+        self.data_source_dir.mkdir(exist_ok=True)
+        links = camels_config["CAMELS_DOWNLOAD_URL_LST"]
+        for url in links:
+            fzip = Path(self.data_source_dir, url.rsplit("/", 1)[1])
+            if fzip.exists():
+                with urlopen(url) as response:
+                    if int(response.info()["Content-length"]) != fzip.stat().st_size:
+                        fzip.unlink()
+        to_dl = [
+            url
+            for url in links
+            if not Path(self.data_source_dir, url.rsplit("/", 1)[1]).exists()
+        ]
+        hydro_file.download_zip_files(to_dl, self.data_source_dir)
 
     def read_site_info(self) -> pd.DataFrame:
         """

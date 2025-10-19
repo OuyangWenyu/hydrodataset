@@ -1,7 +1,7 @@
 """
 Author: Wenyu Ouyang
 Date: 2022-09-05 23:20:24
-LastEditTime: 2025-10-18 17:39:18
+LastEditTime: 2025-10-18 21:27:55
 LastEditors: Wenyu Ouyang
 Description: set file dir
 FilePath: \hydrodataset\hydrodataset\__init__.py
@@ -76,7 +76,7 @@ CACHE_DIR = Path(hydro_file.get_cache_dir())
 
 # set some constants for datasets
 DATASETS = ["CAMELS", "Caravan", "GRDC", "HYSETS", "LamaH", "MOPEX"]
-CAMELS_REGIONS = ["AUS", "BR", "CL", "GB", "US", "AUS_v2"]
+CAMELS_REGIONS = ["AUS", "BR", "CL", "GB", "US"]
 LAMAH_REGIONS = ["CE"]
 # For CANOPEX, We don't treat it as a dataset, but a special case for MOPEX. We only have CANOPEX now.
 MOPEX_REGIONS = ["CA"]

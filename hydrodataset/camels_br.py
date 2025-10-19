@@ -3,12 +3,10 @@ import os
 import collections
 import pandas as pd
 import numpy as np
-from pathlib import Path
-from typing import Union
+import xarray as xr
 from tqdm import tqdm
-from hydroutils import hydro_time, hydro_file
-from hydrodataset import CACHE_DIR, HydroDataset, CAMELS_REGIONS
-from hydrodataset.camels import Camels, time_intersect_dynamic_data
+from hydrodataset import CACHE_DIR, CAMELS_REGIONS
+from hydrodataset.camels import Camels
 from pandas.api.types import is_string_dtype, is_numeric_dtype
 
 CAMELS_NO_DATASET_ERROR_LOG = (
@@ -20,9 +18,10 @@ CAMELS_NO_DATASET_ERROR_LOG = (
 class CamelsBr(Camels):
     def __init__(
         self,
-        data_path=os.path.join("camels", "camels_br"),
+        data_path,
         download=False,
         region: str = "BR",
+        version: str = "1.2",
     ):
         """
         Initialization for CAMELS-BR dataset
@@ -39,7 +38,58 @@ class CamelsBr(Camels):
         region
             the default is CAMELS-BR
         """
-        super().__init__(data_path, download, region)
+        self.data_path = os.path.join(data_path, "CAMELS_BR")
+        super().__init__(self.data_path, download, region)
+        # Build a map from variable name to its source directory
+        self._variable_map = self._build_variable_map()
+
+    def _build_variable_map(self):
+        """
+        Scans all time-series directories to build a map from each variable
+        to its parent directory path. This is done once at initialization.
+        """
+        variable_map = {}
+        all_ts_dirs = (
+            self.data_source_description["CAMELS_FORCING_DIR"]
+            + self.data_source_description["CAMELS_FLOW_DIR"]
+        )
+
+        try:
+            sample_gage_id = self.read_object_ids()[0]
+        except IndexError:
+            # If there are no gages, we can't build the map.
+            return {}
+
+        for ts_dir in all_ts_dirs:
+            base_name = str(ts_dir).split(os.sep)[-1][13:]
+            # Handle special case for precipitation_ana_gauges
+            if base_name == "precipitation_ana_gauges":
+                variable_map["p_ana_gauges"] = str(ts_dir)
+                continue
+
+            # Find a sample file to read its header
+            try:
+                files_for_gage = [
+                    f for f in os.listdir(ts_dir) if f.startswith(sample_gage_id)
+                ]
+                if not files_for_gage:
+                    continue
+                sample_file_path = os.path.join(ts_dir, files_for_gage[0])
+                df_header = pd.read_csv(sample_file_path, sep=r"\s+", nrows=0)
+                internal_vars = df_header.columns[3:]
+                for var in internal_vars:
+                    if var in variable_map:
+                        logging.warning(
+                            f"Duplicate variable '{var}' found. Overwriting mapping."
+                        )
+                    variable_map[var] = str(ts_dir)
+            except (FileNotFoundError, IndexError, pd.errors.EmptyDataError):
+                # If we can't read a sample file, just skip this directory
+                logging.warning(
+                    f"Could not read sample file in {ts_dir} to map variables."
+                )
+                continue
+        return variable_map
 
     def set_data_source_describe(self) -> collections.OrderedDict:
         """
@@ -74,17 +124,14 @@ class CamelsBr(Camels):
         gauge_id_file = attr_dir.joinpath("camels_br_topography.txt")
         # shp file of basins
         camels_shp_file = camels_db.joinpath(
-            "14_CAMELS_BR_catchment_boundaries",
-            "14_CAMELS_BR_catchment_boundaries",
-            "camels_br_catchments.shp",
+            "12_CAMELS_BR_catchment_boundaries",
+            "12_CAMELS_BR_catchment_boundaries",
+            "camels_br_catchments.gpkg",
         )
         # config of flow data
-        flow_dir_m3s = camels_db.joinpath(
-            "02_CAMELS_BR_streamflow_m3s", "02_CAMELS_BR_streamflow_m3s"
-        )
-        flow_dir_mm_selected_catchments = camels_db.joinpath(
-            "03_CAMELS_BR_streamflow_mm_selected_catchments",
-            "03_CAMELS_BR_streamflow_mm_selected_catchments",
+        flow_dir = camels_db.joinpath(
+            "03_CAMELS_BR_streamflow_selected_catchments",
+            "03_CAMELS_BR_streamflow_selected_catchments",
         )
         flow_dir_simulated = camels_db.joinpath(
             "04_CAMELS_BR_streamflow_simulated",
@@ -92,64 +139,73 @@ class CamelsBr(Camels):
         )
 
         # forcing
-        forcing_dir_precipitation_chirps = camels_db.joinpath(
-            "05_CAMELS_BR_precipitation_chirps",
-            "05_CAMELS_BR_precipitation_chirps",
+        forcing_dir_precipitation = camels_db.joinpath(
+            "05_CAMELS_BR_precipitation",
+            "05_CAMELS_BR_precipitation",
         )
-        forcing_dir_precipitation_mswep = camels_db.joinpath(
-            "06_CAMELS_BR_precipitation_mswep",
-            "06_CAMELS_BR_precipitation_mswep",
+        forcing_dir_evapotransp = camels_db.joinpath(
+            "06_CAMELS_BR_actual_evapotransp",
+            "06_CAMELS_BR_actual_evapotransp",
         )
-        forcing_dir_precipitation_cpc = camels_db.joinpath(
-            "07_CAMELS_BR_precipitation_cpc",
-            "07_CAMELS_BR_precipitation_cpc",
+        forcing_dir_potential_evapotransp = camels_db.joinpath(
+            "07_CAMELS_BR_potential_evapotransp",
+            "07_CAMELS_BR_potential_evapotransp",
         )
-        forcing_dir_evapotransp_gleam = camels_db.joinpath(
-            "08_CAMELS_BR_evapotransp_gleam",
-            "08_CAMELS_BR_evapotransp_gleam",
+        forcing_dir_reference_evap = camels_db.joinpath(
+            "08_CAMELS_BR_reference_evapotransp",
+            "08_CAMELS_BR_reference_evapotransp",
         )
-        forcing_dir_evapotransp_mgb = camels_db.joinpath(
-            "09_CAMELS_BR_evapotransp_mgb",
-            "09_CAMELS_BR_evapotransp_mgb",
+        forcing_dir_temperature = camels_db.joinpath(
+            "09_CAMELS_BR_temperature",
+            "09_CAMELS_BR_temperature",
         )
-        forcing_dir_potential_evapotransp_gleam = camels_db.joinpath(
-            "10_CAMELS_BR_potential_evapotransp_gleam",
-            "10_CAMELS_BR_potential_evapotransp_gleam",
+        forcing_dir_soilmoisture = camels_db.joinpath(
+            "10_CAMELS_BR_soil_moisture",
+            "10_CAMELS_BR_soil_moisture",
         )
-        forcing_dir_temperature_min_cpc = camels_db.joinpath(
-            "11_CAMELS_BR_temperature_min_cpc",
-            "11_CAMELS_BR_temperature_min_cpc",
+        forcing_dir_precipitation_ana_gauges = camels_db.joinpath(
+            "11_CAMELS_BR_precipitation_ana_gauges",
+            "11_CAMELS_BR_precipitation_ana_gauges",
         )
-        forcing_dir_temperature_mean_cpc = camels_db.joinpath(
-            "12_CAMELS_BR_temperature_mean_cpc",
-            "12_CAMELS_BR_temperature_mean_cpc",
-        )
-        forcing_dir_temperature_max_cpc = camels_db.joinpath(
-            "13_CAMELS_BR_temperature_max_cpc",
-            "13_CAMELS_BR_temperature_max_cpc",
-        )
+        base_url = "https://zenodo.org/records/15025488"
+        # NOTE: Now the CAMELS_BR is not supported by AquaFetch,
+        # Here, we only add download urls to be used for unzipping the dataset.
+        download_url_lst = [
+            f"{base_url}/files/01_CAMELS_BR_attributes.zip",
+            f"{base_url}/files/02_CAMELS_BR_streamflow_all_catchments.zip",
+            f"{base_url}/files/03_CAMELS_BR_streamflow_selected_catchments.zip",
+            f"{base_url}/files/04_CAMELS_BR_streamflow_simulated.zip",
+            f"{base_url}/files/05_CAMELS_BR_precipitation.zip",
+            f"{base_url}/files/06_CAMELS_BR_actual_evapotransp.zip",
+            f"{base_url}/files/07_CAMELS_BR_potential_evapotransp.zip",
+            f"{base_url}/files/08_CAMELS_BR_reference_evapotransp.zip",
+            f"{base_url}/files/09_CAMELS_BR_temperature.zip",
+            f"{base_url}/files/10_CAMELS_BR_soil_moisture.zip",
+            f"{base_url}/files/11_CAMELS_BR_precipitation_ana_gauges.zip",
+            f"{base_url}/files/12_CAMELS_BR_catchment_boundaries.zip",
+            f"{base_url}/files/13_CAMELS_BR_gauge_location.zip",
+            f"{base_url}/files/CAMELS_BR_readme.txt",
+        ]
         return collections.OrderedDict(
             CAMELS_DIR=camels_db,
             CAMELS_FLOW_DIR=[
-                flow_dir_m3s,
-                flow_dir_mm_selected_catchments,
+                flow_dir,
                 flow_dir_simulated,
             ],
             CAMELS_FORCING_DIR=[
-                forcing_dir_precipitation_chirps,
-                forcing_dir_precipitation_mswep,
-                forcing_dir_precipitation_cpc,
-                forcing_dir_evapotransp_gleam,
-                forcing_dir_evapotransp_mgb,
-                forcing_dir_potential_evapotransp_gleam,
-                forcing_dir_temperature_min_cpc,
-                forcing_dir_temperature_mean_cpc,
-                forcing_dir_temperature_max_cpc,
+                forcing_dir_precipitation,
+                forcing_dir_precipitation_ana_gauges,
+                forcing_dir_evapotransp,
+                forcing_dir_potential_evapotransp,
+                forcing_dir_reference_evap,
+                forcing_dir_temperature,
+                forcing_dir_soilmoisture,
             ],
             CAMELS_ATTR_DIR=attr_dir,
             CAMELS_ATTR_KEY_LST=attr_key_lst,
             CAMELS_GAUGE_FILE=gauge_id_file,
             CAMELS_BASINS_SHP_FILE=camels_shp_file,
+            CAMELS_DOWNLOAD_URL_LST=download_url_lst,
         )
 
     def read_site_info(self) -> pd.DataFrame:
@@ -176,186 +232,34 @@ class CamelsBr(Camels):
         data_folder = self.data_source_description["CAMELS_ATTR_DIR"]
         return self._get_constant_cols_some(data_folder, "camels_br_", ".txt", "\s+")
 
-    def get_relevant_cols(self) -> np.ndarray:
-        """
-        all readable forcing types in CAMELS-BR
+    def static_features(self):
+        """Read static features list"""
+        return self.get_constant_cols()
 
-        Returns
-        -------
-        np.array
-            forcing types
-        """
-        return np.array(
-            [
-                str(forcing_dir).split(os.sep)[-1][13:]
-                for forcing_dir in self.data_source_description["CAMELS_FORCING_DIR"]
-            ]
-        )
+    def dynamic_features(self):
+        """Return all available time series variables."""
+        return np.array(list(self._variable_map.keys()))
 
-    def get_target_cols(self) -> np.ndarray:
-        """
-        For CAMELS-BR, the target vars are streamflows
-
-        Returns
-        -------
-        np.array
-            streamflow types
-        """
-        return np.array(
-            [
-                str(flow_dir).split(os.sep)[-1][13:]
-                for flow_dir in self.data_source_description["CAMELS_FLOW_DIR"]
-            ]
-        )
-
-    def read_object_ids(self, **kwargs) -> np.ndarray:
-        """
-        read station ids
-
-        Parameters
-        ----------
-        **kwargs
-            optional params if needed
-
-        Returns
-        -------
-        np.array
-            gage/station ids
-        """
-        return self.sites["gauge_id"].values
-
-    def read_br_gage_flow(self, gage_id, t_range, flow_type):
-        """
-        Read gage's streamflow from CAMELS-BR
-
-        Parameters
-        ----------
-        gage_id
-            the station id
-        t_range
-            the time range, for example, ["1990-01-01", "2000-01-01"]
-        flow_type
-            "streamflow_m3s" or "streamflow_mm_selected_catchments" or "streamflow_simulated"
-
-        Returns
-        -------
-        np.array
-            streamflow data of one station for a given time range
-        """
-        logging.debug("reading %s streamflow data", gage_id)
-        dir_ = [
-            str(flow_dir)
-            for flow_dir in self.data_source_description["CAMELS_FLOW_DIR"]
-            if flow_type in str(flow_dir)
-        ][0]
-        if flow_type == "streamflow_mm_selected_catchments":
-            flow_type = "streamflow_mm"
-        elif flow_type == "streamflow_simulated":
-            flow_type = "simulated_streamflow"
-        gage_file = os.path.join(dir_, gage_id + "_" + flow_type + ".txt")
-        data_temp = pd.read_csv(gage_file, sep=r"\s+")
-        obs = data_temp.iloc[:, 3].values
-        obs[obs < 0] = np.nan
-        df_date = data_temp[["year", "month", "day"]]
-        date = pd.to_datetime(df_date).values.astype("datetime64[D]")
-        return time_intersect_dynamic_data(obs, date, t_range)
-
-    def read_target_cols(
-        self,
-        gage_id_lst: Union[list, np.array] = None,
-        t_range: list = None,
-        target_cols: Union[list, np.array] = None,
-        **kwargs,
-    ) -> np.ndarray:
-        """
-        read target values; for CAMELS-BR, they are streamflows
-
-        default target_cols is an one-value list
-        Notice: the unit of target outputs in different regions are not totally same
-
-        Parameters
-        ----------
-        gage_id_lst
-            station ids
-        t_range
-            the time range, for example, ["1990-01-01", "2000-01-01"]
-        target_cols
-            the default is None, but we need at least one default target.
-            For CAMELS-BR, it's ["streamflow_mmd"]
-        kwargs
-            some other params if needed
-
-        Returns
-        -------
-        np.array
-            streamflow data, 3-dim [station, time, streamflow]
-        """
-        if target_cols is None:
-            return np.array([])
-        else:
-            nf = len(target_cols)
-        t_range_list = hydro_time.t_range_days(t_range)
-        nt = t_range_list.shape[0]
-        y = np.full([len(gage_id_lst), nt, nf], np.nan)
-        for j in tqdm(
-            range(len(target_cols)), desc="Read streamflow data of CAMELS-BR"
-        ):
-            for k in tqdm(range(len(gage_id_lst))):
-                data_obs = self.read_br_gage_flow(
-                    gage_id_lst[k], t_range, target_cols[j]
-                )
-                y[k, :, j] = data_obs
-        # Keep unit of streamflow unified: we use ft3/s here
-        # other units are m3/s -> ft3/s
-        y = y * 35.314666721489
-        return y
-
-    def read_br_basin_forcing(self, gage_id, t_range, var_type) -> np.array:
-        """
-        Read one forcing data for a basin in CAMELS_BR
-
-        Parameters
-        ----------
-        gage_id
-            basin id
-        t_range
-            the time range, for example, ["1995-01-01", "2005-01-01"]
-        var_type
-            the forcing variable type
-
-        Returns
-        -------
-        np.array
-            one type forcing data of a basin in a given time range
-        """
-        dir_ = [
-            str(_dir)
-            for _dir in self.data_source_description["CAMELS_FORCING_DIR"]
-            if var_type in str(_dir)
-        ][0]
-        if var_type in [
-            "temperature_min_cpc",
-            "temperature_mean_cpc",
-            "temperature_max_cpc",
-        ]:
-            var_type = var_type[:-4]
-        gage_file = os.path.join(dir_, gage_id + "_" + var_type + ".txt")
-        data_temp = pd.read_csv(gage_file, sep=r"\s+")
-        obs = data_temp.iloc[:, 3].values
-        df_date = data_temp[["year", "month", "day"]]
-        date = pd.to_datetime(df_date).values.astype("datetime64[D]")
-        return time_intersect_dynamic_data(obs, date, t_range)
+    def _find_file_for_gage(self, directory, gage_id):
+        """Finds the data file for a specific gage in a given directory."""
+        if not os.path.isdir(directory):
+            return None
+        # Find any file in the directory for our sample gage
+        gage_files = [f for f in os.listdir(directory) if f.startswith(gage_id)]
+        if not gage_files:
+            return None
+        return os.path.join(directory, gage_files[0])
 
     def read_relevant_cols(
         self,
         gage_id_lst: list = None,
         t_range: list = None,
         var_lst: list = None,
-        forcing_type="daymet",
+        forcing_type: str = None,
         **kwargs,
     ) -> np.ndarray:
         """
-        Read forcing data
+        Read time series data for a list of variables, optimizing I/O by grouping variables by file.
 
         Parameters
         ----------
@@ -364,23 +268,61 @@ class CamelsBr(Camels):
         t_range
             the time range, for example, ["1990-01-01", "2000-01-01"]
         var_lst
-            forcing variable types
-        forcing_type
-            now only for CAMELS-US, there are three types: daymet, nldas, maurer
+            time series variable types (e.g., ["p_chirps", "t_mean"])
         Returns
         -------
         np.array
-            forcing data
+            time series data
         """
-        t_range_list = hydro_time.t_range_days(t_range)
+        if var_lst is None or len(var_lst) == 0:
+            return np.array([])
+        t_range_list = pd.date_range(start=t_range[0], end=t_range[1], freq="D").values
         nt = t_range_list.shape[0]
         x = np.full([len(gage_id_lst), nt, len(var_lst)], np.nan)
-        for j in tqdm(range(len(var_lst)), desc="Read forcing data of CAMELS-BR"):
-            for k in tqdm(range(len(gage_id_lst))):
-                data_obs = self.read_br_basin_forcing(
-                    gage_id_lst[k], t_range, var_lst[j]
+
+        for k, gage_id in enumerate(tqdm(gage_id_lst, desc="Reading basins")):
+            # Group variables by the directory they belong to for the current basin
+            dir_to_vars_map = {}
+            for i, var in enumerate(var_lst):
+                directory = self._variable_map.get(var)
+                if not directory:
+                    logging.warning(f"Could not find directory for variable: {var}")
+                    continue
+                if directory not in dir_to_vars_map:
+                    dir_to_vars_map[directory] = []
+                dir_to_vars_map[directory].append((var, i))
+
+            # For this basin, iterate through directories, reading each file only once
+            for directory, vars_in_dir in dir_to_vars_map.items():
+                file_path = self._find_file_for_gage(directory, gage_id)
+                if not file_path:
+                    logging.warning(f"No file found for gage {gage_id} in {directory}")
+                    continue
+
+                try:
+                    data_temp = pd.read_csv(file_path, sep=r"\s+")
+                except (FileNotFoundError, pd.errors.EmptyDataError):
+                    logging.warning(f"Could not read or empty file: {file_path}")
+                    continue
+
+                # Intersect time once per file
+                df_date = data_temp[["year", "month", "day"]]
+                date = pd.to_datetime(df_date).values.astype("datetime64[D]")
+                [c, file_indices, target_indices] = np.intersect1d(
+                    date, t_range_list, return_indices=True
                 )
-                x[k, :, j] = data_obs
+
+                # For each variable belonging to this file, extract its column
+                for var, var_index_in_x in vars_in_dir:
+                    if var in data_temp.columns:
+                        obs = data_temp[var].values
+                    else:  # Fallback for special cases like precipitation_ana_gauges
+                        obs = data_temp.iloc[:, 3].values
+
+                    # Convert to float to handle NaN values properly
+                    obs = obs.astype(float)
+                    obs[obs < 0] = np.nan
+                    x[k, target_indices, var_index_in_x] = obs[file_indices]
         return x
 
     def read_attr_all(self):
@@ -447,6 +389,98 @@ class CamelsBr(Camels):
 
     def read_area(self, gage_id_lst) -> np.ndarray:
         return self.read_constant_cols(gage_id_lst, ["area"], is_return_dict=False)
+
+    def _read_ts_dynamic(
+        self,
+        gage_id_lst: list = None,
+        t_range: list = None,
+        var_lst: list = None,
+        **kwargs,
+    ):
+        """Helper function to dynamically read time series data without caching."""
+        if var_lst is None:
+            return None
+        # read_relevant_cols is now the unified reader for any time-series variables
+        all_ts_data = self.read_relevant_cols(gage_id_lst, t_range, var_lst, **kwargs)
+
+        times = pd.date_range(start=t_range[0], end=t_range[1], freq="D").values
+        data_vars = {}
+        for i, var in enumerate(var_lst):
+            data_vars[var] = (("basin", "time"), all_ts_data[:, :, i])
+
+        ds = xr.Dataset(data_vars, coords={"basin": gage_id_lst, "time": times})
+        return ds
+
+    def _read_attr_static(self, gage_id_lst=None, var_lst=None, **kwargs):
+        """Helper function to dynamically read attribute data without caching."""
+        if var_lst is None or len(var_lst) == 0:
+            return None
+
+        attr_data, var_dict, f_dict = self.read_constant_cols(
+            gage_id_lst=gage_id_lst, var_lst=var_lst, is_return_dict=True
+        )
+
+        data_vars = {}
+        for i, var in enumerate(var_lst):
+            da = xr.DataArray(
+                attr_data[:, i], dims=["basin"], coords={"basin": gage_id_lst}
+            )
+            if var in f_dict:
+                da.attrs["category_mapping"] = str(f_dict[var])
+            data_vars[var] = da
+
+        ds = xr.Dataset(data_vars)
+        return ds
+
+    def read_ts_xrdataset(
+        self,
+        gage_id_lst: list = None,
+        t_range: list = None,
+        var_lst: list = None,
+        **kwargs,
+    ):
+        """Read time series data from cache or generate it and return an xarray.Dataset"""
+        if var_lst is None:
+            return None
+        camels_ts_cache_file = CACHE_DIR.joinpath("camelsbr_timeseries.nc")
+        if not os.path.isfile(camels_ts_cache_file):
+            print(
+                "Creating cache for CAMELS-BR time series data... This may take a while."
+            )
+            all_basins = self.read_object_ids()
+            all_vars = self.dynamic_features()
+            # Define a canonical time range for the cache, e.g., 1980-2020
+            canonical_t_range = ["1980-01-01", "2024-07-31"]
+            ds_full = self._read_ts_dynamic(
+                gage_id_lst=all_basins,
+                t_range=canonical_t_range,
+                var_lst=all_vars,
+                **kwargs,
+            )
+            ds_full.to_netcdf(camels_ts_cache_file)
+
+        ts = xr.open_dataset(camels_ts_cache_file)
+        all_vars_in_file = ts.data_vars
+        if any(var not in all_vars_in_file for var in var_lst):
+            raise ValueError(f"var_lst must all be in {all_vars_in_file}")
+        return ts[var_lst].sel(basin=gage_id_lst, time=slice(t_range[0], t_range[1]))
+
+    def read_attr_xrdataset(self, gage_id_lst=None, var_lst=None, **kwargs):
+        """Read attribute data from cache or generate it and return an xarray.Dataset"""
+        if var_lst is None or len(var_lst) == 0:
+            return None
+        camels_attr_cache_file = CACHE_DIR.joinpath("camelsbr_attributes.nc")
+        if not os.path.isfile(camels_attr_cache_file):
+            print("Creating cache for CAMELS-BR attributes data...")
+            all_basins = self.read_object_ids()
+            all_vars = self.get_constant_cols()
+            ds_full = self._read_attr_static(
+                gage_id_lst=all_basins, var_lst=all_vars, **kwargs
+            )
+            ds_full.to_netcdf(camels_attr_cache_file)
+
+        attr = xr.open_dataset(camels_attr_cache_file)
+        return attr[var_lst].sel(basin=gage_id_lst)
 
     def read_mean_prcp(self, gage_id_lst, unit="mm/d") -> xr.Dataset:
         """Read mean precipitation data

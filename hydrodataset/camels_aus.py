@@ -1,22 +1,9 @@
 import os
-import glob
-import zipfile
-import pandas as pd
 import xarray as xr
-from collections import OrderedDict
-from hydrodataset import HydroDataset
 from tqdm import tqdm
 import numpy as np
-from typing import Union
-from hydroutils import hydro_time, hydro_file
-from hydrodataset import CACHE_DIR, HydroDataset, CAMELS_REGIONS
-import json
-import collections
-from pathlib import Path
 from aqua_fetch import CAMELS_AUS
-from hydrodataset import CACHE_DIR, SETTING
-import warnings
-import re
+from hydrodataset import CACHE_DIR, HydroDataset
 
 
 class CamelsAus(HydroDataset):
