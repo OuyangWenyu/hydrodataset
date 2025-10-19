@@ -17,7 +17,7 @@ from hydrodataset import CACHE_DIR, HydroDataset
 
 
 class Caravan(HydroDataset):
-    def __init__(self, data_path, download=False, region="Global"):
+    def __init__(self, data_path, download=False, region="Global", cache_path=None):
         """
         Initialization for Caravan dataset
 
@@ -29,8 +29,10 @@ class Caravan(HydroDataset):
             if true, download
         region
             the region can be US, AUS, BR, CL, GB, CE, NA (North America, meaning HYSETS)
+        cache_path
+            the path to cache the dataset
         """
-        super().__init__(data_path)
+        super().__init__(data_path, cache_path=cache_path)
         self.region = region
         region_name_dict = self.region_name_dict
         if region == "Global":
@@ -48,6 +50,20 @@ class Caravan(HydroDataset):
                 "Please download and unzip the dataset first: just set download=True if you have manually downloaded zip files when you first initialize caravan."
             )
         self.sites = self.read_site_info()
+
+    @property
+    def _attributes_cache_filename(self):
+        region_name = self.region_data_name
+        if isinstance(region_name, list):
+            region_name = "_".join(region_name)
+        return f"caravan_{region_name}_attributes.nc"
+
+    @property
+    def _attributes_cache_filename(self):
+        region_name = self.region_data_name
+        if isinstance(region_name, list):
+            region_name = "_".join(region_name)
+        return f"caravan_{region_name}_attributes.nc"
 
     @property
     def region_name_dict(self):
@@ -658,13 +674,7 @@ class Caravan(HydroDataset):
         for var_name in converted_units:
             if var_name in ds.data_vars:
                 ds[var_name].attrs["units"] = converted_units[var_name]
-        region_name = self.region_data_name
-        if isinstance(region_name, list):
-            region_name = "_".join(region_name)
-        cache_attr_file = os.path.join(
-            CACHE_DIR,
-            f"caravan_{region_name}_attributes.nc",
-        )
+        cache_attr_file = self.cache_dir.joinpath(self._attributes_cache_filename)
         ds.to_netcdf(cache_attr_file)
 
     def cache_xrdataset(self, **kwargs):
@@ -820,8 +830,7 @@ class Caravan(HydroDataset):
 
                 # Save the dataset to a NetCDF file for the current batch and time unit
                 prefix_ = "" if region is None else region + "_"
-                batch_file_path = os.path.join(
-                    CACHE_DIR,
+                batch_file_path = self.cache_dir.joinpath(
                     f"caravan_{prefix_}timeseries_batch_{basin_batch[0]}_{basin_batch[-1]}.nc",
                 )
                 dataset.to_netcdf(batch_file_path)
@@ -896,13 +905,7 @@ class Caravan(HydroDataset):
 
     def read_attr_xrdataset(self, gage_id_lst=None, var_lst=None, **kwargs):
         # Define the path to the attributes file
-        region_name = self.region_data_name
-        if isinstance(region_name, list):
-            region_name = "_".join(region_name)
-        file_path = os.path.join(
-            CACHE_DIR,
-            f"caravan_{region_name}_attributes.nc",
-        )
+        file_path = self.cache_dir.joinpath(self._attributes_cache_filename)
 
         # Open the dataset
         ds = xr.open_dataset(file_path)
@@ -922,7 +925,7 @@ class Caravan(HydroDataset):
             region_name = "_".join(region_name)
         file_paths = sorted(
             glob.glob(
-                os.path.join(CACHE_DIR, f"*caravan_{region_name}_*timeseries*.nc")
+                os.path.join(self.cache_dir, f"*caravan_{region_name}_*timeseries*.nc")
             )
         )
 

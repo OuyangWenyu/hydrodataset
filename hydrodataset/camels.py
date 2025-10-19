@@ -87,6 +87,7 @@ class Camels(HydroDataset):
         data_path=os.path.join("camels", "camels_us"),
         download=False,
         region: str = "US",
+        cache_path=None,
     ):
         """
         Initialization for CAMELS series dataset
@@ -103,8 +104,10 @@ class Camels(HydroDataset):
         region
             the default is CAMELS(-US), since it's the first CAMELS dataset.
             All are included in CAMELS_REGIONS
+        cache_path
+            the path to cache the dataset
         """
-        super().__init__(data_path)
+        super().__init__(data_path, cache_path=cache_path)
         if region not in CAMELS_REGIONS:
             raise NotImplementedError(
                 f"Please chose one region in: {str(CAMELS_REGIONS)}"
@@ -134,6 +137,18 @@ class Camels(HydroDataset):
         if check_zip_extract:
             hydro_file.zip_extract(self.data_source_description["CAMELS_DIR"])
         self.sites = self.read_site_info()
+
+    @property
+    def _attributes_cache_filename(self):
+        return "camelsus_attributes.nc"
+
+    @property
+    def _timeseries_cache_filename(self):
+        return "camelsus_timeseries.nc"
+
+    @property
+    def default_t_range(self):
+        return ["1980-01-01", "2014-12-31"]
 
     def get_name(self):
         return "CAMELS_" + self.region
@@ -845,7 +860,7 @@ class Camels(HydroDataset):
         np.save(cache_npy_file, data)
 
     def cache_attributes_xrdataset(self):
-        """Convert all the attributes to a single dataframe
+        """Convert all the attributes to a single dataframe and save as a netcdf file
         TODO: now only support CAMELS-US
 
         Returns
@@ -965,15 +980,22 @@ class Camels(HydroDataset):
             if column in categorical_mappings:
                 mapping_str = categorical_mappings[column]
                 ds_from_df[column].attrs["category_mapping"] = str(mapping_str)
-        return ds_from_df
+        ds_from_df.to_netcdf(self.cache_dir.joinpath(self._attributes_cache_filename))
 
-    def cache_streamflow_xrdataset(self):
+    def cache_timeseries_xrdataset(self):
+        warnings.warn("Check you units of all variables")
+        ds_streamflow = self._cache_streamflow_xrdataset()
+        ds_forcing = self._cache_forcing_xrdataset()
+        ds = xr.merge([ds_streamflow, ds_forcing])
+        ds.to_netcdf(self.cache_dir.joinpath(self._timeseries_cache_filename))
+
+    def _cache_streamflow_xrdataset(self):
         """Save all basins' streamflow data in a netcdf file in the cache directory
 
         TODO: ONLY SUPPORT CAMELS-US now
         """
-        cache_npy_file = CACHE_DIR.joinpath("camels_streamflow.npy")
-        json_file = CACHE_DIR.joinpath("camels_streamflow.json")
+        cache_npy_file = self.cache_dir.joinpath("camels_streamflow.npy")
+        json_file = self.cache_dir.joinpath("camels_streamflow.json")
         if (not os.path.isfile(cache_npy_file)) or (not os.path.isfile(json_file)):
             self.cache_streamflow_np_json()
         streamflow = np.load(cache_npy_file)
@@ -1004,13 +1026,13 @@ class Camels(HydroDataset):
             },
         )
 
-    def cache_forcing_xrdataset(self):
+    def _cache_forcing_xrdataset(self):
         """Save all daymet basin-forcing data in a netcdf file in the cache directory.
 
         TODO: ONLY SUPPORT CAMELS-US now
         """
-        cache_npy_file = CACHE_DIR.joinpath("camels_daymet_forcing.npy")
-        json_file = CACHE_DIR.joinpath("camels_daymet_forcing.json")
+        cache_npy_file = self.cache_dir.joinpath("camels_daymet_forcing.npy")
+        json_file = self.cache_dir.joinpath("camels_daymet_forcing.json")
         if (not os.path.isfile(cache_npy_file)) or (not os.path.isfile(json_file)):
             self.cache_forcing_np_json()
         daymet_forcing = np.load(cache_npy_file)
@@ -1045,47 +1067,6 @@ class Camels(HydroDataset):
             },
             attrs={"forcing_type": "daymet"},
         )
-
-    def cache_xrdataset(self):
-        """Save all data in a netcdf file in the cache directory"""
-        warnings.warn("Check you units of all variables")
-        ds_attr = self.cache_attributes_xrdataset()
-        ds_attr.to_netcdf(CACHE_DIR.joinpath("camelsus_attributes.nc"))
-        ds_streamflow = self.cache_streamflow_xrdataset()
-        ds_forcing = self.cache_forcing_xrdataset()
-        ds = xr.merge([ds_streamflow, ds_forcing])
-        ds.to_netcdf(CACHE_DIR.joinpath("camelsus_timeseries.nc"))
-
-    def read_ts_xrdataset(
-        self,
-        gage_id_lst: list = None,
-        t_range: list = None,
-        var_lst: list = None,
-        **kwargs,
-    ):
-        if var_lst is None:
-            return None
-        camels_tsnc = CACHE_DIR.joinpath("camelsus_timeseries.nc")
-        if not os.path.isfile(camels_tsnc):
-            self.cache_xrdataset()
-        ts = xr.open_dataset(camels_tsnc)
-        all_vars = ts.data_vars
-        if any(var not in ts.variables for var in var_lst):
-            raise ValueError(f"var_lst must all be in {all_vars}")
-        return ts[var_lst].sel(basin=gage_id_lst, time=slice(t_range[0], t_range[1]))
-
-    def read_attr_xrdataset(self, gage_id_lst=None, var_lst=None, **kwargs):
-        if var_lst is None or len(var_lst) == 0:
-            return None
-        try:
-            attr = xr.open_dataset(CACHE_DIR.joinpath("camelsus_attributes.nc"))
-        except FileNotFoundError:
-            attr = self.cache_attributes_xrdataset()
-            attr.to_netcdf(CACHE_DIR.joinpath("camelsus_attributes.nc"))
-        if "all_number" in list(kwargs.keys()) and kwargs["all_number"]:
-            attr_num = map_string_vars(attr)
-            return attr_num[var_lst].sel(basin=gage_id_lst)
-        return attr[var_lst].sel(basin=gage_id_lst)
 
     @property
     def streamflow_unit(self):

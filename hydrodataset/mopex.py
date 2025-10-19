@@ -10,9 +10,9 @@ Copyright (c) 2021-2022 Wenyu Ouyang. All rights reserved.
 import collections
 import fnmatch
 import os
-from typing import Union
 import pandas as pd
 import numpy as np
+import xarray as xr
 from pandas.core.dtypes.common import is_string_dtype, is_numeric_dtype
 from tqdm import tqdm
 from hydroutils import hydro_file, hydro_time
@@ -20,7 +20,7 @@ from hydrodataset.hydro_dataset import HydroDataset
 
 
 class Mopex(HydroDataset):
-    def __init__(self, data_path, download=False):
+    def __init__(self, data_path, download=False, cache_path=None):
         """
         Initialization for dataset
 
@@ -30,12 +30,26 @@ class Mopex(HydroDataset):
             where we put the dataset
         download
             if true, download
+        cache_path
+            the path to cache the dataset
         """
-        super().__init__(data_path)
+        super().__init__(data_path, cache_path=cache_path)
         self.data_source_description = self.set_data_source_describe()
         if download:
             self.download_data_source()
         self.camels_sites = self.read_site_info()
+
+    @property
+    def _attributes_cache_filename(self):
+        return "mopex_attributes.nc"
+
+    @property
+    def _timeseries_cache_filename(self):
+        return "mopex_timeseries.nc"
+
+    @property
+    def default_t_range(self):
+        return ["1950-01-01", "2013-12-31"]
 
     def get_name(self):
         return "CANOPEX"
@@ -166,151 +180,7 @@ class Mopex(HydroDataset):
         canopex_attr_data = pd.read_csv(attr_all_file, sep=";")
         return np.intersect1d(id_strs, canopex_attr_data["Official_ID"].values)
 
-    def read_target_cols(
-        self,
-        gage_id_lst: Union[list, np.array] = None,
-        t_range: list = None,
-        target_cols: Union[list, np.array] = None,
-        **kwargs
-    ) -> np.array:
-        """
-        read target values; they are streamflows
-
-        default target_cols is an one-value list
-        Notice: the unit of target outputs in different regions are not totally same
-
-        Parameters
-        ----------
-        gage_id_lst
-            station ids
-        t_range
-            the time range, for example, ["1990-01-01", "2000-01-01"]
-        target_cols
-            the default is None, but we neea at least one default target.
-            For CAMELS-US, it is ["usgsFlow"];
-            for CAMELS-AUS, it's ["streamflow_mmd"]
-            for CAMELS-AUS, it's ["streamflow_m3s"]
-        kwargs
-            some other params if needed
-
-        Returns
-        -------
-        np.array
-            streamflow data, 3-dim [station, time, streamflow]
-        """
-        if target_cols is None:
-            return np.array([])
-        else:
-            nf = len(target_cols)
-        t_range_list = hydro_time.t_range_days(t_range)
-        nt = t_range_list.shape[0]
-        y = np.full([len(gage_id_lst), nt, nf], np.nan)
-
-        for k in tqdm(range(len(gage_id_lst)), desc="Read streamflow data of CANOPEX"):
-            # only one streamflow type: discharge
-            canopex_id = self.camels_sites[
-                self.camels_sites["STATION_ID"] == "'" + gage_id_lst[k] + "'"
-            ]["CANOPEX_ID"].values[0]
-            flow_file = os.path.join(
-                self.data_source_description["CAMELS_FLOW_DIR"],
-                f"{str(canopex_id)}.dly",
-            )
-            read_flow_file = pd.read_csv(flow_file, header=None).values.tolist()
-            flow_data = []
-            flow_date = []
-            for one_site in read_flow_file:
-                flow_date.append(
-                    # TODO: check if t2dt is correct
-                    hydro_time.t2dt(int(one_site[0][:8].replace(" ", "0")))
-                )
-                all_data = one_site[0].split(" ")
-                real_data = [one_data for one_data in all_data if one_data != ""]
-                flow_data.append(float(real_data[-3]))
-            date = pd.to_datetime(flow_date).values.astype("datetime64[D]")
-            [c, ind1, ind2] = np.intersect1d(date, t_range_list, return_indices=True)
-            obs = np.array(flow_data)
-            obs[obs < 0] = np.nan
-            y[k, ind2, 0] = obs[ind1]
-        # other units are m3/s -> ft3/s
-        y = y * 35.314666721489
-        return y
-
-    def read_relevant_cols(
-        self,
-        gage_id_lst: list = None,
-        t_range: list = None,
-        var_lst: list = None,
-        forcing_type="daymet",
-    ) -> np.array:
-        """
-        Read forcing data
-
-        Parameters
-        ----------
-        gage_id_lst
-            station ids
-        t_range
-            the time range, for example, ["1990-01-01", "2000-01-01"]
-        var_lst
-            forcing variable types
-        forcing_type
-            now only for CAMELS-US, there are three types: daymet, nldas, maurer
-        Returns
-        -------
-        np.array
-            forcing data
-        """
-        t_range_list = hydro_time.t_range_days(t_range)
-        nt = t_range_list.shape[0]
-        x = np.full([len(gage_id_lst), nt, len(var_lst)], np.nan)
-
-        for k in tqdm(range(len(gage_id_lst)), desc="Read forcing data of CANOPEX"):
-            canopex_id = self.camels_sites[
-                self.camels_sites["STATION_ID"] == "'" + gage_id_lst[k] + "'"
-            ]["CANOPEX_ID"].values[0]
-            forcing_file = os.path.join(
-                self.data_source_description["CAMELS_FLOW_DIR"],
-                f"{str(canopex_id)}.dly",
-            )
-            read_forcing_file = pd.read_csv(forcing_file, header=None).values.tolist()
-
-            forcing_date = []
-            for j in range(len(var_lst)):
-                forcing_data = []
-                for one_site in read_forcing_file:
-                    forcing_date.append(
-                        # TODO: check if t2dt is correct
-                        hydro_time.t2dt(int(one_site[0][:8].replace(" ", "0")))
-                    )
-                    all_data = one_site[0].split(" ")
-                    real_data = [one_data for one_data in all_data if one_data != ""]
-                    if var_lst[j] == "prcp":
-                        forcing_data.append(float(real_data[-5]))
-                    elif var_lst[j] == "tmax":
-                        forcing_data.append(float(real_data[-2]))
-                    elif var_lst[j] == "tmin":
-                        forcing_data.append(float(real_data[-1]))
-                    else:
-                        raise NotImplementedError(
-                            "No such forcing type in CANOPEX now!"
-                        )
-                date = pd.to_datetime(forcing_date).values.astype("datetime64[D]")
-                [c, ind1, ind2] = np.intersect1d(
-                    date, t_range_list, return_indices=True
-                )
-                x[k, ind2, j] = np.array(forcing_data)[ind1]
-        return x
-
-    def read_attr_all_in_one_file(self):
-        """
-        Read all attr data
-
-        Returns
-        -------
-        np.array
-            all attr data
-        """
-
+    def cache_attributes_xrdataset(self):
         attr_all_file = os.path.join(
             self.data_source_description["CAMELS_ATTR_DIR"],
             "HYSETS_watershed_properties.txt",
@@ -319,10 +189,8 @@ class Mopex(HydroDataset):
         all_attr = all_attr_tmp[
             all_attr_tmp["Official_ID"].isin(self.read_object_ids())
         ]
-        # gage_all_attr = all_attr[all_attr['station_id'].isin(gage_id_lst)]
         var_lst = self.get_constant_cols().tolist()
         data_temp = all_attr[var_lst]
-        # for factorized data, we need factorize all gages' data to keep the factorized number same all the time
         n_gage = len(self.read_object_ids())
         out = np.full([n_gage, len(var_lst)], np.nan)
         f_dict = {}
@@ -335,38 +203,61 @@ class Mopex(HydroDataset):
             elif is_numeric_dtype(data_temp[field]):
                 out[:, k] = data_temp[field].values
             k = k + 1
-        # keep same format with CAMELS_US
-        return out, var_lst, None, f_dict
+        ds = xr.Dataset(
+            {var: (["basin"], out[:, i]) for i, var in enumerate(var_lst)},
+            coords={"basin": self.read_object_ids()},
+        )
+        for field, ref in f_dict.items():
+            ds[field].attrs["category_mapping"] = str(ref)
+        ds.to_netcdf(self.cache_dir.joinpath(self._attributes_cache_filename))
 
-    def read_constant_cols(
-        self, gage_id_lst=None, var_lst=None, is_return_dict=False
-    ) -> Union[tuple, np.array]:
-        """
-        Read Attributes data
+    def cache_timeseries_xrdataset(self):
+        t_range_list = hydro_time.t_range_days(self.default_t_range)
+        nt = t_range_list.shape[0]
+        var_lst = self.get_relevant_cols().tolist() + self.get_target_cols().tolist()
+        y = np.full([len(self.read_object_ids()), nt, len(var_lst)], np.nan)
 
-        Parameters
-        ----------
-        gage_id_lst
-            station ids
-        var_lst
-            attribute variable types
-        is_return_dict
-            if true, return var_dict and f_dict for CAMELS_US
-        Returns
-        -------
-        Union[tuple, np.array]
-            if attr var type is str, return factorized data.
-            When we need to know what a factorized value represents, we need return a tuple;
-            otherwise just return an array
-        """
-        attr_all, var_lst_all, var_dict, f_dict = self.read_attr_all_in_one_file()
-        ind_var = [var_lst_all.index(var) for var in var_lst]
-        id_lst_all = self.read_object_ids()
-        # Notice the sequence of station ids ! Some id_lst_all are not sorted, so don't use np.intersect1d
-        ind_grid = [id_lst_all.tolist().index(tmp) for tmp in gage_id_lst]
-        temp = attr_all[ind_grid, :]
-        out = temp[:, ind_var]
-        return (out, var_dict, f_dict) if is_return_dict else out
+        for k, gage_id in enumerate(tqdm(self.read_object_ids(), desc="Read streamflow data of CANOPEX")):
+            canopex_id = self.camels_sites[
+                self.camels_sites["STATION_ID"] == "'" + gage_id + "'"
+            ]["CANOPEX_ID"].values[0]
+            flow_file = os.path.join(
+                self.data_source_description["CAMELS_FLOW_DIR"],
+                f"{str(canopex_id)}.dly",
+            )
+            read_flow_file = pd.read_csv(flow_file, header=None).values.tolist()
+            flow_data = []
+            flow_date = []
+            prcp_data = []
+            tmax_data = []
+            tmin_data = []
+            for one_site in read_flow_file:
+                flow_date.append(
+                    hydro_time.t2dt(int(one_site[0][:8].replace(" ", "0")))
+                )
+                all_data = one_site[0].split(" ")
+                real_data = [one_data for one_data in all_data if one_data != ""]
+                flow_data.append(float(real_data[-3]))
+                prcp_data.append(float(real_data[-5]))
+                tmax_data.append(float(real_data[-2]))
+                tmin_data.append(float(real_data[-1]))
+            date = pd.to_datetime(flow_date).values.astype("datetime64[D]")
+            [c, ind1, ind2] = np.intersect1d(date, t_range_list, return_indices=True)
+            flow_obs = np.array(flow_data)
+            flow_obs[flow_obs < 0] = np.nan
+            y[k, ind2, var_lst.index("discharge")] = flow_obs[ind1] * 35.314666721489
+            prcp_obs = np.array(prcp_data)
+            y[k, ind2, var_lst.index("prcp")] = prcp_obs[ind1]
+            tmax_obs = np.array(tmax_data)
+            y[k, ind2, var_lst.index("tmax")] = tmax_obs[ind1]
+            tmin_obs = np.array(tmin_data)
+            y[k, ind2, var_lst.index("tmin")] = tmin_obs[ind1]
+
+        ds = xr.Dataset(
+            {var: (["basin", "time"], y[:, :, i]) for i, var in enumerate(var_lst)},
+            coords={"basin": self.read_object_ids(), "time": t_range_list},
+        )
+        ds.to_netcdf(self.cache_dir.joinpath(self._timeseries_cache_filename))
 
     def read_area(self, object_ids) -> np.array:
         return self.read_constant_cols(

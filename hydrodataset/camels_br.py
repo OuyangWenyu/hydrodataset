@@ -5,7 +5,7 @@ import pandas as pd
 import numpy as np
 import xarray as xr
 from tqdm import tqdm
-from hydrodataset import CACHE_DIR, CAMELS_REGIONS
+from hydrodataset import CAMELS_REGIONS
 from hydrodataset.camels import Camels
 from pandas.api.types import is_string_dtype, is_numeric_dtype
 
@@ -22,6 +22,7 @@ class CamelsBr(Camels):
         download=False,
         region: str = "BR",
         version: str = "1.2",
+        cache_path=None,
     ):
         """
         Initialization for CAMELS-BR dataset
@@ -37,11 +38,25 @@ class CamelsBr(Camels):
             if true, download, by default False
         region
             the default is CAMELS-BR
+        cache_path
+            the path to cache the dataset
         """
         self.data_path = os.path.join(data_path, "CAMELS_BR")
-        super().__init__(self.data_path, download, region)
+        super().__init__(self.data_path, download, region, cache_path=cache_path)
         # Build a map from variable name to its source directory
         self._variable_map = self._build_variable_map()
+
+    @property
+    def _attributes_cache_filename(self):
+        return "camelsbr_attributes.nc"
+
+    @property
+    def _timeseries_cache_filename(self):
+        return "camelsbr_timeseries.nc"
+
+    @property
+    def default_t_range(self):
+        return ["1980-01-01", "2024-07-31"]
 
     def _build_variable_map(self):
         """
@@ -233,11 +248,11 @@ class CamelsBr(Camels):
         return self._get_constant_cols_some(data_folder, "camels_br_", ".txt", "\s+")
 
     def static_features(self):
-        """Read static features list"""
+        "Read static features list"
         return self.get_constant_cols()
 
     def dynamic_features(self):
-        """Return all available time series variables."""
+        "Return all available time series variables."
         return np.array(list(self._variable_map.keys()))
 
     def _find_file_for_gage(self, directory, gage_id):
@@ -358,7 +373,11 @@ class CamelsBr(Camels):
         return out, var_lst, var_dict, f_dict
 
     def read_constant_cols(
-        self, gage_id_lst=None, var_lst=None, is_return_dict=False, **kwargs
+        self,
+        gage_id_lst=None,
+        var_lst=None,
+        is_return_dict=False,
+        **kwargs,
     ) -> np.ndarray:
         """
         Read Attributes data
@@ -432,59 +451,34 @@ class CamelsBr(Camels):
         ds = xr.Dataset(data_vars)
         return ds
 
-    def read_ts_xrdataset(
-        self,
-        gage_id_lst: list = None,
-        t_range: list = None,
-        var_lst: list = None,
-        **kwargs,
-    ):
+    def cache_timeseries_xrdataset(self, **kwargs):
         """Read time series data from cache or generate it and return an xarray.Dataset
         TODO: For p_ana_gauges, they are rainfall gauges, we need to calculate basin-averaged precipitation from them,
         if we want to use them as basin-averaged precipitation.
-        
+
         """
-        if var_lst is None:
-            return None
-        camels_ts_cache_file = CACHE_DIR.joinpath("camelsbr_timeseries.nc")
-        if not os.path.isfile(camels_ts_cache_file):
-            print(
-                "Creating cache for CAMELS-BR time series data... This may take a while."
-            )
-            all_basins = self.read_object_ids()
-            all_vars = self.dynamic_features()
-            # Define a canonical time range for the cache, e.g., 1980-2020
-            canonical_t_range = ["1980-01-01", "2024-07-31"]
-            ds_full = self._read_ts_dynamic(
-                gage_id_lst=all_basins,
-                t_range=canonical_t_range,
-                var_lst=all_vars,
-                **kwargs,
-            )
-            ds_full.to_netcdf(camels_ts_cache_file)
+        print("Creating cache for CAMELS-BR time series data... This may take a while.")
+        all_basins = self.read_object_ids()
+        all_vars = self.dynamic_features()
+        # Define a canonical time range for the cache, e.g., 1980-2020
+        canonical_t_range = self.default_t_range
+        ds_full = self._read_ts_dynamic(
+            gage_id_lst=all_basins,
+            t_range=canonical_t_range,
+            var_lst=all_vars,
+            **kwargs,
+        )
+        ds_full.to_netcdf(self.cache_dir.joinpath(self._timeseries_cache_filename))
 
-        ts = xr.open_dataset(camels_ts_cache_file)
-        all_vars_in_file = ts.data_vars
-        if any(var not in all_vars_in_file for var in var_lst):
-            raise ValueError(f"var_lst must all be in {all_vars_in_file}")
-        return ts[var_lst].sel(basin=gage_id_lst, time=slice(t_range[0], t_range[1]))
-
-    def read_attr_xrdataset(self, gage_id_lst=None, var_lst=None, **kwargs):
+    def cache_attributes_xrdataset(self, **kwargs):
         """Read attribute data from cache or generate it and return an xarray.Dataset"""
-        if var_lst is None or len(var_lst) == 0:
-            return None
-        camels_attr_cache_file = CACHE_DIR.joinpath("camelsbr_attributes.nc")
-        if not os.path.isfile(camels_attr_cache_file):
-            print("Creating cache for CAMELS-BR attributes data...")
-            all_basins = self.read_object_ids()
-            all_vars = self.get_constant_cols()
-            ds_full = self._read_attr_static(
-                gage_id_lst=all_basins, var_lst=all_vars, **kwargs
-            )
-            ds_full.to_netcdf(camels_attr_cache_file)
-
-        attr = xr.open_dataset(camels_attr_cache_file)
-        return attr[var_lst].sel(basin=gage_id_lst)
+        print("Creating cache for CAMELS-BR attributes data...")
+        all_basins = self.read_object_ids()
+        all_vars = self.get_constant_cols()
+        ds_full = self._read_attr_static(
+            gage_id_lst=all_basins, var_lst=all_vars, **kwargs
+        )
+        ds_full.to_netcdf(self.cache_dir.joinpath(self._attributes_cache_filename))
 
     def read_mean_prcp(self, gage_id_lst, unit="mm/d") -> xr.Dataset:
         """Read mean precipitation data

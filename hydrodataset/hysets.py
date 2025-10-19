@@ -1,6 +1,5 @@
 import collections
 import os
-from typing import Union
 import xarray as xr
 import warnings
 import pandas as pd
@@ -10,7 +9,7 @@ from hydrodataset import HydroDataset
 
 
 class Hysets(HydroDataset):
-    def __init__(self, data_path, download=False, region="NA"):
+    def __init__(self, data_path, download=False, region="NA", cache_path=None):
         """
         Initialization for LamaH-CE dataset
 
@@ -22,12 +21,26 @@ class Hysets(HydroDataset):
             if true, download
         region
             the region is North America, NA
+        cache_path
+            the path to cache the dataset
         """
-        super().__init__(data_path)
+        super().__init__(data_path, cache_path=cache_path)
         self.data_source_description = self.set_data_source_describe()
         if download:
             self.download_data_source()
         self.sites = self.read_site_info()
+
+    @property
+    def _attributes_cache_filename(self):
+        return "hysets_attributes.nc"
+
+    @property
+    def _timeseries_cache_filename(self):
+        return "hysets_timeseries.nc"
+
+    @property
+    def default_t_range(self):
+        return ["1950-01-01", "2018-12-31"]
 
     def get_name(self):
         return "HYSETS"
@@ -90,68 +103,14 @@ class Hysets(HydroDataset):
     def read_object_ids(self, **kwargs) -> np.array:
         return self.sites["Watershed_ID"].values
 
-    def read_target_cols(
-        self,
-        gage_id_lst: Union[list, np.array] = None,
-        t_range: list = None,
-        target_cols: Union[list, np.array] = None,
-        **kwargs
-    ) -> np.array:
-        return self._read_timeseries_data(
-            "FLOW_FILE", gage_id_lst, t_range, target_cols
-        )
-
-    def read_relevant_cols(
-        self,
-        gage_id_lst: list = None,
-        t_range: list = None,
-        var_lst: list = None,
-        forcing_type="daymet",
-    ) -> np.array:
-        """_summary_
-
-        Parameters
-        ----------
-        gage_id_lst : list, optional
-            _description_, by default None
-        t_range : list, optional
-            A special notice is that for xarray, the time range is [start, end] which is a closed interval.
-        var_lst : list, optional
-            _description_, by default None
-        forcing_type : str, optional
-            _description_, by default "daymet"
-
-        Returns
-        -------
-        np.array
-            _description_
-        """
-        return self._read_timeseries_data("FORCING_FILE", gage_id_lst, t_range, var_lst)
-
-    def _read_timeseries_data(self, file_name, gage_id_lst, t_range, var_lst):
-        ts_file = self.data_source_description[file_name]
-        data = xr.open_dataset(ts_file)
-        gage_id_lst = [int(id) for id in gage_id_lst]
-        if gage_id_lst is not None:
-            watershed_ids = [float(id) for id in gage_id_lst]
-            data = data.where(data.watershedID.isin(watershed_ids), drop=True)
-        if t_range is not None:
-            data = data.sel(time=slice(t_range[0], t_range[1]))
-        if var_lst is None:
-            if file_name == "FLOW_FILE":
-                var_lst = self.get_target_cols()
-            else:
-                var_lst = self.get_relevant_cols()
-        return data[var_lst]
-
-    def read_constant_cols(
-        self, gage_id_lst=None, var_lst=None, is_return_dict=False
-    ) -> Union[tuple, np.array]:
+    def cache_attributes_xrdataset(self):
         attr_file = self.data_source_description["ATTR_FILE"]
         data = pd.read_csv(attr_file, sep=",", dtype={"Watershed_ID": str})
         data = data.set_index("Watershed_ID")
-        if gage_id_lst is not None:
-            data = data.loc[gage_id_lst]
-        if var_lst is not None:
-            data = data.loc[:, var_lst]
-        return data.to_dict("index") if is_return_dict else data.values
+        ds = xr.Dataset.from_dataframe(data)
+        ds.to_netcdf(self.cache_dir.joinpath(self._attributes_cache_filename))
+
+    def cache_timeseries_xrdataset(self):
+        ts_file = self.data_source_description["FLOW_FILE"]
+        data = xr.open_dataset(ts_file)
+        data.to_netcdf(self.cache_dir.joinpath(self._timeseries_cache_filename))

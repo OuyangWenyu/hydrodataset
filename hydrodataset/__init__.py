@@ -1,7 +1,7 @@
 """
 Author: Wenyu Ouyang
 Date: 2022-09-05 23:20:24
-LastEditTime: 2025-10-18 21:27:55
+LastEditTime: 2025-10-19 16:25:51
 LastEditors: Wenyu Ouyang
 Description: set file dir
 FilePath: \hydrodataset\hydrodataset\__init__.py
@@ -15,7 +15,7 @@ from hydroutils import hydro_file
 
 __author__ = """Wenyu Ouyang"""
 __email__ = "wenyuouyang@outlook.com"
-__version__ = '0.1.13'
+__version__ = "0.1.13"
 
 
 SETTING_FILE = os.path.join(Path.home(), "hydro_setting.yml")
@@ -71,8 +71,8 @@ except Exception as e:
 
 # set some constants for hydrodataset
 ROOT_DIR = SETTING["local_data_path"]["datasets-origin"]
-CACHE_DIR = Path(hydro_file.get_cache_dir())
-
+# As hydrodataset has a lot of datasets, maybe disk C of user is not enough, so we set the cache directory here.
+CACHE_DIR = SETTING["local_data_path"]["cache"]
 
 # set some constants for datasets
 DATASETS = ["CAMELS", "Caravan", "GRDC", "HYSETS", "LamaH", "MOPEX"]
@@ -83,6 +83,6 @@ MOPEX_REGIONS = ["CA"]
 REGIONS = CAMELS_REGIONS + LAMAH_REGIONS + MOPEX_REGIONS
 from .hydro_dataset import *
 from .camels import *
-from .camels_sk_aqua import *
+from .camels_sk import *
 from .multi_datasets import *
-from .lamah import *
+from .lamah_ce import *

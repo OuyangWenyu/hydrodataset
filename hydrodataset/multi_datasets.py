@@ -13,11 +13,11 @@ from hydrodataset import (
     Camels,
     CAMELS_NO_DATASET_ERROR_LOG,
 )
-from hydrodataset.lamah import Lamah
+from hydrodataset.lamah_ce import LamahCe
 
 DATASETS_DICT = {
     "CAMELS": Camels,
-    "LamaH": Lamah,
+    "LamaH": LamahCe,
 }
 
 
