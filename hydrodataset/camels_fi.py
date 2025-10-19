@@ -3,7 +3,7 @@ import xarray as xr
 from hydrodataset import HydroDataset
 from tqdm import tqdm
 import numpy as np
-from water_datasets import CAMELS_FI
+from aqua_fetch import CAMELS_FI
 
 
 class CamelsFi(HydroDataset):
@@ -18,16 +18,15 @@ class CamelsFi(HydroDataset):
         ds_description: Dictionary containing dataset file paths
     """
 
-    def __init__(self, data_path, region=None, download=False, cache_path=None):
+    def __init__(self, data_path, region=None, download=False):
         """Initialize CAMELS_FI dataset.
 
         Args:
             data_path: Path to the CAMELS_FI data directory
             region: Geographic region identifier (optional)
             download: Whether to download data automatically (default: False)
-            cache_path: Path to the cache directory
         """
-        super().__init__(data_path, cache_path=cache_path)
+        super().__init__(data_path)
         self.region = region
         self.download = download
         self.aqua_fetch = CAMELS_FI(data_path)
@@ -43,10 +42,6 @@ class CamelsFi(HydroDataset):
     @property
     def default_t_range(self):
         return ["1961-01-01", "2023-12-31"]
-
-
-
-
 
     def _get_attribute_units(self):
         return {
@@ -123,8 +118,8 @@ class CamelsFi(HydroDataset):
             "cm",  # snowdepth_m
             "°C",  # temperature_gmin
             "°C",  # airtemp_C_min
-            '°C',  # airtemp_C_mean
-            '°C',  # airtemp_C_max
-            '%',  # rh_%
-            'KJ/m^2',  # radiation_global
+            "°C",  # airtemp_C_mean
+            "°C",  # airtemp_C_max
+            "%",  # rh_%
+            "KJ/m^2",  # radiation_global
         ]

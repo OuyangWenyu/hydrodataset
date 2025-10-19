@@ -50,7 +50,8 @@ def main():
         # default="camels_cl",
         # default="camels_col",
         # default="camels_de",
-        default="camels_dk",
+        # default="camels_dk",
+        default="camels_fi",
         help="Name of the dataset to read.",
         choices=DATASET_MAPPING.keys(),
     )
