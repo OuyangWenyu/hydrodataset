@@ -1,7 +1,7 @@
 """
 Author: Wenyu Ouyang
 Date: 2022-09-05 23:20:24
-LastEditTime: 2025-10-19 19:16:13
+LastEditTime: 2025-10-19 19:32:22
 LastEditors: Wenyu Ouyang
 Description: main modules for hydrodataset
 FilePath: \hydrodataset\hydrodataset\hydro_dataset.py
@@ -107,10 +107,34 @@ class HydroDataset(ABC):
             return self.aqua_fetch.dynamic_features
         raise NotImplementedError
 
+    @staticmethod
+    def _clean_feature_names(feature_names):
+        """
+        Clean feature names to be compatible with NetCDF format.
+
+        Parameters
+        ----------
+        feature_names : list or pd.Index
+            Original feature names
+
+        Returns
+        -------
+        list
+            Cleaned feature names
+        """
+        import pandas as pd
+
+        if isinstance(feature_names, list):
+            feature_names = pd.Index(feature_names)
+        return (
+            feature_names.str.strip().str.replace(" ", "_").str.replace("/", "_")
+        ).tolist()
+
     def static_features(self) -> list:
         """the static features in this data_source"""
         if hasattr(self, "aqua_fetch"):
-            return self.aqua_fetch.static_features
+            original_features = self.aqua_fetch.static_features
+            return self._clean_feature_names(original_features)
         raise NotImplementedError
 
     @property
@@ -218,9 +242,13 @@ class HydroDataset(ABC):
     def cache_attributes_xrdataset(self):
         if hasattr(self, "aqua_fetch"):
             df_attr = self.aqua_fetch.fetch_static_features()
+            # Clean column names using the unified method
+            df_attr.columns = self._clean_feature_names(df_attr.columns)
             # Remove duplicate columns if any (keep first occurrence)
             if df_attr.columns.duplicated().any():
                 df_attr = df_attr.loc[:, ~df_attr.columns.duplicated()]
+            # Ensure index is string type for basin IDs
+            df_attr.index = df_attr.index.astype(str)
             ds_attr = df_attr.to_xarray()
             # Check if the coordinate is named 'basin', if not rename it
             coord_names = list(ds_attr.dims.keys())
@@ -241,6 +269,9 @@ class HydroDataset(ABC):
             attr = xr.open_dataset(attr_cache_file)
         if var_lst is None or len(var_lst) == 0:
             var_lst = self.static_features()
+        # Ensure gage_id_lst is string type to match basin coordinate
+        if gage_id_lst is not None:
+            gage_id_lst = [str(gid) for gid in gage_id_lst]
         return attr[var_lst].sel(basin=gage_id_lst)
 
     def read_ts_xrdataset(

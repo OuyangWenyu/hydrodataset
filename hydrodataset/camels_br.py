@@ -22,7 +22,6 @@ class CamelsBr(Camels):
         download=False,
         region: str = "BR",
         version: str = "1.2",
-        cache_path=None,
     ):
         """
         Initialization for CAMELS-BR dataset
@@ -38,11 +37,9 @@ class CamelsBr(Camels):
             if true, download, by default False
         region
             the default is CAMELS-BR
-        cache_path
-            the path to cache the dataset
         """
         self.data_path = os.path.join(data_path, "CAMELS_BR")
-        super().__init__(self.data_path, download, region, cache_path=cache_path)
+        super().__init__(self.data_path, download, region)
         # Build a map from variable name to its source directory
         self._variable_map = self._build_variable_map()
 
@@ -59,7 +56,7 @@ class CamelsBr(Camels):
         return ["1980-01-01", "2024-07-31"]
 
     def _get_attribute_units(self):
-        # TODO: Verify the units of the attributes
+        # NOTE: Not verified AND not used
         return {
             # topography
             "area": "km2",
@@ -97,7 +94,7 @@ class CamelsBr(Camels):
         }
 
     def _get_timeseries_units(self):
-        # TODO: Verify the order and units of the timeseries
+        # NOTE: Not verified AND not used
         return [
             "mm/day",  # streamflow
             "m3/s",  # streamflow

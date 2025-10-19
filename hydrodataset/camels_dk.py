@@ -1,12 +1,18 @@
-import os
-import xarray as xr
+"""
+Author: Yimeng Zhang
+Date: 2025-10-19 19:40:08
+LastEditTime: 2025-10-19 19:54:34
+LastEditors: Wenyu Ouyang
+Description: CAMELS_DK dataset class
+FilePath: \hydrodataset\hydrodataset\camels_dk.py
+Copyright (c) 2021-2026 Wenyu Ouyang. All rights reserved.
+"""
+
 from hydrodataset import HydroDataset
-from tqdm import tqdm
-import numpy as np
-from water_datasets import CAMELS_DK
+from aqua_fetch import CAMELS_DK
 
 
-class CamelsDK(HydroDataset):
+class CamelsDk(HydroDataset):
     """CAMELS_DK dataset class extending RainfallRunoff.
 
     This class provides access to the CAMELS_DK dataset, which contains hourly
@@ -18,16 +24,15 @@ class CamelsDK(HydroDataset):
         ds_description: Dictionary containing dataset file paths
     """
 
-    def __init__(self, data_path, region=None, download=False, cache_path=None):
+    def __init__(self, data_path, region=None, download=False):
         """Initialize CAMELS_DK dataset.
 
         Args:
             data_path: Path to the CAMELS_DK data directory
             region: Geographic region identifier (optional)
             download: Whether to download data automatically (default: False)
-            cache_path: Path to the cache directory
         """
-        super().__init__(data_path, cache_path=cache_path)
+        super().__init__(data_path)
         self.region = region
         self.download = download
         self.aqua_fetch = CAMELS_DK(data_path)
@@ -43,10 +48,6 @@ class CamelsDK(HydroDataset):
     @property
     def default_t_range(self):
         return ["1989-01-02", "2023-12-31"]
-
-
-
-
 
     def _get_attribute_units(self):
         return {

@@ -1,6 +1,3 @@
-import os
-import xarray as xr
-import numpy as np
 from aqua_fetch import CAMELS_DE
 from hydrodataset import HydroDataset
 from tqdm import tqdm
@@ -46,10 +43,6 @@ class CamelsDe(HydroDataset):
     @property
     def default_t_range(self):
         return ["1951-01-01", "2020-12-31"]
-
-
-
-
 
     def _get_attribute_units(self):
         return {

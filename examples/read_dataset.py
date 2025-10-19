@@ -46,7 +46,11 @@ def main():
         nargs="?",  # make it optional
         # default="camels_aus",  # change this to test different datasets
         # default="camels_br",
-        default="camels_ch",
+        # default="camels_ch",
+        # default="camels_cl",
+        # default="camels_col",
+        # default="camels_de",
+        default="camels_dk",
         help="Name of the dataset to read.",
         choices=DATASET_MAPPING.keys(),
     )

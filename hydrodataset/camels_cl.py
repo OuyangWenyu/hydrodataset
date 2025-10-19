@@ -1,9 +1,15 @@
-import os
-import xarray as xr
-import numpy as np
+"""
+Author: Yimeng Zhang
+Date: 2025-10-19 19:40:08
+LastEditTime: 2025-10-19 19:40:33
+LastEditors: Wenyu Ouyang
+Description: CAMELS_CL dataset class
+FilePath: \hydrodataset\hydrodataset\camels_cl.py
+Copyright (c) 2021-2026 Wenyu Ouyang. All rights reserved.
+"""
+
 from aqua_fetch import CAMELS_CL
 from hydrodataset import HydroDataset
-from tqdm import tqdm
 
 
 class CamelsCl(HydroDataset):
@@ -18,16 +24,15 @@ class CamelsCl(HydroDataset):
         ds_description: Dictionary containing dataset file paths
     """
 
-    def __init__(self, data_path, region=None, download=False, cache_path=None):
+    def __init__(self, data_path, region=None, download=False):
         """Initialize CAMELS_CL dataset.
 
         Args:
             data_path: Path to the CAMELS_CL data directory
             region: Geographic region identifier (optional)
             download: Whether to download data automatically (default: False)
-            cache_path: Path to the cache directory
         """
-        super().__init__(data_path, cache_path=cache_path)
+        super().__init__(data_path)
         self.region = region
         self.download = download
         self.aqua_fetch = CAMELS_CL(data_path)
@@ -43,10 +48,6 @@ class CamelsCl(HydroDataset):
     @property
     def default_t_range(self):
         return ["1913-02-15", "2018-03-09"]
-
-
-
-
 
     def _get_attribute_units(self):
         return {

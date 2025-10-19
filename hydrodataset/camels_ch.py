@@ -1,5 +1,3 @@
-import xarray as xr
-import numpy as np
 from aqua_fetch import CAMELS_CH
 from hydrodataset import HydroDataset
 from hydroutils import hydro_file
@@ -13,9 +11,9 @@ class CamelsCh(HydroDataset):
     hydrological and meteorological data for various watersheds.
     """
 
-    def __init__(self, data_path, region=None, download=False, version="v0.9", cache_path=None):
+    def __init__(self, data_path, region=None, download=False, version="v0.9"):
         """Initialize CAMELS-CH dataset."""
-        super().__init__(data_path, cache_path=cache_path)
+        super().__init__(data_path)
         self.region = region
         self.download = download
         self.version = version
@@ -49,10 +47,6 @@ class CamelsCh(HydroDataset):
     @property
     def default_t_range(self):
         return ["1981-01-01", "2020-12-31"]
-
-
-
-
 
     def _get_attribute_units(self):
         return {
