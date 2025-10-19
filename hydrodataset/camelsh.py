@@ -5,7 +5,7 @@ from hydrodataset import HydroDataset
 from tqdm import tqdm
 import numpy as np
 from pathlib import Path
-from water_datasets import CAMELSH
+from aqua_fetch import CAMELSH
 
 
 class Camelsh(HydroDataset):
@@ -74,10 +74,6 @@ class Camelsh(HydroDataset):
         self.ds_description["Hourly2_file"] = os.path.join(
             self.data_path, "CAMELSH", "Hourly2", "Hourly2"
         )
-
-
-
-
 
     def _get_attribute_units(self):
         return {

@@ -45,10 +45,6 @@ class CamelshKr(HydroDataset):
     def default_t_range(self):
         return ["2000-01-01", "2019-12-31"]
 
-
-
-
-
     def _get_attribute_units(self):
         return {
             # 地形特征
@@ -131,14 +127,12 @@ class CamelshKr(HydroDataset):
             "unknown",  # water_level
         ]
 
-
     def read_mean_prcp(self, gage_id_lst, unit="mm/d") -> xr.Dataset:
         data_output_ds_ = self.read_attr_xrdataset(
             gage_id_lst,
-            ['p_mean'],
+            ["p_mean"],
         )
-        data_output_ds_ = (
-            data_output_ds_
-            .rename({'STAID': 'basin'})  # 重命名 STAID 为 basin
-        )
+        data_output_ds_ = data_output_ds_.rename(
+            {"STAID": "basin"}
+        )  # 重命名 STAID 为 basin
         return data_output_ds_

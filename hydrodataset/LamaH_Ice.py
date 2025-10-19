@@ -3,7 +3,7 @@ import xarray as xr
 from hydrodataset import HydroDataset
 from tqdm import tqdm
 import numpy as np
-from water_datasets import LamaHIce
+from aqua_fetch import LamaHIce
 
 
 class LamahIce(HydroDataset):
@@ -18,16 +18,15 @@ class LamahIce(HydroDataset):
         ds_description: Dictionary containing dataset file paths
     """
 
-    def __init__(self, data_path, region=None, download=False, cache_path=None):
+    def __init__(self, data_path, region=None, download=False):
         """Initialize LamaHICE dataset.
 
         Args:
             data_path: Path to the LamaHICE data directory
             region: Geographic region identifier (optional)
             download: Whether to download data automatically (default: False)
-            cache_path: Path to the cache directory
         """
-        super().__init__(data_path, cache_path=cache_path)
+        super().__init__(data_path)
         self.region = region
         self.download = download
         self.aqua_fetch = LamaHIce(data_path)

@@ -3,7 +3,7 @@ import xarray as xr
 from hydrodataset import HydroDataset
 from tqdm import tqdm
 import numpy as np
-from water_datasets import GRDCCaravan
+from aqua_fetch import GRDCCaravan
 
 
 class GrdcCaravan(HydroDataset):
