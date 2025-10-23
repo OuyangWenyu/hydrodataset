@@ -251,6 +251,7 @@ class HydroDataset(ABC):
     def cache_attributes_xrdataset(self):
         if hasattr(self, "aqua_fetch"):
             df_attr = self.aqua_fetch.fetch_static_features()
+            print(df_attr.columns)
             # Clean column names using the unified method
             df_attr.columns = self._clean_feature_names(df_attr.columns)
             # Remove duplicate columns if any (keep first occurrence)

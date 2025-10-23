@@ -1,11 +1,11 @@
-from aqua_fetch import HYSETS
+from aqua_fetch import EStreams
 from hydrodataset import HydroDataset
 
 
-class Hysets(HydroDataset):
-    """HYsets dataset class extending RainfallRunoff.
+class Estreams(HydroDataset):
+    """EStreams dataset class extending RainfallRunoff.
 
-    This class provides access to the HYsets dataset, which contains hourly
+    This class provides access to the EStreams dataset, which contains hourly
     hydrological and meteorological data for various watersheds.
 
     Attributes:
@@ -15,10 +15,10 @@ class Hysets(HydroDataset):
     """
 
     def __init__(self, data_path, region=None, download=False):
-        """Initialize HYsets dataset.
+        """Initialize EStreams dataset.
 
         Args:
-            data_path: Path to the HYsets data directory
+            data_path: Path to the EStreams data directory
             region: Geographic region identifier (optional)
             download: Whether to download data automatically (default: False)
             cache_path: Path to the cache directory
@@ -26,19 +26,19 @@ class Hysets(HydroDataset):
         super().__init__(data_path)
         self.region = region
         self.download = download
-        self.aqua_fetch = HYSETS(data_path)
+        self.aqua_fetch = EStreams(data_path)
 
     @property
     def _attributes_cache_filename(self):
-        return "hysets_attributes.nc"
+        return "estreams_attributes.nc"
 
     @property
     def _timeseries_cache_filename(self):
-        return "hysets_timeseries.nc"
+        return "estreams_timeseries.nc"
 
     @property
     def default_t_range(self):
-        return ["1950-01-01", "2023-12-31"]
+        return ["1950-01-01", "2023-06-30"]
 
     def _get_attribute_units(self):
         return {
@@ -103,32 +103,13 @@ class Hysets(HydroDataset):
 
     def _get_timeseries_units(self):
         return [
-            "mm^3/s",  # q_cms_obs ML/day->mm^3/s,×1.1574 × 10⁻2
-            "ML/day",  # streamflow_MLd
-            "mm/day",  # q_mm_obs
-            "mm/day",  # aet_mm_silo_morton
-            "mm/day",  # aet_mm_silo_morton_point
-            "mm/day",  # et_morton_wet_SILO
-            "mm/day",  # aet_mm_silo_short_crop
-            "mm/day",  # aet_mm_silo_tall_crop
-            "mm/day",  # evap_morton_lake_SILO
-            "mm/day",  # evap_pan_SILO
-            "mm/day",  # evap_syn_SILO
-            "mm/day",  # pcp_mm_agcd
-            "mm/day",  # pcp_mm_silo
-            "mm^2/d^2 ",  # precipitation_var_AGCD
-            "°C",  # airtemp_C_agcd_max
-            "°C",  # airtemp_C_agcd_min
-            "hPa",  # vp_hpa_agcd_h09
-            "hPa",  # vp_hpa_agcd_h15
-            "hPa",  # mslp_SILO
-            "MJ/m²",  # solrad_wm2_silo
-            "%",  # rh_%_silo_tmax
-            "%",  # rh_%_silo_tmin
-            "°C",  # airtemp_C_silo_max
-            "°C",  # airtemp_C_silo_min
-            "hPa",  # vp_deficit_SILO
-            "hPa",  # vp_hpa_silo
-            "°C",  # airtemp_C_mean_silo
-            "°C",  # airtemp_C_mean_agcd
+            "mm/day",  # pcp_mm
+            "°C",  # airtemp_C_mean     
+            "°C",  # airtemp_C_min
+            "°C",  # airtemp_C_max
+            "hPa",  # sp_mean
+            "%",  # rh_%
+            "m/s",  # windspeed_mps
+            "W/m²",  # solrad_wm2
+            "mm/day",  # pet_mm
         ]

@@ -1,11 +1,11 @@
-from aqua_fetch import HYSETS
+from aqua_fetch import Finland
 from hydrodataset import HydroDataset
 
 
-class Hysets(HydroDataset):
-    """HYsets dataset class extending RainfallRunoff.
+class FinLand(HydroDataset):
+    """Finland dataset class extending RainfallRunoff.
 
-    This class provides access to the HYsets dataset, which contains hourly
+    This class provides access to the Finland dataset, which contains hourly
     hydrological and meteorological data for various watersheds.
 
     Attributes:
@@ -15,10 +15,10 @@ class Hysets(HydroDataset):
     """
 
     def __init__(self, data_path, region=None, download=False):
-        """Initialize HYsets dataset.
+        """Initialize Finland dataset.
 
         Args:
-            data_path: Path to the HYsets data directory
+            data_path: Path to the Finland data directory
             region: Geographic region identifier (optional)
             download: Whether to download data automatically (default: False)
             cache_path: Path to the cache directory
@@ -26,19 +26,19 @@ class Hysets(HydroDataset):
         super().__init__(data_path)
         self.region = region
         self.download = download
-        self.aqua_fetch = HYSETS(data_path)
+        self.aqua_fetch = Finland(data_path)
 
     @property
     def _attributes_cache_filename(self):
-        return "hysets_attributes.nc"
+        return "finland_attributes.nc"
 
     @property
     def _timeseries_cache_filename(self):
-        return "hysets_timeseries.nc"
+        return "finland_timeseries.nc"
 
     @property
     def default_t_range(self):
-        return ["1950-01-01", "2023-12-31"]
+        return ["2012-01-01", "2023-06-30"]
 
     def _get_attribute_units(self):
         return {

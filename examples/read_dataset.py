@@ -37,8 +37,18 @@ DATASET_MAPPING = {
     "lamah_ce": ("hydrodataset.lamah_ce", "LamahCe"),
     "lamah_ice": ("hydrodataset.lamah_ice", "LamahIce"),
     "mopex": ("hydrodataset.mopex", "Mopex"),
+    "bull": ("hydrodataset.bull", "BULL"),
+    "caravan_dk": ("hydrodataset.caravan_dk", "CaravanDK"),
+    "hysets": ("hydrodataset.hysets", "Hysets"),
+    "estreams": ("hydrodataset.estreams", "Estreams"),
+    "hype": ("hydrodataset.hype", "Hype"),
+    "jialing": ("hydrodataset.jialingriverchina", "jialingriverchina"),
+    "simbi": ("hydrodataset.simbi", "simbi"),
+    "waterbenchiowa": ("hydrodataset.waterbenchiowa", "waterbenchiowa"),
+    "camels_es": ("hydrodataset.camels_es", "CamelsEs"),
+    "hyd_responses": ("hydrodataset.hyd_responses", "HydResponses"),
+    "camels_deby": ("hydrodataset.camels_deby", "CamelsDeby"),
 }
-
 
 def main():
     parser = argparse.ArgumentParser(description="Read data from a specified dataset.")
@@ -60,26 +70,41 @@ def main():
         # default="camels_nz",
         # default="camels_se",
         # default="camels_us",
-        default="camelsh_kr",
+        # default="camelsh_kr",
         # default="camelsh",
+        # default="bull",
+        # default="caravan_dk",
+        # default="hysets",
+        # default="estreams",
+        # default="hype",
+        # default="lamah_ice",
+        default="jialing",
+        # default="simbi",
+        # default="waterbenchiowa",
+        # default="lamah_ce",
+        # default="arcade",
+        # default="camels_es",
+        # default="hyd_responses",
+        # default="camels_deby",
         help="Name of the dataset to read.",
         choices=DATASET_MAPPING.keys(),
     )
     args = parser.parse_args()
 
     module_name, class_name = DATASET_MAPPING[args.dataset]
-
+    
     try:
         module = importlib.import_module(module_name)
         dataset_class = getattr(module, class_name)
     except ImportError:
         print(f"Error: Could not import {class_name} from {module_name}.")
         return
-
-    data_path = SETTING["local_data_path"]["datasets-origin"]
+  
+    data_path = SETTING["local_data_path"]["root"]
 
     ds = dataset_class(data_path)
 
+    
     print(f"Reading from {args.dataset} dataset...")
 
     gage_ids = ds.read_object_ids()
@@ -88,7 +113,7 @@ def main():
     print("--------------------------------")
 
     ts_all = ds.dynamic_features()
-    print("All dynamic features:")
+    print("All dynamic features:")  
     print(ts_all)
     print("--------------------------------")
 
