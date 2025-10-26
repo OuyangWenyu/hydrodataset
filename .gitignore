@@ -144,3 +144,4 @@ Thumbs.db
 
 # Data
 *.tmp
+EStreams/*
