@@ -30,6 +30,8 @@ class HydroDataset(ABC):
         _description_
     """
 
+    _variable_name_map = {}
+
     def __init__(self, data_path, cache_path=None):
         self.data_source_dir = Path(ROOT_DIR, data_path)
         if not self.data_source_dir.is_dir():
@@ -306,7 +308,11 @@ class HydroDataset(ABC):
 
     def read_area(self, gage_id_lst):
         """read area of each basin/unit"""
-        raise NotImplementedError
+        area_var_name = self._variable_name_map["area"]
+        data_ds = self.read_attr_xrdataset(
+            gage_id_lst=gage_id_lst, var_lst=[area_var_name]
+        )
+        return data_ds[area_var_name]
 
     def read_mean_prcp(self, gage_id_lst, unit="mm/d"):
         """read mean precipitation of each basin
@@ -324,4 +330,21 @@ class HydroDataset(ABC):
         xr.Dataset
             the mean precipitation of each basin
         """
-        raise NotImplementedError
+        prcp_var_name = self._variable_name_map["p_mean"]
+        data_ds = self.read_attr_xrdataset(
+            gage_id_lst=gage_id_lst, var_lst=[prcp_var_name]
+        )
+        data_arr = data_ds[prcp_var_name]
+        if unit in ["mm/d", "mm/day"]:
+            converted_data = data_arr
+        elif unit in ["mm/h", "mm/hour"]:
+            converted_data = data_arr / 24
+        elif unit in ["mm/3h", "mm/3hour"]:
+            converted_data = data_arr / 8
+        elif unit in ["mm/8d", "mm/8day"]:
+            converted_data = data_arr * 8
+        else:
+            raise ValueError(
+                "unit must be one of ['mm/d', 'mm/day', 'mm/h', 'mm/hour', 'mm/3h', 'mm/3hour', 'mm/8d', 'mm/8day']"
+            )
+        return converted_data

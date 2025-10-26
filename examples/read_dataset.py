@@ -138,6 +138,16 @@ def main():
     )
     print(attr_data)
 
+    print("\nTesting read_area...")
+    area = ds.read_area(gage_id_lst=gage_ids[:2])
+    print(area)
+    print("--------------------------------")
+
+    print("\nTesting read_mean_prcp...")
+    mean_prcp = ds.read_mean_prcp(gage_id_lst=gage_ids[:2])
+    print(mean_prcp)
+    print("--------------------------------")
+
 
 if __name__ == "__main__":
     main()

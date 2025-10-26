@@ -49,7 +49,7 @@ class CamelsUs(HydroDataset):
             "gauge_lon": "degree",
             "elev_mean": "m",
             "slope_mean": "m/km",
-            "area_gages2": "km^2",
+            "area_km2": "km^2",
             "area_geospa_fabric": "km^2",
             "geol_1st_class": "dimensionless",
             "glim_1st_class_frac": "dimensionless",
@@ -267,24 +267,25 @@ class CamelsUs(HydroDataset):
 
         cache_file = self.cache_dir.joinpath(self._timeseries_cache_filename)
 
-        # Load the existing dataset and close the file connection
+        # Use a with statement to ensure the dataset is closed before writing
         with xr.open_dataset(cache_file) as ds:
-            # Load data into memory so we can close the file
-            ds_loaded = ds.load()
+            # Create an xarray.DataArray for PET
+            pet_da = xr.DataArray(
+                pet_data,
+                coords={"basin": gage_id_lst, "time": ds.time},
+                dims=["basin", "time"],
+                attrs={"units": "mm/day", "source": "SAC-SMA Model Output"},
+                name="PET",
+            )
+            # Merge PET into the main dataset
+            merged_ds = ds.merge(pet_da)
 
-        # Create an xarray.DataArray for PET
-        pet_da = xr.DataArray(
-            pet_data,
-            coords={"basin": gage_id_lst, "time": ds_loaded.time},
-            dims=["basin", "time"],
-            attrs={"units": "mm/day", "source": "SAC-SMA Model Output"},
-            name="PET",
-        )
-
-        # Merge PET into the main dataset
-        merged_ds = ds_loaded.merge(pet_da)
-
-        # Now save the merged dataset
+        # Now that the original file is closed, we can safely overwrite it
         print("Saving final cache file with merged PET data...")
         merged_ds.to_netcdf(cache_file, mode="w")
         print(f"Successfully saved final cache to: {cache_file}")
+
+    _variable_name_map = {
+        "area": "area_km2",
+        "p_mean": "p_mean",
+    }
