@@ -4,7 +4,6 @@ import numpy as np
 import pytest
 
 from hydrodataset import Camels, MultiDatasets, ROOT_DIR
-from hydrodataset.lamah import Lamah
 
 
 @pytest.fixture()

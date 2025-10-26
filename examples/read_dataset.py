@@ -28,7 +28,7 @@ DATASET_MAPPING = {
     "camels_lux": ("hydrodataset.camels_lux", "CamelsLux"),
     "camels_nz": ("hydrodataset.camels_nz", "CamelsNz"),
     "camels_se": ("hydrodataset.camels_se", "CamelsSe"),
-    "camels_us": ("hydrodataset.camels", "Camels"),
+    "camels_us": ("hydrodataset.camels_us", "CamelsUs"),
     "camelsh_kr": ("hydrodataset.camelsh_kr", "CamelshKr"),
     "camelsh": ("hydrodataset.camelsh", "Camelsh"),
     "caravan": ("hydrodataset.caravan", "Caravan"),
@@ -50,6 +50,7 @@ DATASET_MAPPING = {
     "camels_deby": ("hydrodataset.camels_deby", "CamelsDeby"),
 }
 
+
 def main():
     parser = argparse.ArgumentParser(description="Read data from a specified dataset.")
     parser.add_argument(
@@ -69,7 +70,7 @@ def main():
         # default="camels_lux",
         # default="camels_nz",
         # default="camels_se",
-        # default="camels_us",
+        default="camels_us",
         # default="camelsh_kr",
         # default="camelsh",
         # default="bull",
@@ -78,7 +79,7 @@ def main():
         # default="estreams",
         # default="hype",
         # default="lamah_ice",
-        default="jialing",
+        # default="jialing",
         # default="simbi",
         # default="waterbenchiowa",
         # default="lamah_ce",
@@ -92,19 +93,19 @@ def main():
     args = parser.parse_args()
 
     module_name, class_name = DATASET_MAPPING[args.dataset]
-    
+
     try:
         module = importlib.import_module(module_name)
         dataset_class = getattr(module, class_name)
     except ImportError:
         print(f"Error: Could not import {class_name} from {module_name}.")
         return
-  
-    data_path = SETTING["local_data_path"]["root"]
+
+    # To unified the data path for all datasets, we use the datasets-origin path.
+    data_path = SETTING["local_data_path"]["datasets-origin"]
 
     ds = dataset_class(data_path)
 
-    
     print(f"Reading from {args.dataset} dataset...")
 
     gage_ids = ds.read_object_ids()
@@ -113,7 +114,7 @@ def main():
     print("--------------------------------")
 
     ts_all = ds.dynamic_features()
-    print("All dynamic features:")  
+    print("All dynamic features:")
     print(ts_all)
     print("--------------------------------")
 

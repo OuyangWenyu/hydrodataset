@@ -43,6 +43,7 @@ dependencies = [
     "openpyxl>=3.1.5",
     "xlrd>=2.0.2",
     "requests>=2.32.4",
+    "py7zr>=1.0.0",
 ]
 
 [project.optional-dependencies]
@@ -57,13 +58,8 @@ dev = [
     "grip",
     "black",
     "flake8",
-    "pytest",
-    "pytest-runner",
-]
-test = [
     "pytest>=3",
     "pytest-runner",
-    "coverage",
 ]
 docs = [
     "Sphinx",

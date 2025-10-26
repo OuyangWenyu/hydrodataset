@@ -137,6 +137,7 @@ dmypy.json
 *.swp
 *.swo
 *~
+GEMINI.md
 
 # OS
 .DS_Store
