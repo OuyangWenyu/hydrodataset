@@ -1,55 +1,92 @@
-import logging
-import os
+"""
+Author: Wenyu Ouyang
+Date: 2025-10-27 14:52:23
+LastEditTime: 2025-10-27 16:03:15
+LastEditors: Wenyu Ouyang
+Description: CAMELS-BR dataset class.
+FilePath: \hydrodataset\hydrodataset\camels_br.py
+Copyright (c) 2023-2026 Wenyu Ouyang. All rights reserved.
+"""
+
 import collections
+import os
+import logging
 import pandas as pd
 import numpy as np
 import xarray as xr
 from tqdm import tqdm
-from hydrodataset import CAMELS_REGIONS
-from hydrodataset.camels import Camels
-from pandas.api.types import is_string_dtype, is_numeric_dtype
-
-CAMELS_NO_DATASET_ERROR_LOG = (
-    "We cannot read this dataset now. Please check if you choose correctly:\n"
-    + str(CAMELS_REGIONS)
-)
+from aqua_fetch import CAMELS_BR
+from hydrodataset import HydroDataset
 
 
-class CamelsBr(Camels):
-    def __init__(
-        self,
-        data_path,
-        download=False,
-        region: str = "BR",
-        version: str = "1.2",
-    ):
+class CamelsBr(HydroDataset):
+    """CAMELS_BR dataset class.
+
+    This class uses a custom data reading implementation to support a newer
+    dataset version than the one supported by the underlying aquafetch library.
+    It overrides the download URLs and provides its own parsing and caching logic.
+    """
+
+    def __init__(self, data_path, region=None, download=False):
+        """Initialize CAMELS_BR dataset.
+
+        Args:
+            data_path: Path to the CAMELS_BR data directory.
+            region: Geographic region identifier (optional, defaults to BR).
+            download: Whether to download data automatically (not used, handled by aqua_fetch).
         """
-        Initialization for CAMELS-BR dataset
+        super().__init__(data_path)
+        self.region = "BR" if region is None else region
 
-        Parameters
-        ----------
-        data_path
-            where we put the dataset.
-            we already set the ROOT directory for hydrodataset,
-            so here just set it as a relative path,
-            by default "camels/camels_br"
-        download
-            if true, download, by default False
-        region
-            the default is CAMELS-BR
-        """
-        self.data_path = os.path.join(data_path, "CAMELS_BR")
-        super().__init__(self.data_path, download, region)
-        # Build a map from variable name to its source directory
+        # Define the new URLs for the latest dataset version
+        new_url = "https://zenodo.org/records/15025488"
+        new_urls = {
+            "01_CAMELS_BR_attributes.zip": "https://zenodo.org/records/15025488/files/",
+            "02_CAMELS_BR_streamflow_all_catchments.zip": "https://zenodo.org/records/15025488/files/",
+            "03_CAMELS_BR_streamflow_selected_catchments.zip": "https://zenodo.org/records/15025488/files/",
+            "04_CAMELS_BR_streamflow_simulated.zip": "https://zenodo.org/records/15025488/files/",
+            "05_CAMELS_BR_precipitation.zip": "https://zenodo.org/records/15025488/files/",
+            "06_CAMELS_BR_actual_evapotransp.zip": "https://zenodo.org/records/15025488/files/",
+            "07_CAMELS_BR_potential_evapotransp.zip": "https://zenodo.org/records/15025488/files/",
+            "08_CAMELS_BR_reference_evapotransp.zip": "https://zenodo.org/records/15025488/files/",
+            "09_CAMELS_BR_temperature.zip": "https://zenodo.org/records/15025488/files/",
+            "10_CAMELS_BR_soil_moisture.zip": "https://zenodo.org/records/15025488/files/",
+            "11_CAMELS_BR_precipitation_ana_gauges.zip": "https://zenodo.org/records/15025488/files/",
+            "12_CAMELS_BR_catchment_boundaries.zip": "https://zenodo.org/records/15025488/files/",
+            "13_CAMELS_BR_gauge_location.zip": "https://zenodo.org/records/15025488/files/",
+            "CAMELS_BR_readme.txt": "https://zenodo.org/records/15025488/files/",
+        }
+        new_folders = {
+            "streamflow_mm": "03_CAMELS_BR_streamflow_selected_catchments",
+        }
+
+        def do_nothing(self, *args, **kwargs):
+            pass
+
+        class_attrs = {
+            "url": new_url,
+            "urls": new_urls,
+            "folders": new_folders,
+            "_maybe_to_netcdf": do_nothing,
+        }
+        CustomCamelsBr = type("CAMELS_BR", (CAMELS_BR,), class_attrs)
+
+        # Instantiate our custom class to handle downloads, but note that the reading
+        # logic below is custom and does not rely on aquafetch's parsing.
+        self.aqua_fetch = CustomCamelsBr(data_path)
+
+        self.data_source_description = self.set_data_source_describe()
+
+        # Build the variable map for the custom reading logic
         self._variable_map = self._build_variable_map()
 
     @property
     def _attributes_cache_filename(self):
-        return "camelsbr_attributes.nc"
+        return "camels_br_attributes.nc"
 
     @property
     def _timeseries_cache_filename(self):
-        return "camelsbr_timeseries.nc"
+        return "camels_br_timeseries.nc"
 
     @property
     def default_t_range(self):
@@ -164,11 +201,8 @@ class CamelsBr(Camels):
         collections.OrderedDict
             the description for a CAMELS-BR dataset
         """
-        camels_db = self.data_source_dir
+        camels_db = self.data_source_dir.joinpath("CAMELS_BR")
 
-        return self._set_data_source_camelsbr_describe(camels_db)
-
-    def _set_data_source_camelsbr_describe(self, camels_db):
         # attr
         attr_dir = camels_db.joinpath(
             "01_CAMELS_BR_attributes", "01_CAMELS_BR_attributes"
@@ -272,33 +306,29 @@ class CamelsBr(Camels):
             CAMELS_DOWNLOAD_URL_LST=download_url_lst,
         )
 
-    def read_site_info(self) -> pd.DataFrame:
-        """
-        Read the basic information of gages in a CAMELS-BR dataset
+    def _get_constant_cols_some(self, data_folder, prefix, postfix, sep):
+        var_dict = {}
+        var_lst = []
+        key_lst = self.data_source_description["CAMELS_ATTR_KEY_LST"]
+        for key in key_lst:
+            data_file = os.path.join(data_folder, prefix + key + postfix)
+            data_temp = pd.read_csv(data_file, sep=sep)
+            var_lst_temp = list(data_temp.columns[1:])
+            var_dict[key] = var_lst_temp
+            var_lst.extend(var_lst_temp)
+        return np.array(var_lst)
 
-        Returns
-        -------
-        pd.DataFrame
-            basic info of gages
-        """
-        camels_file = self.data_source_description["CAMELS_GAUGE_FILE"]
-        return pd.read_csv(camels_file, sep="\s+", dtype={"gauge_id": str})
-
-    def get_constant_cols(self) -> np.ndarray:
+    def static_features(self) -> list:
         """
         all readable attrs in CAMELS-BR
 
         Returns
         -------
-        np.array
+        list
             attribute types
         """
         data_folder = self.data_source_description["CAMELS_ATTR_DIR"]
         return self._get_constant_cols_some(data_folder, "camels_br_", ".txt", "\s+")
-
-    def static_features(self):
-        "Read static features list"
-        return self.get_constant_cols()
 
     def dynamic_features(self):
         "Return all available time series variables."
@@ -389,75 +419,6 @@ class CamelsBr(Camels):
                     x[k, target_indices, var_index_in_x] = obs[file_indices]
         return x
 
-    def read_attr_all(self):
-        data_folder = self.data_source_description["CAMELS_ATTR_DIR"]
-        key_lst = self.data_source_description["CAMELS_ATTR_KEY_LST"]
-        f_dict = {}
-        var_dict = {}
-        var_lst = []
-        out_lst = []
-        gage_dict = self.sites
-        camels_str = "camels_br_"
-        sep_ = "\s+"
-        for key in key_lst:
-            data_file = os.path.join(data_folder, camels_str + key + ".txt")
-            data_temp = pd.read_csv(data_file, sep=sep_)
-            var_lst_temp = list(data_temp.columns[1:])
-            var_dict[key] = var_lst_temp
-            var_lst.extend(var_lst_temp)
-            k = 0
-            gage_id_key = "gauge_id"
-            n_gage = len(gage_dict[gage_id_key].values)
-            out_temp = np.full([n_gage, len(var_lst_temp)], np.nan)
-            for field in var_lst_temp:
-                if is_string_dtype(data_temp[field]):
-                    value, ref = pd.factorize(data_temp[field], sort=True)
-                    out_temp[:, k] = value
-                    f_dict[field] = ref.tolist()
-                elif is_numeric_dtype(data_temp[field]):
-                    out_temp[:, k] = data_temp[field].values
-                k = k + 1
-            out_lst.append(out_temp)
-        out = np.concatenate(out_lst, 1)
-        return out, var_lst, var_dict, f_dict
-
-    def read_constant_cols(
-        self,
-        gage_id_lst=None,
-        var_lst=None,
-        is_return_dict=False,
-        **kwargs,
-    ) -> np.ndarray:
-        """
-        Read Attributes data
-
-        Parameters
-        ----------
-        gage_id_lst
-            station ids
-        var_lst
-            attribute variable types
-        is_return_dict
-            if true, return var_dict and f_dict for CAMELS_US
-        Returns
-        -------
-        Union[tuple, np.array]
-            if attr var type is str, return factorized data.
-            When we need to know what a factorized value represents, we need return a tuple;
-            otherwise just return an array
-        """
-        attr_all, var_lst_all, var_dict, f_dict = self.read_attr_all()
-        ind_var = [var_lst_all.index(var) for var in var_lst]
-        id_lst_all = self.read_object_ids()
-        # Notice the sequence of station ids ! Some id_lst_all are not sorted, so don't use np.intersect1d
-        ind_grid = [id_lst_all.tolist().index(tmp) for tmp in gage_id_lst]
-        temp = attr_all[ind_grid, :]
-        out = temp[:, ind_var]
-        return (out, var_dict, f_dict) if is_return_dict else out
-
-    def read_area(self, gage_id_lst) -> np.ndarray:
-        return self.read_constant_cols(gage_id_lst, ["area"], is_return_dict=False)
-
     def _read_ts_dynamic(
         self,
         gage_id_lst: list = None,
@@ -479,27 +440,6 @@ class CamelsBr(Camels):
         ds = xr.Dataset(data_vars, coords={"basin": gage_id_lst, "time": times})
         return ds
 
-    def _read_attr_static(self, gage_id_lst=None, var_lst=None, **kwargs):
-        """Helper function to dynamically read attribute data without caching."""
-        if var_lst is None or len(var_lst) == 0:
-            return None
-
-        attr_data, var_dict, f_dict = self.read_constant_cols(
-            gage_id_lst=gage_id_lst, var_lst=var_lst, is_return_dict=True
-        )
-
-        data_vars = {}
-        for i, var in enumerate(var_lst):
-            da = xr.DataArray(
-                attr_data[:, i], dims=["basin"], coords={"basin": gage_id_lst}
-            )
-            if var in f_dict:
-                da.attrs["category_mapping"] = str(f_dict[var])
-            data_vars[var] = da
-
-        ds = xr.Dataset(data_vars)
-        return ds
-
     def cache_timeseries_xrdataset(self, **kwargs):
         """Read time series data from cache or generate it and return an xarray.Dataset
         TODO: For p_ana_gauges, they are rainfall gauges, we need to calculate basin-averaged precipitation from them,
@@ -518,47 +458,3 @@ class CamelsBr(Camels):
             **kwargs,
         )
         ds_full.to_netcdf(self.cache_dir.joinpath(self._timeseries_cache_filename))
-
-    def cache_attributes_xrdataset(self, **kwargs):
-        """Read attribute data from cache or generate it and return an xarray.Dataset"""
-        print("Creating cache for CAMELS-BR attributes data...")
-        all_basins = self.read_object_ids()
-        all_vars = self.get_constant_cols()
-        ds_full = self._read_attr_static(
-            gage_id_lst=all_basins, var_lst=all_vars, **kwargs
-        )
-        ds_full.to_netcdf(self.cache_dir.joinpath(self._attributes_cache_filename))
-
-    def read_mean_prcp(self, gage_id_lst, unit="mm/d") -> xr.Dataset:
-        """Read mean precipitation data
-
-        Parameters
-        ----------
-        gage_id_lst : list
-            station ids
-        unit : str, optional
-            the unit of mean_prcp, by default "mm/d"
-
-        Returns
-        -------
-        xr.Dataset
-            mean precipitation data
-        """
-        data = self.read_constant_cols(
-            gage_id_lst,
-            ["p_mean"],
-            is_return_dict=False,
-        )
-        if unit in ["mm/d", "mm/day"]:
-            converted_data = data
-        elif unit in ["mm/h", "mm/hour"]:
-            converted_data = data / 24
-        elif unit in ["mm/3h", "mm/3hour"]:
-            converted_data = data / 8
-        elif unit in ["mm/8d", "mm/8day"]:
-            converted_data = data * 8
-        else:
-            raise ValueError(
-                "unit must be one of ['mm/d', 'mm/day', 'mm/h', 'mm/hour', 'mm/3h', 'mm/3hour', 'mm/8d', 'mm/8day']"
-            )
-        return converted_data
