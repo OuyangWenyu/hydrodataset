@@ -170,4 +170,4 @@ search = "__version__ = '{current_version}'"
 replace = "__version__ = '{new_version}'"
 
 [tool.uv.sources]
-aqua-fetch = { git = "https://github.com/hyex-research/AquaFetch.git", rev = "dev" }
+aqua-fetch = { git = "https://github.com/iHeadWater/AquaFetch.git", rev = "dev" }

@@ -57,8 +57,8 @@ def main():
         "dataset",
         nargs="?",  # make it optional
         # default="camels_aus",  # change this to test different datasets
-        default="camels_br",
-        # default="camels_ch",
+        # default="camels_br",
+        default="camels_ch",
         # default="camels_cl",
         # default="camels_col",
         # default="camels_de",

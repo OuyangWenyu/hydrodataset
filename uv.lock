@@ -1,5 +1,5 @@
 version = 1
-revision = 2
+revision = 3
 requires-python = ">=3.10"
 resolution-markers = [
     "python_full_version >= '3.14'",
@@ -209,7 +209,7 @@ wheels = [
 [[package]]
 name = "aqua-fetch"
 version = "1.0.1"
-source = { git = "https://github.com/hyex-research/AquaFetch.git?rev=dev#8627b38fd2dcc6441cd43e828b18b03d2c1e34e6" }
+source = { git = "https://github.com/iHeadWater/AquaFetch.git?rev=dev#b50e6139ef8f3aa497e3c121d631ef505de44719" }
 dependencies = [
     { name = "pandas", version = "2.1.1", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version < '3.11'" },
     { name = "pandas", version = "2.1.4", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version >= '3.11'" },
@@ -1918,7 +1918,7 @@ lint = [
 
 [package.metadata]
 requires-dist = [
-    { name = "aqua-fetch", extras = ["all"], git = "https://github.com/hyex-research/AquaFetch.git?rev=dev" },
+    { name = "aqua-fetch", extras = ["all"], git = "https://github.com/iHeadWater/AquaFetch.git?rev=dev" },
     { name = "black", marker = "extra == 'dev'" },
     { name = "black", marker = "extra == 'lint'" },
     { name = "bokeh", specifier = ">=2.4.2" },

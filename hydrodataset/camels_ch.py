@@ -51,6 +51,8 @@ class CamelsCh(HydroDataset):
     def _get_attribute_units(self):
         return {
             # 地形特征
+            "p_mean": "mm/day",
+            "area_km2": "km^2",
             "dis_m3_": "m^3/s",
             "run_mm_": "millimeter",
             "inu_pc_": "percent",
