@@ -56,7 +56,7 @@ def main():
     parser.add_argument(
         "dataset",
         nargs="?",  # make it optional
-        # default="camels_aus",  # change this to test different datasets
+        default="camels_aus",  # change this to test different datasets
         # default="camels_br",
         # default="camels_ch",
         # default="camels_cl",
@@ -70,7 +70,7 @@ def main():
         # default="camels_lux",
         # default="camels_nz",
         # default="camels_se",
-        default="camels_us",
+        # default="camels_us",
         # default="camelsh_kr",
         # default="camelsh",
         # default="bull",

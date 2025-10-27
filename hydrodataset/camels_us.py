@@ -285,7 +285,4 @@ class CamelsUs(HydroDataset):
         merged_ds.to_netcdf(cache_file, mode="w")
         print(f"Successfully saved final cache to: {cache_file}")
 
-    _variable_name_map = {
-        "area": "area_km2",
-        "p_mean": "p_mean",
-    }
+    subclass_variable_name_map = {}

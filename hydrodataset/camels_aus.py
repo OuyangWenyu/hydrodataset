@@ -132,3 +132,5 @@ class CamelsAus(HydroDataset):
             "°C",  # airtemp_C_mean_silo
             "°C",  # airtemp_C_mean_agcd
         ]
+
+    subclass_variable_name_map = {}

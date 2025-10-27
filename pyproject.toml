@@ -44,6 +44,7 @@ dependencies = [
     "xlrd>=2.0.2",
     "requests>=2.32.4",
     "py7zr>=1.0.0",
+    "aqua-fetch[all]",
 ]
 
 [project.optional-dependencies]
@@ -167,3 +168,6 @@ replace = 'version = "{new_version}"'
 filename = "hydrodataset/__init__.py"
 search = "__version__ = '{current_version}'"
 replace = "__version__ = '{new_version}'"
+
+[tool.uv.sources]
+aqua-fetch = { git = "https://github.com/hyex-research/AquaFetch.git", rev = "dev" }

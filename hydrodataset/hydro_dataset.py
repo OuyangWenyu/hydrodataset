@@ -1,7 +1,7 @@
 """
 Author: Wenyu Ouyang
 Date: 2022-09-05 23:20:24
-LastEditTime: 2025-10-26 16:35:18
+LastEditTime: 2025-10-27 14:45:03
 LastEditors: Wenyu Ouyang
 Description: main modules for hydrodataset
 FilePath: \hydrodataset\hydrodataset\hydro_dataset.py
@@ -30,7 +30,10 @@ class HydroDataset(ABC):
         _description_
     """
 
-    _variable_name_map = {}
+    base_variable_name_map = {
+        "area": "area_km2",
+        "p_mean": "p_mean",
+    }
 
     def __init__(self, data_path, cache_path=None):
         self.data_source_dir = Path(ROOT_DIR, data_path)
@@ -42,6 +45,11 @@ class HydroDataset(ABC):
             self.cache_dir = Path(cache_path)
         if not self.cache_dir.is_dir():
             self.cache_dir.mkdir(parents=True)
+
+        # Merge variable name maps
+        self._variable_name_map = self.base_variable_name_map.copy()
+        if hasattr(self.__class__, "subclass_variable_name_map"):
+            self._variable_name_map.update(self.subclass_variable_name_map)
 
     def get_name(self):
         raise NotImplementedError
