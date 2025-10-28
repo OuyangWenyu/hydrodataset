@@ -5,7 +5,7 @@ import xarray as xr
 from tqdm import tqdm
 
 from aqua_fetch import CAMELS_US
-from hydrodataset import HydroDataset
+from hydrodataset import HydroDataset, StandardVariable
 
 
 class CamelsUs(HydroDataset):
@@ -286,11 +286,11 @@ class CamelsUs(HydroDataset):
         print(f"Successfully saved final cache to: {cache_file}")
 
     _variable_mapping = {
-        "streamflow": {
+        StandardVariable.STREAMFLOW: {
             "default_source": "usgs",
             "sources": {"usgs": "q_cms_obs"},
         },
-        "precipitation": {
+        StandardVariable.PRECIPITATION: {
             "default_source": "daymet",
             "sources": {
                 "daymet": "pcp_mm",
@@ -298,7 +298,7 @@ class CamelsUs(HydroDataset):
                 "nldas": "prcp_nldas",
             },
         },
-        "temperature_max": {
+        StandardVariable.TEMPERATURE_MAX: {
             "default_source": "daymet",
             "sources": {
                 "daymet": "airtemp_C_max",
@@ -306,7 +306,7 @@ class CamelsUs(HydroDataset):
                 "nldas": "tmax_nldas",
             },
         },
-        "temperature_min": {
+        StandardVariable.TEMPERATURE_MIN: {
             "default_source": "daymet",
             "sources": {
                 "daymet": "airtemp_C_min",
@@ -314,7 +314,7 @@ class CamelsUs(HydroDataset):
                 "nldas": "tmin_nldas",
             },
         },
-        "daylight_duration": {
+        StandardVariable.DAYLIGHT_DURATION: {
             "default_source": "daymet",
             "sources": {
                 "daymet": "dayl(s)",
@@ -322,7 +322,7 @@ class CamelsUs(HydroDataset):
                 "nldas": "dayl_nldas",
             },
         },
-        "solar_radiation": {
+        StandardVariable.SOLAR_RADIATION: {
             "default_source": "daymet",
             "sources": {
                 "daymet": "solrad_wm2",
@@ -330,7 +330,7 @@ class CamelsUs(HydroDataset):
                 "nldas": "srad_nldas",
             },
         },
-        "snow_water_equivalent": {
+        StandardVariable.SNOW_WATER_EQUIVALENT: {
             "default_source": "daymet",
             "sources": {
                 "daymet": "swe_mm",
@@ -338,7 +338,7 @@ class CamelsUs(HydroDataset):
                 "nldas": "swe_nldas",
             },
         },
-        "vapor_pressure": {
+        StandardVariable.VAPOR_PRESSURE: {
             "default_source": "daymet",
             "sources": {
                 "daymet": "vp_hpa",
@@ -346,7 +346,7 @@ class CamelsUs(HydroDataset):
                 "nldas": "vp_nldas",
             },
         },
-        "potential_evapotranspiration": {
+        StandardVariable.POTENTIAL_EVAPOTRANSPIRATION: {
             "default_source": "sac-sma",
             "sources": {"sac-sma": "PET"},
         },

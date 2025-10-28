@@ -19,6 +19,20 @@ import numpy as np
 from hydrodataset import ROOT_DIR, CACHE_DIR
 
 
+class StandardVariable:
+    """A class to hold standardized variable names as constants."""
+
+    STREAMFLOW = "streamflow"
+    PRECIPITATION = "precipitation"
+    TEMPERATURE_MAX = "temperature_max"
+    TEMPERATURE_MIN = "temperature_min"
+    DAYLIGHT_DURATION = "daylight_duration"
+    SOLAR_RADIATION = "solar_radiation"
+    SNOW_WATER_EQUIVALENT = "snow_water_equivalent"
+    VAPOR_PRESSURE = "vapor_pressure"
+    POTENTIAL_EVAPOTRANSPIRATION = "potential_evapotranspiration"
+
+
 class HydroDataset(ABC):
     """An interface for Hydrological Dataset
 
