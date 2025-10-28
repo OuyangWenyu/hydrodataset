@@ -58,7 +58,7 @@ def main():
         nargs="?",  # make it optional
         # default="camels_aus",  # change this to test different datasets
         # default="camels_br",
-        default="camels_ch",
+        # default="camels_ch",
         # default="camels_cl",
         # default="camels_col",
         # default="camels_de",
@@ -70,7 +70,7 @@ def main():
         # default="camels_lux",
         # default="camels_nz",
         # default="camels_se",
-        # default="camels_us",
+        default="camels_us",
         # default="camelsh_kr",
         # default="camelsh",
         # default="bull",
@@ -127,6 +127,7 @@ def main():
     ts_data = ds.read_ts_xrdataset(
         gage_id_lst=gage_ids[:2],
         t_range=[ds.default_t_range[0], ds.default_t_range[0]],
+        var_lst=["precipitation", "streamflow"]
     )
     print(ts_data)
     print("--------------------------------")

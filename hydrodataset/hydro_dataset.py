@@ -1,7 +1,7 @@
 """
 Author: Wenyu Ouyang
 Date: 2022-09-05 23:20:24
-LastEditTime: 2025-10-27 14:45:03
+LastEditTime: 2025-10-28 16:59:45
 LastEditors: Wenyu Ouyang
 Description: main modules for hydrodataset
 FilePath: \hydrodataset\hydrodataset\hydro_dataset.py
@@ -34,6 +34,7 @@ class HydroDataset(ABC):
         "area": "area_km2",
         "p_mean": "p_mean",
     }
+    _variable_mapping = {}
 
     def __init__(self, data_path, cache_path=None):
         self.data_source_dir = Path(ROOT_DIR, data_path)
@@ -121,25 +122,22 @@ class HydroDataset(ABC):
     @staticmethod
     def _clean_feature_names(feature_names):
         """
-        Clean feature names to be compatible with NetCDF format.
-
-        Parameters
-        ----------
-        feature_names : list or pd.Index
-            Original feature names
-
-        Returns
-        -------
-        list
-            Cleaned feature names
+        Clean feature names to be compatible with NetCDF format and our internal standard.
+        For example, 'Prcp(mm/day)_daymet' becomes 'prcp_daymet'.
         """
         import pandas as pd
+        import re
 
-        if isinstance(feature_names, list):
+        if not isinstance(feature_names, pd.Index):
             feature_names = pd.Index(feature_names)
-        return (
-            feature_names.str.strip().str.replace(" ", "_").str.replace("/", "_")
-        ).tolist()
+
+        # Remove units in parentheses, then convert to lowercase
+        cleaned_names = feature_names.str.replace(
+            r"\s*\([^)]*\)", "", regex=True
+        ).str.lower()
+        # Replace any remaining invalid characters
+        cleaned_names = cleaned_names.str.replace(r"""[^a-z0-9_]""", "", regex=True)
+        return cleaned_names.tolist()
 
     def static_features(self) -> list:
         """the static features in this data_source"""
@@ -299,20 +297,89 @@ class HydroDataset(ABC):
         gage_id_lst: list = None,
         t_range: list = None,
         var_lst: list = None,
+        sources: dict = None,
         **kwargs,
     ):
+        if not hasattr(self, "_variable_mapping") or not self._variable_mapping:
+            raise NotImplementedError(
+                "This dataset does not support the standardized variable mapping."
+            )
+
         if var_lst is None:
-            var_lst = self.dynamic_features()
+            var_lst = list(self._variable_mapping.keys())
+
         if t_range is None:
             t_range = self.default_t_range
+
+        target_vars_to_fetch = []
+        rename_map = {}
+
+        for std_name in var_lst:
+            if std_name not in self._variable_mapping:
+                raise ValueError(
+                    f"'{std_name}' is not a recognized standard variable for this dataset."
+                )
+
+            mapping_info = self._variable_mapping[std_name]
+
+            # Determine which source(s) to use
+            sources_to_use = []
+            if sources and std_name in sources:
+                provided_sources = sources[std_name]
+                if isinstance(provided_sources, list):
+                    sources_to_use.extend(provided_sources)
+                else:
+                    sources_to_use.append(provided_sources)
+            else:
+                sources_to_use.append(mapping_info["default_source"])
+
+            # For each source, find the actual variable name and build the rename map
+            for source in sources_to_use:
+                if source not in mapping_info["sources"]:
+                    raise ValueError(
+                        f"Source '{source}' is not available for variable '{std_name}'."
+                    )
+
+                actual_var_name = mapping_info["sources"][source]
+                target_vars_to_fetch.append(actual_var_name)
+                output_name = f"{std_name}_{source}"
+                rename_map[actual_var_name] = output_name
+
+        # Read data from cache using actual variable names
         ts_cache_file = self.cache_dir.joinpath(self._timeseries_cache_filename)
+
         if not os.path.isfile(ts_cache_file):
             self.cache_timeseries_xrdataset()
+
         ts = xr.open_dataset(ts_cache_file)
-        all_vars = ts.data_vars
-        if any(var not in ts.variables for var in var_lst):
-            raise ValueError(f"var_lst must all be in {all_vars}")
-        return ts[var_lst].sel(basin=gage_id_lst, time=slice(t_range[0], t_range[1]))
+        missing_vars = [v for v in target_vars_to_fetch if v not in ts.data_vars]
+        if missing_vars:
+            raise ValueError(
+                f"The following variables are missing from the cache file: {missing_vars}"
+            )
+
+        ds_subset = ts[target_vars_to_fetch]
+        ds_selected = ds_subset.sel(
+            basin=gage_id_lst, time=slice(t_range[0], t_range[1])
+        )
+        final_ds = ds_selected.rename(rename_map)
+        return final_ds
+
+    def get_available_dynamic_features(self) -> dict:
+        """
+        Returns a dictionary of available standard dynamic feature names
+        and their possible sources.
+        """
+        if not hasattr(self, "_variable_mapping") or not self._variable_mapping:
+            return {}
+
+        feature_info = {}
+        for std_name, mapping_info in self._variable_mapping.items():
+            feature_info[std_name] = {
+                "default_source": mapping_info.get("default_source"),
+                "available_sources": list(mapping_info.get("sources", {}).keys()),
+            }
+        return feature_info
 
     def read_area(self, gage_id_lst):
         """read area of each basin/unit"""

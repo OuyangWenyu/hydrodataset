@@ -285,4 +285,69 @@ class CamelsUs(HydroDataset):
         merged_ds.to_netcdf(cache_file, mode="w")
         print(f"Successfully saved final cache to: {cache_file}")
 
-    subclass_variable_name_map = {}
+    _variable_mapping = {
+        "streamflow": {
+            "default_source": "usgs",
+            "sources": {"usgs": "q_cms_obs"},
+        },
+        "precipitation": {
+            "default_source": "daymet",
+            "sources": {
+                "daymet": "pcp_mm",
+                "maurer": "prcp_maurer",
+                "nldas": "prcp_nldas",
+            },
+        },
+        "temperature_max": {
+            "default_source": "daymet",
+            "sources": {
+                "daymet": "airtemp_C_max",
+                "maurer": "tmax_maurer",
+                "nldas": "tmax_nldas",
+            },
+        },
+        "temperature_min": {
+            "default_source": "daymet",
+            "sources": {
+                "daymet": "airtemp_C_min",
+                "maurer": "tmin_maurer",
+                "nldas": "tmin_nldas",
+            },
+        },
+        "daylight_duration": {
+            "default_source": "daymet",
+            "sources": {
+                "daymet": "dayl(s)",
+                "maurer": "dayl_maurer",
+                "nldas": "dayl_nldas",
+            },
+        },
+        "solar_radiation": {
+            "default_source": "daymet",
+            "sources": {
+                "daymet": "solrad_wm2",
+                "maurer": "srad_maurer",
+                "nldas": "srad_nldas",
+            },
+        },
+        "snow_water_equivalent": {
+            "default_source": "daymet",
+            "sources": {
+                "daymet": "swe_mm",
+                "maurer": "swe_maurer",
+                "nldas": "swe_nldas",
+            },
+        },
+        "vapor_pressure": {
+            "default_source": "daymet",
+            "sources": {
+                "daymet": "vp_hpa",
+                "maurer": "vp_maurer",
+                "nldas": "vp_nldas",
+            },
+        },
+        "potential_evapotranspiration": {
+            "default_source": "sac-sma",
+            "sources": {"sac-sma": "PET"},
+        },
+    }
