@@ -1,7 +1,7 @@
 """
 Author: Wenyu Ouyang
 Date: 2022-09-05 23:20:24
-LastEditTime: 2025-10-28 16:59:45
+LastEditTime: 2025-10-28 19:22:35
 LastEditors: Wenyu Ouyang
 Description: main modules for hydrodataset
 FilePath: \hydrodataset\hydrodataset\hydro_dataset.py
@@ -336,9 +336,10 @@ class HydroDataset(ABC):
 
             mapping_info = self._variable_mapping[std_name]
 
-            # Determine which source(s) to use
+            # Determine which source(s) to use and if they were explicitly requested
+            is_explicit_source = sources and std_name in sources
             sources_to_use = []
-            if sources and std_name in sources:
+            if is_explicit_source:
                 provided_sources = sources[std_name]
                 if isinstance(provided_sources, list):
                     sources_to_use.extend(provided_sources)
@@ -347,7 +348,8 @@ class HydroDataset(ABC):
             else:
                 sources_to_use.append(mapping_info["default_source"])
 
-            # For each source, find the actual variable name and build the rename map
+            # A suffix is only needed if the user explicitly requested multiple sources
+            needs_suffix = is_explicit_source and len(sources_to_use) > 1
             for source in sources_to_use:
                 if source not in mapping_info["sources"]:
                     raise ValueError(
@@ -356,7 +358,7 @@ class HydroDataset(ABC):
 
                 actual_var_name = mapping_info["sources"][source]
                 target_vars_to_fetch.append(actual_var_name)
-                output_name = f"{std_name}_{source}"
+                output_name = f"{std_name}_{source}" if needs_suffix else std_name
                 rename_map[actual_var_name] = output_name
 
         # Read data from cache using actual variable names
@@ -368,8 +370,11 @@ class HydroDataset(ABC):
         ts = xr.open_dataset(ts_cache_file)
         missing_vars = [v for v in target_vars_to_fetch if v not in ts.data_vars]
         if missing_vars:
+            # To provide a better error message, map back to standard names
+            reverse_rename_map = {v: k for k, v in rename_map.items()}
+            missing_std_vars = [reverse_rename_map.get(v, v) for v in missing_vars]
             raise ValueError(
-                f"The following variables are missing from the cache file: {missing_vars}"
+                f"The following variables are missing from the cache file: {missing_std_vars}"
             )
 
         ds_subset = ts[target_vars_to_fetch]
@@ -395,45 +400,54 @@ class HydroDataset(ABC):
             }
         return feature_info
 
-    def read_area(self, gage_id_lst):
-        """read area of each basin/unit"""
+    def read_area(self, gage_id_lst: list[str]) -> xr.Dataset:
+        """Reads the catchment area for a list of basins.
+
+        Args:
+            gage_id_lst: A list of basin identifiers for which to retrieve the area.
+
+        Returns:
+            An xarray Dataset containing the area data for the requested basins.
+        """
         area_var_name = self._variable_name_map["area"]
         data_ds = self.read_attr_xrdataset(
             gage_id_lst=gage_id_lst, var_lst=[area_var_name]
         )
-        return data_ds[area_var_name]
+        return data_ds
 
-    def read_mean_prcp(self, gage_id_lst, unit="mm/d"):
-        """read mean precipitation of each basin
-        default unit is mm/d, but one can chose other units and we will convert the unit to the specified unit
+    def read_mean_prcp(self, gage_id_lst: list[str], unit: str = "mm/d") -> xr.Dataset:
+        """Reads the mean daily precipitation for a list of basins, with unit conversion.
 
-        Parameters
-        ----------
-        gage_id_lst : list, optional
-            the list of gage ids, by default None
-        unit : str, optional
-            the unit of precipitation, by default "mm/d"
+        Args:
+            gage_id_lst: A list of basin identifiers.
+            unit: The desired unit for the output precipitation. Defaults to "mm/d".
+                Supported units: ['mm/d', 'mm/day', 'mm/h', 'mm/hour', 'mm/3h',
+                'mm/3hour', 'mm/8d', 'mm/8day'].
 
-        Returns
-        -------
-        xr.Dataset
-            the mean precipitation of each basin
+        Returns:
+            An xarray Dataset containing the mean precipitation data in the specified units.
+
+        Raises:
+            ValueError: If an unsupported unit is provided.
         """
         prcp_var_name = self._variable_name_map["p_mean"]
         data_ds = self.read_attr_xrdataset(
             gage_id_lst=gage_id_lst, var_lst=[prcp_var_name]
         )
-        data_arr = data_ds[prcp_var_name]
+        # No conversion needed
         if unit in ["mm/d", "mm/day"]:
-            converted_data = data_arr
-        elif unit in ["mm/h", "mm/hour"]:
-            converted_data = data_arr / 24
+            return data_ds
+
+        # Conversion needed, create a new dataset
+        converted_ds = data_ds.copy()
+        if unit in ["mm/h", "mm/hour"]:
+            converted_ds[prcp_var_name] = data_ds[prcp_var_name] / 24
         elif unit in ["mm/3h", "mm/3hour"]:
-            converted_data = data_arr / 8
+            converted_ds[prcp_var_name] = data_ds[prcp_var_name] / 8
         elif unit in ["mm/8d", "mm/8day"]:
-            converted_data = data_arr * 8
+            converted_ds[prcp_var_name] = data_ds[prcp_var_name] * 8
         else:
             raise ValueError(
                 "unit must be one of ['mm/d', 'mm/day', 'mm/h', 'mm/hour', 'mm/3h', 'mm/3hour', 'mm/8d', 'mm/8day']"
             )
-        return converted_data
+        return converted_ds
