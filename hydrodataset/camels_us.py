@@ -279,6 +279,8 @@ class CamelsUs(HydroDataset):
             )
             # Merge PET into the main dataset
             merged_ds = ds.merge(pet_da)
+            # Load all data into memory before closing the original dataset
+            merged_ds = merged_ds.load()
 
         # Now that the original file is closed, we can safely overwrite it
         print("Saving final cache file with merged PET data...")

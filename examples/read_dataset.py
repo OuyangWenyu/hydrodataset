@@ -127,7 +127,7 @@ def main():
     ts_data = ds.read_ts_xrdataset(
         gage_id_lst=gage_ids[:2],
         t_range=[ds.default_t_range[0], ds.default_t_range[0]],
-        var_lst=["precipitation", "streamflow"]
+        var_lst=["precipitation", "streamflow"],
     )
     print(ts_data)
     print("--------------------------------")

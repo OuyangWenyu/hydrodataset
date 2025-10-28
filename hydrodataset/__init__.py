@@ -86,3 +86,4 @@ from .camels import *
 from .camelsh_kr import *
 from .multi_datasets import *
 from .lamah_ce import *
+from .camels_us import *
