@@ -40,86 +40,12 @@ class CamelsUs(HydroDataset):
     def default_t_range(self):
         return ["1980-01-01", "2014-12-31"]
 
-    def _get_attribute_units(self):
-        """
-        Returns a dictionary mapping attribute variables to their units.
-        """
-        return {
-            "gauge_lat": "degree",
-            "gauge_lon": "degree",
-            "elev_mean": "m",
-            "slope_mean": "m/km",
-            "area_km2": "km^2",
-            "area_geospa_fabric": "km^2",
-            "geol_1st_class": "dimensionless",
-            "glim_1st_class_frac": "dimensionless",
-            "geol_2nd_class": "dimensionless",
-            "glim_2nd_class_frac": "dimensionless",
-            "carbonate_rocks_frac": "dimensionless",
-            "geol_porostiy": "dimensionless",
-            "geol_permeability": "m^2",
-            "frac_forest": "dimensionless",
-            "lai_max": "dimensionless",
-            "lai_diff": "dimensionless",
-            "gvf_max": "dimensionless",
-            "gvf_diff": "dimensionless",
-            "dom_land_cover_frac": "dimensionless",
-            "dom_land_cover": "dimensionless",
-            "root_depth_50": "m",
-            "root_depth_99": "m",
-            "q_mean": "mm/day",
-            "runoff_ratio": "dimensionless",
-            "slope_fdc": "dimensionless",
-            "baseflow_index": "dimensionless",
-            "stream_elas": "dimensionless",
-            "q5": "mm/day",
-            "q95": "mm/day",
-            "high_q_freq": "day/year",
-            "high_q_dur": "day",
-            "low_q_freq": "day/year",
-            "low_q_dur": "day",
-            "zero_q_freq": "percent",
-            "hfd_mean": "dimensionless",
-            "soil_depth_pelletier": "m",
-            "soil_depth_statsgo": "m",
-            "soil_porosity": "dimensionless",
-            "soil_conductivity": "cm/hr",
-            "max_water_content": "m",
-            "sand_frac": "percent",
-            "silt_frac": "percent",
-            "clay_frac": "percent",
-            "water_frac": "percent",
-            "organic_frac": "percent",
-            "other_frac": "percent",
-            "p_mean": "mm/day",
-            "pet_mean": "mm/day",
-            "p_seasonality": "dimensionless",
-            "frac_snow": "dimensionless",
-            "aridity": "dimensionless",
-            "high_prec_freq": "days/year",
-            "high_prec_dur": "day",
-            "high_prec_timing": "dimensionless",
-            "low_prec_freq": "days/year",
-            "low_prec_dur": "day",
-            "low_prec_timing": "dimensionless",
-            "huc_02": "dimensionless",
-            "gauge_name": "dimensionless",
-        }
-
-    def _get_timeseries_units(self):
-        """
-        Returns a list of units for the time-series variables.
-        The order should match the order of variables in `dynamic_features` from aquafetch.
-        """
-        # Default units from aquafetch, PET will be added separately.
-        return ["s", "mm/day", "W/m^2", "mm/day", "°C", "°C", "hPa", "m^3/s", "mm/day"]
-
-    def dynamic_features(self) -> list:
+    def _dynamic_features(self) -> list:
         """
         Overrides the base method to include 'PET' as a dynamic feature.
         """
         # Get the default features from the parent class (from aquafetch)
-        features = super().dynamic_features()
+        features = super()._dynamic_features()
         # Add the custom PET variable
         features.append("PET")
         return features
@@ -269,6 +195,7 @@ class CamelsUs(HydroDataset):
 
         # Use a with statement to ensure the dataset is closed before writing
         with xr.open_dataset(cache_file) as ds:
+            print(f"Variables in base cache: {list(ds.data_vars.keys())}")
             # Create an xarray.DataArray for PET
             pet_da = xr.DataArray(
                 pet_data,
@@ -278,76 +205,106 @@ class CamelsUs(HydroDataset):
                 name="PET",
             )
             # Merge PET into the main dataset
-            merged_ds = ds.merge(pet_da)
+            # Load the dataset into memory to avoid issues with lazy loading
+            merged_ds = ds.load().merge(pet_da)
 
         # Now that the original file is closed, we can safely overwrite it
         print("Saving final cache file with merged PET data...")
+        print(f"Variables in merged dataset: {list(merged_ds.data_vars.keys())}")
         merged_ds.to_netcdf(cache_file, mode="w")
         print(f"Successfully saved final cache to: {cache_file}")
 
-    _variable_mapping = {
+    _subclass_static_definitions = {
+        "huc_02": {"specific_name": "huc_02", "unit": "dimensionless"},
+        "gauge_lat": {"specific_name": "lat", "unit": "degree"},
+        "gauge_lon": {"specific_name": "long", "unit": "degree"},
+        "elev_mean": {"specific_name": "elev_mean", "unit": "m"},
+        "slope_mean": {"specific_name": "slope_mkm1", "unit": "m/km"},
+        "area": {"specific_name": "area_km2", "unit": "km^2"},
+        "geol_1st_class": {"specific_name": "geol_1st_class", "unit": "dimensionless"},
+        "geol_2nd_class": {"specific_name": "geol_2nd_class", "unit": "dimensionless"},
+        "geol_porostiy": {"specific_name": "geol_porostiy", "unit": "dimensionless"},
+        "geol_permeability": {"specific_name": "geol_permeability", "unit": "m^2"},
+        "frac_forest": {"specific_name": "frac_forest", "unit": "dimensionless"},
+        "lai_max": {"specific_name": "lai_max", "unit": "dimensionless"},
+        "lai_diff": {"specific_name": "lai_diff", "unit": "dimensionless"},
+        "dom_land_cover_frac": {
+            "specific_name": "dom_land_cover_frac",
+            "unit": "dimensionless",
+        },
+        "dom_land_cover": {"specific_name": "dom_land_cover", "unit": "dimensionless"},
+        "root_depth_50": {"specific_name": "root_depth_50", "unit": "m"},
+        "root_depth_99": {"specific_name": "root_depth_99", "unit": "m"},
+        "soil_depth_statsgo": {"specific_name": "soil_depth_statsgo", "unit": "m"},
+        "soil_porosity": {"specific_name": "soil_porosity", "unit": "dimensionless"},
+        "soil_conductivity": {"specific_name": "soil_conductivity", "unit": "cm/hr"},
+        "max_water_content": {"specific_name": "max_water_content", "unit": "m"},
+        "pet_mean": {"specific_name": "pet_mean", "unit": "mm/day"},
+    }
+    _dynamic_variable_mapping = {
         StandardVariable.STREAMFLOW: {
             "default_source": "usgs",
-            "sources": {"usgs": "q_cms_obs"},
+            "sources": {"usgs": {"specific_name": "q_cms_obs", "unit": "m^3/s"}},
         },
+        # TODO: For maurer and nldas, we have not checked the specific names and units.
         StandardVariable.PRECIPITATION: {
             "default_source": "daymet",
             "sources": {
-                "daymet": "pcp_mm",
-                "maurer": "prcp_maurer",
-                "nldas": "prcp_nldas",
+                "daymet": {"specific_name": "pcp_mm", "unit": "mm/day"},
+                "maurer": {"specific_name": "prcp_maurer", "unit": "mm/day"},
+                "nldas": {"specific_name": "prcp_nldas", "unit": "mm/day"},
             },
         },
         StandardVariable.TEMPERATURE_MAX: {
             "default_source": "daymet",
             "sources": {
-                "daymet": "airtemp_C_max",
-                "maurer": "tmax_maurer",
-                "nldas": "tmax_nldas",
+                "daymet": {"specific_name": "airtemp_c_max", "unit": "°C"},
+                "maurer": {"specific_name": "tmax_maurer", "unit": "°C"},
+                "nldas": {"specific_name": "tmax_nldas", "unit": "°C"},
             },
         },
         StandardVariable.TEMPERATURE_MIN: {
             "default_source": "daymet",
             "sources": {
-                "daymet": "airtemp_C_min",
-                "maurer": "tmin_maurer",
-                "nldas": "tmin_nldas",
+                "daymet": {"specific_name": "airtemp_c_min", "unit": "°C"},
+                "maurer": {"specific_name": "tmin_maurer", "unit": "°C"},
+                "nldas": {"specific_name": "tmin_nldas", "unit": "°C"},
             },
         },
         StandardVariable.DAYLIGHT_DURATION: {
             "default_source": "daymet",
             "sources": {
-                "daymet": "dayl(s)",
-                "maurer": "dayl_maurer",
-                "nldas": "dayl_nldas",
+                "daymet": {"specific_name": "dayl", "unit": "s"},
+                "maurer": {"specific_name": "dayl_maurer", "unit": "s"},
+                "nldas": {"specific_name": "dayl_nldas", "unit": "s"},
             },
         },
         StandardVariable.SOLAR_RADIATION: {
             "default_source": "daymet",
             "sources": {
-                "daymet": "solrad_wm2",
-                "maurer": "srad_maurer",
-                "nldas": "srad_nldas",
+                "daymet": {"specific_name": "solrad_wm2", "unit": "W/m^2"},
+                "maurer": {"specific_name": "srad_maurer", "unit": "W/m^2"},
+                "nldas": {"specific_name": "srad_nldas", "unit": "W/m^2"},
             },
         },
         StandardVariable.SNOW_WATER_EQUIVALENT: {
             "default_source": "daymet",
             "sources": {
-                "daymet": "swe_mm",
-                "maurer": "swe_maurer",
-                "nldas": "swe_nldas",
+                "daymet": {"specific_name": "swe_mm", "unit": "mm/day"},
+                "maurer": {"specific_name": "swe_maurer", "unit": "mm/day"},
+                "nldas": {"specific_name": "swe_nldas", "unit": "mm/day"},
             },
         },
         StandardVariable.VAPOR_PRESSURE: {
             "default_source": "daymet",
             "sources": {
-                "daymet": "vp_hpa",
-                "maurer": "vp_maurer",
-                "nldas": "vp_nldas",
+                "daymet": {"specific_name": "vp_hpa", "unit": "hPa"},
+                "maurer": {"specific_name": "vp_maurer", "unit": "hPa"},
+                "nldas": {"specific_name": "vp_nldas", "unit": "hPa"},
             },
         },
         StandardVariable.POTENTIAL_EVAPOTRANSPIRATION: {
             "default_source": "sac-sma",
-            "sources": {"sac-sma": "PET"},
+            "sources": {"sac-sma": {"specific_name": "PET", "unit": "mm/day"}},
         },
     }

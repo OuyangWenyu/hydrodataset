@@ -1,7 +1,7 @@
 """
 Author: Wenyu Ouyang
 Date: 2022-09-05 23:20:24
-LastEditTime: 2025-10-28 19:22:35
+LastEditTime: 2025-10-28 21:30:57
 LastEditors: Wenyu Ouyang
 Description: main modules for hydrodataset
 FilePath: \hydrodataset\hydrodataset\hydro_dataset.py
@@ -13,7 +13,7 @@ from abc import ABC, abstractmethod
 from pathlib import Path
 from tqdm import tqdm
 import xarray as xr
-
+import pandas as pd
 import numpy as np
 
 from hydrodataset import ROOT_DIR, CACHE_DIR
@@ -44,11 +44,13 @@ class HydroDataset(ABC):
         _description_
     """
 
-    base_variable_name_map = {
-        "area": "area_km2",
-        "p_mean": "p_mean",
+    # A unified definition for static variables, including name mapping and units
+    _base_static_definitions = {
+        "area": {"specific_name": "area_km2", "unit": "km^2"},
+        "p_mean": {"specific_name": "p_mean", "unit": "mm/day"},
     }
-    _variable_mapping = {}
+    # variable name map for timeseries
+    _dynamic_variable_mapping = {}
 
     def __init__(self, data_path, cache_path=None):
         self.data_source_dir = Path(ROOT_DIR, data_path)
@@ -61,10 +63,10 @@ class HydroDataset(ABC):
         if not self.cache_dir.is_dir():
             self.cache_dir.mkdir(parents=True)
 
-        # Merge variable name maps
-        self._variable_name_map = self.base_variable_name_map.copy()
-        if hasattr(self.__class__, "subclass_variable_name_map"):
-            self._variable_name_map.update(self.subclass_variable_name_map)
+        # Merge static variable definitions
+        self._static_variable_definitions = self._base_static_definitions.copy()
+        if hasattr(self.__class__, "_subclass_static_definitions"):
+            self._static_variable_definitions.update(self._subclass_static_definitions)
 
     def get_name(self):
         raise NotImplementedError
@@ -126,7 +128,7 @@ class HydroDataset(ABC):
         """the other cols in this data_source"""
         raise NotImplementedError
 
-    def dynamic_features(self) -> list:
+    def _dynamic_features(self) -> list:
         """the dynamic features in this data_source"""
         if hasattr(self, "aqua_fetch"):
             original_features = self.aqua_fetch.dynamic_features
@@ -135,13 +137,27 @@ class HydroDataset(ABC):
 
     @staticmethod
     def _clean_feature_names(feature_names):
-        """
-        Clean feature names to be compatible with NetCDF format and our internal standard.
-        For example, 'Prcp(mm/day)_daymet' becomes 'prcp_daymet'.
-        """
-        import pandas as pd
-        import re
+        """Clean feature names to be compatible with NetCDF format and our internal standard.
 
+        The cleaning process follows these steps:
+        1. Remove units in parentheses (along with any preceding whitespace)
+           e.g., 'Prcp(mm/day)' -> 'Prcp' or 'Temp (°C)' -> 'Temp'
+        2. Convert all characters to lowercase
+           e.g., 'Prcp' -> 'prcp'
+        3. Remove any remaining invalid characters (only keep a-z, 0-9, and _)
+           This ensures NetCDF variable naming compliance
+
+        Args:
+            feature_names (list or pd.Index): Original feature names that may contain
+                units and special characters
+
+        Returns:
+            list: Cleaned feature names with only lowercase letters, numbers, and underscores
+
+        Examples:
+            >>> _clean_feature_names(['Prcp(mm/day)_daymet', 'Temp (°C)'])
+            ['prcp_daymet', 'temp']
+        """
         if not isinstance(feature_names, pd.Index):
             feature_names = pd.Index(feature_names)
 
@@ -153,7 +169,7 @@ class HydroDataset(ABC):
         cleaned_names = cleaned_names.str.replace(r"""[^a-z0-9_]""", "", regex=True)
         return cleaned_names.tolist()
 
-    def static_features(self) -> list:
+    def _static_features(self) -> list:
         """the static features in this data_source"""
         if hasattr(self, "aqua_fetch"):
             original_features = self.aqua_fetch.static_features
@@ -175,19 +191,24 @@ class HydroDataset(ABC):
     def default_t_range(self):
         pass
 
-    @abstractmethod
-    @abstractmethod
-    def _get_timeseries_units(self) -> list:
-        raise NotImplementedError
-
     def cache_timeseries_xrdataset(self):
         if hasattr(self, "aqua_fetch"):
+            # Build a lookup map from specific name to unit
+            unit_lookup = {}
+            if hasattr(self, "_dynamic_variable_mapping"):
+                for (
+                    std_name,
+                    mapping_info,
+                ) in self._dynamic_variable_mapping.items():
+                    for source, source_info in mapping_info["sources"].items():
+                        unit_lookup[source_info["specific_name"]] = source_info["unit"]
+
             gage_id_lst = self.read_object_ids().tolist()
-            # Get original variable names from aqua_fetch
             original_var_lst = self.aqua_fetch.dynamic_features
-            # Get cleaned variable names
-            cleaned_var_lst = self.dynamic_features()
-            units = self._get_timeseries_units()
+            cleaned_var_lst = self._clean_feature_names(original_var_lst)
+            # Create a mapping from original variable names to cleaned names
+            # to ensure correct correspondence even if list order changes
+            var_name_mapping = dict(zip(original_var_lst, cleaned_var_lst))
 
             batch_data = self.aqua_fetch.fetch_stations_features(
                 stations=gage_id_lst,
@@ -205,13 +226,14 @@ class HydroDataset(ABC):
             new_data_vars = {}
             time_coord = dynamic_data.coords["time"]
 
-            for var_idx, (original_var, cleaned_var) in enumerate(
-                tqdm(
-                    zip(original_var_lst, cleaned_var_lst),
-                    desc="Processing variables",
-                    total=len(original_var_lst),
-                )
+            # Process only the variables that exist in the data source
+            # Subclasses can add additional variables in their override methods
+            for original_var in tqdm(
+                original_var_lst,
+                desc="Processing variables",
+                total=len(original_var_lst),
             ):
+                cleaned_var = var_name_mapping[original_var]
                 var_data = []
                 for station in gage_id_lst:
                     if station in dynamic_data.data_vars:
@@ -225,10 +247,7 @@ class HydroDataset(ABC):
                 if var_data:
                     combined = xr.concat(var_data, dim="basin")
                     combined["basin"] = gage_id_lst
-                    combined.attrs["units"] = (
-                        units[var_idx] if var_idx < len(units) else "unknown"
-                    )
-                    # Use cleaned variable name as the key
+                    combined.attrs["units"] = unit_lookup.get(cleaned_var, "unknown")
                     new_data_vars[cleaned_var] = combined
 
             new_ds = xr.Dataset(
@@ -266,9 +285,14 @@ class HydroDataset(ABC):
                 ds[var].attrs["description"] = "Classification code"
         return ds
 
-    @abstractmethod
+        return ds
+
     def _get_attribute_units(self) -> dict:
-        raise NotImplementedError
+        """Builds a unit dictionary from the static variable definitions."""
+        return {
+            info["specific_name"]: info["unit"]
+            for std_name, info in self._static_variable_definitions.items()
+        }
 
     def cache_attributes_xrdataset(self):
         if hasattr(self, "aqua_fetch"):
@@ -292,19 +316,55 @@ class HydroDataset(ABC):
         else:
             raise NotImplementedError
 
-    def read_attr_xrdataset(self, gage_id_lst=None, var_lst=None, **kwargs):
+    def read_attr_xrdataset(
+        self, gage_id_lst: list = None, var_lst: list = None, **kwargs
+    ) -> xr.Dataset:
+        """Reads attribute data for a list of basins using standardized variable names.
+
+        Args:
+            gage_id_lst: A list of basin identifiers.
+            var_lst: A list of **standard** attribute names to retrieve.
+                If None, all available static features will be returned.
+
+        Returns:
+            An xarray Dataset containing the attribute data for the requested basins,
+            with variables named using the standard names.
+        """
+        if var_lst is None:
+            var_lst = self.get_available_static_features()
+
+        # 1. Translate standard names to dataset-specific names
+        target_vars_to_fetch = []
+        rename_map = {}
+        for std_name in var_lst:
+            if std_name not in self._static_variable_definitions:
+                raise ValueError(
+                    f"'{std_name}' is not a recognized standard static variable."
+                )
+            actual_var_name = self._static_variable_definitions[std_name][
+                "specific_name"
+            ]
+            target_vars_to_fetch.append(actual_var_name)
+            rename_map[actual_var_name] = std_name
+
+        # 2. Read data from cache using actual variable names
         attr_cache_file = self.cache_dir.joinpath(self._attributes_cache_filename)
         try:
-            attr = xr.open_dataset(attr_cache_file)
+            attr_ds = xr.open_dataset(attr_cache_file)
         except FileNotFoundError:
             self.cache_attributes_xrdataset()
-            attr = xr.open_dataset(attr_cache_file)
-        if var_lst is None or len(var_lst) == 0:
-            var_lst = self.static_features()
-        # Ensure gage_id_lst is string type to match basin coordinate
+            attr_ds = xr.open_dataset(attr_cache_file)
+
+        # 3. Select variables and basins
+        ds_subset = attr_ds[target_vars_to_fetch]
         if gage_id_lst is not None:
             gage_id_lst = [str(gid) for gid in gage_id_lst]
-        return attr[var_lst].sel(basin=gage_id_lst)
+            ds_selected = ds_subset.sel(basin=gage_id_lst)
+        else:
+            ds_selected = ds_subset
+
+        # 4. Rename to standard names and return
+        return ds_selected.rename(rename_map)
 
     def read_ts_xrdataset(
         self,
@@ -314,13 +374,16 @@ class HydroDataset(ABC):
         sources: dict = None,
         **kwargs,
     ):
-        if not hasattr(self, "_variable_mapping") or not self._variable_mapping:
+        if (
+            not hasattr(self, "_dynamic_variable_mapping")
+            or not self._dynamic_variable_mapping
+        ):
             raise NotImplementedError(
                 "This dataset does not support the standardized variable mapping."
             )
 
         if var_lst is None:
-            var_lst = list(self._variable_mapping.keys())
+            var_lst = list(self._dynamic_variable_mapping.keys())
 
         if t_range is None:
             t_range = self.default_t_range
@@ -329,12 +392,12 @@ class HydroDataset(ABC):
         rename_map = {}
 
         for std_name in var_lst:
-            if std_name not in self._variable_mapping:
+            if std_name not in self._dynamic_variable_mapping:
                 raise ValueError(
                     f"'{std_name}' is not a recognized standard variable for this dataset."
                 )
 
-            mapping_info = self._variable_mapping[std_name]
+            mapping_info = self._dynamic_variable_mapping[std_name]
 
             # Determine which source(s) to use and if they were explicitly requested
             is_explicit_source = sources and std_name in sources
@@ -356,7 +419,7 @@ class HydroDataset(ABC):
                         f"Source '{source}' is not available for variable '{std_name}'."
                     )
 
-                actual_var_name = mapping_info["sources"][source]
+                actual_var_name = mapping_info["sources"][source]["specific_name"]
                 target_vars_to_fetch.append(actual_var_name)
                 output_name = f"{std_name}_{source}" if needs_suffix else std_name
                 rename_map[actual_var_name] = output_name
@@ -389,16 +452,23 @@ class HydroDataset(ABC):
         Returns a dictionary of available standard dynamic feature names
         and their possible sources.
         """
-        if not hasattr(self, "_variable_mapping") or not self._variable_mapping:
+        if (
+            not hasattr(self, "_dynamic_variable_mapping")
+            or not self._dynamic_variable_mapping
+        ):
             return {}
 
         feature_info = {}
-        for std_name, mapping_info in self._variable_mapping.items():
+        for std_name, mapping_info in self._dynamic_variable_mapping.items():
             feature_info[std_name] = {
                 "default_source": mapping_info.get("default_source"),
                 "available_sources": list(mapping_info.get("sources", {}).keys()),
             }
         return feature_info
+
+    def get_available_static_features(self) -> list:
+        """Returns a list of available standard static feature names."""
+        return list(self._static_variable_definitions.keys())
 
     def read_area(self, gage_id_lst: list[str]) -> xr.Dataset:
         """Reads the catchment area for a list of basins.
@@ -409,10 +479,7 @@ class HydroDataset(ABC):
         Returns:
             An xarray Dataset containing the area data for the requested basins.
         """
-        area_var_name = self._variable_name_map["area"]
-        data_ds = self.read_attr_xrdataset(
-            gage_id_lst=gage_id_lst, var_lst=[area_var_name]
-        )
+        data_ds = self.read_attr_xrdataset(gage_id_lst=gage_id_lst, var_lst=["area"])
         return data_ds
 
     def read_mean_prcp(self, gage_id_lst: list[str], unit: str = "mm/d") -> xr.Dataset:
@@ -430,7 +497,7 @@ class HydroDataset(ABC):
         Raises:
             ValueError: If an unsupported unit is provided.
         """
-        prcp_var_name = self._variable_name_map["p_mean"]
+        prcp_var_name = "p_mean"
         data_ds = self.read_attr_xrdataset(
             gage_id_lst=gage_id_lst, var_lst=[prcp_var_name]
         )
@@ -440,6 +507,7 @@ class HydroDataset(ABC):
 
         # Conversion needed, create a new dataset
         converted_ds = data_ds.copy()
+        # After renaming, the variable in the dataset is now the standard name
         if unit in ["mm/h", "mm/hour"]:
             converted_ds[prcp_var_name] = data_ds[prcp_var_name] / 24
         elif unit in ["mm/3h", "mm/3hour"]:

@@ -1,7 +1,7 @@
 """
 Author: Wenyu Ouyang
 Date: 2022-01-05 18:01:11
-LastEditTime: 2025-10-19 21:46:06
+LastEditTime: 2025-10-28 20:11:35
 LastEditors: Wenyu Ouyang
 Description: Read Camels ("UnitedStates") dataset
 FilePath: \hydrodataset\hydrodataset\camels.py
@@ -218,10 +218,10 @@ class Camels(HydroDataset):
     def get_name(self):
         return "CAMELS_" + self.region
 
-    def dynamic_features(self) -> list:
+    def _dynamic_features(self) -> list:
         return self.get_relevant_cols().tolist() + ["streamflow"]
 
-    def static_features(self) -> list:
+    def _static_features(self) -> list:
         return self.get_constant_cols().tolist()
 
     def set_data_source_describe(self) -> collections.OrderedDict:

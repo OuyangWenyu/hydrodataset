@@ -1,7 +1,7 @@
 """
 Author: Wenyu Ouyang
 Date: 2025-10-27 14:52:23
-LastEditTime: 2025-10-27 16:03:15
+LastEditTime: 2025-10-28 20:13:06
 LastEditors: Wenyu Ouyang
 Description: CAMELS-BR dataset class.
 FilePath: \hydrodataset\hydrodataset\camels_br.py
@@ -318,7 +318,7 @@ class CamelsBr(HydroDataset):
             var_lst.extend(var_lst_temp)
         return np.array(var_lst)
 
-    def static_features(self) -> list:
+    def _static_features(self) -> list:
         """
         all readable attrs in CAMELS-BR
 
@@ -330,7 +330,7 @@ class CamelsBr(HydroDataset):
         data_folder = self.data_source_description["CAMELS_ATTR_DIR"]
         return self._get_constant_cols_some(data_folder, "camels_br_", ".txt", "\s+")
 
-    def dynamic_features(self):
+    def _dynamic_features(self):
         "Return all available time series variables."
         return np.array(list(self._variable_map.keys()))
 
@@ -448,7 +448,7 @@ class CamelsBr(HydroDataset):
         """
         print("Creating cache for CAMELS-BR time series data... This may take a while.")
         all_basins = self.read_object_ids()
-        all_vars = self.dynamic_features()
+        all_vars = self._dynamic_features()
         # Define a canonical time range for the cache, e.g., 1980-2020
         canonical_t_range = self.default_t_range
         ds_full = self._read_ts_dynamic(

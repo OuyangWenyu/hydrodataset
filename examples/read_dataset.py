@@ -113,12 +113,12 @@ def main():
     print(gage_ids)
     print("--------------------------------")
 
-    ts_all = ds.dynamic_features()
+    ts_all = ds._dynamic_features()
     print("All dynamic features:")
     print(ts_all)
     print("--------------------------------")
 
-    attr_all = ds.static_features()
+    attr_all = ds._static_features()
     print("All static features:")
     print(attr_all)
     print("--------------------------------")
@@ -127,7 +127,7 @@ def main():
     ts_data = ds.read_ts_xrdataset(
         gage_id_lst=gage_ids[:2],
         t_range=[ds.default_t_range[0], ds.default_t_range[0]],
-        var_lst=["precipitation", "streamflow"]
+        var_lst=["precipitation", "streamflow"],
     )
     print(ts_data)
     print("--------------------------------")
@@ -135,7 +135,7 @@ def main():
     print("Reading attribute data...")
     attr_data = ds.read_attr_xrdataset(
         gage_id_lst=gage_ids[:2],
-        var_lst=attr_all[:2],
+        var_lst=["p_mean", "area"],
     )
     print(attr_data)
 
