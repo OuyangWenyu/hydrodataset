@@ -33,12 +33,18 @@ class StandardVariable:
     VAPOR_PRESSURE = "vapor_pressure"
     POTENTIAL_EVAPOTRANSPIRATION = "potential_evapotranspiration"
     EVAPORATION = "evaporation"
-    RELATIVE_HUMIDITY = "humidity"
+    RELATIVE_HUMIDITY = "relative_humidity"
     SEA_LEVEL_PRESSURE = "sea_level_pressure"
     RELATIVE_DAYLIGHT_DURATION = "relative_daylight_duration"
     EVAPOTRANSPIRATION = "evapotranspiration"
-
-
+    WIND_SPEED = "wind_speed"
+    WATER_LEVEL ="water_level"
+    CAPE ="cape"            #Convective available potential energy
+    CRAINF_FRAC="crainf_frac"           #Fraction of total precipitation that is convective
+    SURFACE_PRESSURE ="surface_pressure"
+    LONGWAVE_SOLAR_RADIATION ="longwave_solar_radiation"
+    MERIDIONAL_WIND_SPEED ="meridional_wind_speed"
+    RELATIVE_HUMIDITY_MIN ="relative_humidity_min"
 class HydroDataset(ABC):
     """An interface for Hydrological Dataset
 

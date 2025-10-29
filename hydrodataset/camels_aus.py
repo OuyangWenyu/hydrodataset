@@ -131,13 +131,17 @@ class CamelsAus(HydroDataset):
         },
         
         StandardVariable.RELATIVE_HUMIDITY: {
-            "default_source": "silo_tmax",
+            "default_source": "silo",
             "sources": {
-                "silo_tmax": {"specific_name": "rh__silo_tmax", "unit": "%"},
-                "silo_tmin": {"specific_name": "rh__silo_tmin", "unit": "%"}
+                "silo": {"specific_name": "rh__silo_tmax", "unit": "%"},
             },
         },
-        
+        StandardVariable.RELATIVE_HUMIDITY_MIN: {
+            "default_source": "silo",
+            "sources": {
+                "silo": {"specific_name": "rh__silo_tmin", "unit": "%"}
+            },
+        },
         StandardVariable.SEA_LEVEL_PRESSURE: {
             "default_source": "silo",
             "sources": {
