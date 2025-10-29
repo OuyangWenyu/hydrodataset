@@ -317,7 +317,11 @@ class HydroDataset(ABC):
             raise NotImplementedError
 
     def read_attr_xrdataset(
-        self, gage_id_lst: list = None, var_lst: list = None, **kwargs
+        self,
+        gage_id_lst: list = None,
+        var_lst: list = None,
+        to_numeric: bool = True,
+        **kwargs,
     ) -> xr.Dataset:
         """Reads attribute data for a list of basins using standardized variable names.
 
@@ -325,6 +329,9 @@ class HydroDataset(ABC):
             gage_id_lst: A list of basin identifiers.
             var_lst: A list of **standard** attribute names to retrieve.
                 If None, all available static features will be returned.
+            to_numeric: If True, converts all non-numeric variables to numeric codes
+                and stores the original labels in the variable's attributes.
+                Defaults to True.
 
         Returns:
             An xarray Dataset containing the attribute data for the requested basins,
@@ -363,8 +370,30 @@ class HydroDataset(ABC):
         else:
             ds_selected = ds_subset
 
-        # 4. Rename to standard names and return
-        return ds_selected.rename(rename_map)
+        # 4. Rename to standard names
+        final_ds = ds_selected.rename(rename_map)
+
+        if not to_numeric:
+            return final_ds
+
+        # 5. If to_numeric is True, perform conversion
+        converted_ds = xr.Dataset(coords=final_ds.coords)
+        for var_name, da in final_ds.data_vars.items():
+            if np.issubdtype(da.dtype, np.number):
+                converted_ds[var_name] = da
+            else:
+                # Assumes string-like array that needs factorizing
+                numeric_vals, labels = pd.factorize(da.values, sort=True)
+                new_da = xr.DataArray(
+                    numeric_vals,
+                    coords=da.coords,
+                    dims=da.dims,
+                    name=da.name,
+                    attrs=da.attrs,  # Preserve original attributes
+                )
+                new_da.attrs["labels"] = labels.tolist()
+                converted_ds[var_name] = new_da
+        return converted_ds
 
     def read_ts_xrdataset(
         self,

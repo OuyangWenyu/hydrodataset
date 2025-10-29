@@ -64,7 +64,7 @@ class CamelsUs(HydroDataset):
         # Fetch HUC codes for the requested basins on-the-fly
         try:
             huc_ds = self.read_attr_xrdataset(
-                gage_id_lst=gage_id_lst, var_lst=["huc_02"]
+                gage_id_lst=gage_id_lst, var_lst=["huc_02"], to_numeric=False
             )
             huc_df = huc_ds.to_dataframe()
         except Exception as e:
