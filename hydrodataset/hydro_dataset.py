@@ -1,7 +1,7 @@
 """
 Author: Wenyu Ouyang
 Date: 2022-09-05 23:20:24
-LastEditTime: 2025-10-29 14:22:22
+LastEditTime: 2025-10-29 20:39:06
 LastEditors: Wenyu Ouyang
 Description: main modules for hydrodataset
 FilePath: \hydrodataset\hydrodataset\hydro_dataset.py
@@ -510,6 +510,16 @@ class HydroDataset(ABC):
     def get_available_static_features(self) -> list:
         """Returns a list of available standard static feature names."""
         return list(self._static_variable_definitions.keys())
+
+    @property
+    def available_static_features(self) -> list:
+        """Returns a list of available static attribute names."""
+        return self.get_available_static_features()
+
+    @property
+    def available_dynamic_features(self) -> dict:
+        """Returns a dictionary of available dynamic feature names and their possible sources."""
+        return self.get_available_dynamic_features()
 
     def read_area(self, gage_id_lst: list[str]) -> xr.Dataset:
         """Reads the catchment area for a list of basins.

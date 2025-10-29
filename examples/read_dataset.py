@@ -56,11 +56,11 @@ def main():
     parser.add_argument(
         "dataset",
         nargs="?",  # make it optional
-        # default="camels_aus",  # change this to test different datasets
+        default="camels_aus",  # change this to test different datasets
         # default="camels_br",
         # default="camels_ch",
         # default="camels_cl",
-        default="camels_col",
+        # default="camels_col",
         # default="camels_de",
         # default="camels_dk",
         # default="camels_fi",
@@ -113,23 +113,16 @@ def main():
     print(gage_ids)
     print("--------------------------------")
 
-    # the dynamic features and static features are internal funcs
-    ts_all = ds._dynamic_features()
-    print("All dynamic features:")
-    print(ts_all)
+    t_range = ds.default_t_range
+    print(f"Default time range: {t_range}")
     print("--------------------------------")
 
-    ts_available = ds.get_available_dynamic_features()
+    ts_available = ds.available_dynamic_features
     print("Available dynamic features:")
     print(ts_available)
     print("--------------------------------")
 
-    attr_all = ds._static_features()
-    print("All static features:")
-    print(attr_all)
-    print("--------------------------------")
-    
-    attr_available = ds.get_available_static_features()
+    attr_available = ds.available_static_features
     print("Available static features:")
     print(attr_available)
     print("--------------------------------")
