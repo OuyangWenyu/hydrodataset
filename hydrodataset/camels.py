@@ -1,17 +1,24 @@
 """
 Author: Wenyu Ouyang
 Date: 2022-01-05 18:01:11
-LastEditTime: 2025-10-28 20:11:35
+LastEditTime: 2025-10-29 09:03:13
 LastEditors: Wenyu Ouyang
 Description: Read Camels ("UnitedStates") dataset
 FilePath: \hydrodataset\hydrodataset\camels.py
 Copyright (c) 2021-2025 Wenyu Ouyang. All rights reserved.
 """
 
-import json
 import warnings
+
+warnings.warn(
+    "The 'camels' module is deprecated and will be removed in version 0.3. "
+    "Please use the 'camels_us' module instead.",
+    DeprecationWarning,
+    stacklevel=2,
+)
+
+import json
 import collections
-import fnmatch
 import logging
 import os
 from typing import Union
