@@ -46,8 +46,8 @@ class CamelsUs(HydroDataset):
         """
         # Get the default features from the parent class (from aquafetch)
         features = super()._dynamic_features()
-        # Add the custom PET variable
-        features.append("PET")
+        # Add the custom PET and ET variables
+        features.extend(["PET", "ET"])
         return features
 
     def read_camels_us_model_output_data(
@@ -92,7 +92,7 @@ class CamelsUs(HydroDataset):
         chosen_camels_mods = np.full([len(gage_id_lst), nt, len(var_lst)], np.nan)
 
         for i, usgs_id in enumerate(
-            tqdm(gage_id_lst, desc="Read model output data (PET) for CAMELS-US")
+            tqdm(gage_id_lst, desc="Read model output data (PET and ET) for CAMELS-US")
         ):
             try:
                 huc02_ = huc_df.loc[usgs_id, "huc_02"]
@@ -100,7 +100,7 @@ class CamelsUs(HydroDataset):
                 huc02_ = f"{int(huc02_):02d}"
             except KeyError:
                 print(
-                    f"Warning: No HUC attribute found for {usgs_id}, skipping PET reading."
+                    f"Warning: No HUC attribute found for {usgs_id}, skipping PET and ET reading."
                 )
                 continue
 
@@ -180,36 +180,39 @@ class CamelsUs(HydroDataset):
         print("Creating base time-series cache from aquafetch...")
         super().cache_timeseries_xrdataset()
 
-        # Now, read the PET data for all basins for the default time range
-        print("Reading PET data to add to the cache...")
+        # Now, read the PET and ET data for all basins for the default time range
+        print("Reading PET and ET data to add to the cache...")
         gage_id_lst = self.read_object_ids().tolist()
-        pet_data = self.read_camels_us_model_output_data(
-            gage_id_lst=gage_id_lst, t_range=self.default_t_range, var_lst=["PET"]
+        model_output_data = self.read_camels_us_model_output_data(
+            gage_id_lst=gage_id_lst, t_range=self.default_t_range, var_lst=["PET", "ET"]
         )
-
-        # Squeeze the last dimension if it's 1
-        if pet_data.ndim == 3 and pet_data.shape[2] == 1:
-            pet_data = np.squeeze(pet_data, axis=2)
 
         cache_file = self.cache_dir.joinpath(self._timeseries_cache_filename)
 
         # Use a with statement to ensure the dataset is closed before writing
         with xr.open_dataset(cache_file) as ds:
             print(f"Variables in base cache: {list(ds.data_vars.keys())}")
-            # Create an xarray.DataArray for PET
+            # Create xarray.DataArrays for PET and ET
             pet_da = xr.DataArray(
-                pet_data,
+                model_output_data[:, :, 0],  # PET data
                 coords={"basin": gage_id_lst, "time": ds.time},
                 dims=["basin", "time"],
                 attrs={"units": "mm/day", "source": "SAC-SMA Model Output"},
                 name="PET",
             )
-            # Merge PET into the main dataset
+            et_da = xr.DataArray(
+                model_output_data[:, :, 1],  # ET data
+                coords={"basin": gage_id_lst, "time": ds.time},
+                dims=["basin", "time"],
+                attrs={"units": "mm/day", "source": "SAC-SMA Model Output"},
+                name="ET",
+            )
+            # Merge PET and ET into the main dataset
             # Load the dataset into memory to avoid issues with lazy loading
-            merged_ds = ds.load().merge(pet_da)
+            merged_ds = ds.load().merge(pet_da).merge(et_da)
 
         # Now that the original file is closed, we can safely overwrite it
-        print("Saving final cache file with merged PET data...")
+        print("Saving final cache file with merged PET and ET data...")
         print(f"Variables in merged dataset: {list(merged_ds.data_vars.keys())}")
         merged_ds.to_netcdf(cache_file, mode="w")
         print(f"Successfully saved final cache to: {cache_file}")
@@ -306,5 +309,9 @@ class CamelsUs(HydroDataset):
         StandardVariable.POTENTIAL_EVAPOTRANSPIRATION: {
             "default_source": "sac-sma",
             "sources": {"sac-sma": {"specific_name": "PET", "unit": "mm/day"}},
+        },
+        StandardVariable.EVAPOTRANSPIRATION: {
+            "default_source": "sac-sma",
+            "sources": {"sac-sma": {"specific_name": "ET", "unit": "mm/day"}},
         },
     }

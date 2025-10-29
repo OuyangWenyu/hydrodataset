@@ -1,7 +1,7 @@
 """
 Author: Wenyu Ouyang
 Date: 2022-09-05 23:20:24
-LastEditTime: 2025-10-28 21:30:57
+LastEditTime: 2025-10-29 14:22:22
 LastEditors: Wenyu Ouyang
 Description: main modules for hydrodataset
 FilePath: \hydrodataset\hydrodataset\hydro_dataset.py
@@ -31,6 +31,7 @@ class StandardVariable:
     SNOW_WATER_EQUIVALENT = "snow_water_equivalent"
     VAPOR_PRESSURE = "vapor_pressure"
     POTENTIAL_EVAPOTRANSPIRATION = "potential_evapotranspiration"
+    EVAPOTRANSPIRATION = "evapotranspiration"
 
 
 class HydroDataset(ABC):
