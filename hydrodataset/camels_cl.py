@@ -9,7 +9,7 @@ Copyright (c) 2021-2026 Wenyu Ouyang. All rights reserved.
 """
 
 from aqua_fetch import CAMELS_CL
-from hydrodataset import HydroDataset
+from hydrodataset import HydroDataset,StandardVariable
 
 
 class CamelsCl(HydroDataset):
@@ -49,6 +49,66 @@ class CamelsCl(HydroDataset):
     def default_t_range(self):
         return ["1913-02-15", "2018-03-09"]
 
+    _subclass_static_definitions = {
+        "p_mean": {"specific_name": "p_mean", "unit": "mm"},
+        "area": {"specific_name": "area_km2", "unit": "km^2"},
+    }
+    _dynamic_variable_mapping = {
+        StandardVariable.STREAMFLOW: {
+            "default_source": "observations",
+            "sources": {
+                "observations": {"specific_name": "q_cms_obs", "unit": "m^3/s"},
+                "depth_based": {"specific_name": "q_mm_obs", "unit": "mm/day"}
+            },
+        },
+        
+        StandardVariable.PRECIPITATION: {
+            "default_source": "cr2met",
+            "sources": {
+                "cr2met": {"specific_name": "pcp_mm_cr2met", "unit": "mm/day"},
+                "chirps": {"specific_name": "pcp_mm_chirps", "unit": "mm/day"},
+                "mswep": {"specific_name": "pcp_mm_mswep", "unit": "mm/day"},
+                "tmpa": {"specific_name": "pcp_mm_tmpa", "unit": "mm/day"}
+            },
+        },
+        
+        StandardVariable.TEMPERATURE_MIN: {
+            "default_source": "observations",
+            "sources": {
+                "observations": {"specific_name": "airtemp_C_min", "unit": "°C"}
+            },
+        },
+        
+        StandardVariable.TEMPERATURE_MAX: {
+            "default_source": "observations",
+            "sources": {
+                "observations": {"specific_name": "airtemp_C_max", "unit": "°C"}
+            },
+        },
+        
+        StandardVariable.TEMPERATURE_MEAN: {
+            "default_source": "observations",
+            "sources": {
+                "observations": {"specific_name": "airtemp_C_mean", "unit": "°C"}
+            },
+        },
+        
+        StandardVariable.POTENTIAL_EVAPOTRANSPIRATION: {
+            "default_source": "modis",
+            "sources": {
+                "modis": {"specific_name": "pet_mm_modis", "unit": "mm/day"},
+                "hargreaves": {"specific_name": "pet_mm_hargreaves", "unit": "mm/day"}
+            },
+        },
+        
+        StandardVariable.SNOW_WATER_EQUIVALENT: {
+            "default_source": "observations",
+            "sources": {
+                "observations": {"specific_name": "swe", "unit": "mm"}
+            },
+        }
+    }
+    '''
     def _get_attribute_units(self):
         return {
             # 地形特征
@@ -125,3 +185,4 @@ class CamelsCl(HydroDataset):
             "mm/day",  # pet_mm_hargreaves
             "mm",  # swe
         ]
+    '''

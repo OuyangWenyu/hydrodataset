@@ -1,6 +1,5 @@
 from aqua_fetch import CAMELS_CH
-from hydrodataset import HydroDataset
-from hydroutils import hydro_file
+from hydrodataset import HydroDataset,StandardVariable
 from tqdm import tqdm
 
 
@@ -48,6 +47,62 @@ class CamelsCh(HydroDataset):
     def default_t_range(self):
         return ["1981-01-01", "2020-12-31"]
 
+    _subclass_static_definitions = {
+        "p_mean": {"specific_name": "p_mean", "unit": "mm"},
+        "area": {"specific_name": "area_km2", "unit": "km^2"},
+    }
+    _dynamic_variable_mapping = {
+        StandardVariable.STREAMFLOW: {
+            "default_source": "vol",
+            "sources": {
+                "vol": {"specific_name": "q_cms_obs", "unit": "m^3/s"},
+                "spec": {"specific_name": "q_mm_obs", "unit": "mm/d"}
+            },
+        },
+        
+        StandardVariable.PRECIPITATION: {
+            "default_source": "sfo",
+            "sources": {
+                "sfo": {"specific_name": "pcp_mm", "unit": "mm/day"},
+            },
+        },
+        
+        StandardVariable.TEMPERATURE_MAX: {
+            "default_source": "sfo",
+            "sources": {
+                "sfo": {"specific_name": "airtemp_C_max", "unit": "°C"}
+            },
+        },
+        
+        StandardVariable.TEMPERATURE_MIN: {
+            "default_source": "sfo",
+            "sources": {
+                "sfo": {"specific_name": "airtemp_C_min", "unit": "°C"},
+            },
+        },
+        
+        StandardVariable.TEMPERATURE_MEAN: {
+            "default_source": "sfo",
+            "sources": {
+                "sfo": {"specific_name": "airtemp_C_mean", "unit": "°C"},
+            },
+        },
+        
+        StandardVariable.RELATIVE_DAYLIGHT_DURATION: {
+            "default_source": "sfo",
+            "sources": {
+                "sfo": {"specific_name": "rel_sun_dur(%)", "unit": "%"},
+            },
+        },
+        
+        StandardVariable.SNOW_WATER_EQUIVALENT: {
+            "default_source": "wsl",
+            "sources": {
+                "wsl": {"specific_name": "swe_mm", "unit": "mm"}
+            },
+        },
+    }
+    '''
     def _get_attribute_units(self):
         return {
             # 地形特征
@@ -123,3 +178,4 @@ class CamelsCh(HydroDataset):
             "%",  # rel_sun_dur(%)
             "mm",  # swe_mm
         ]
+    '''

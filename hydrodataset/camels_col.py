@@ -9,7 +9,7 @@ Copyright (c) 2021-2026 Wenyu Ouyang. All rights reserved.
 """
 
 from aqua_fetch import CAMELS_COL
-from hydrodataset import HydroDataset
+from hydrodataset import HydroDataset,StandardVariable
 from hydroutils import hydro_file
 
 
@@ -36,25 +36,7 @@ class CamelsCol(HydroDataset):
         super().__init__(data_path)
         self.region = region
         self.download = download
-        try:
-            self.aqua_fetch = CAMELS_COL(data_path)
-        except Exception:
-            check_zip_extract = False
-            zip_files = [
-                "01_CAMELS_COL_Attributes.zip",
-                "03_CAMELS_COL_Basin_boundary.zip",
-                "04_CAMELS_COL_Hydrometeorological_data.zip",
-            ]
-            for filename in tqdm(zip_files, desc="Checking zip files"):
-                extracted_dir = self.data_source_dir.joinpath(
-                    "CAMELS_COL", filename[:-4]
-                )
-                if not extracted_dir.exists():
-                    check_zip_extract = True
-                    break
-            if check_zip_extract:
-                hydro_file.zip_extract(self.data_source_dir.joinpath("CAMELS_COL"))
-            self.aqua_fetch = CAMELS_COL(data_path)
+        self.aqua_fetch = CAMELS_COL(data_path)
 
     @property
     def _attributes_cache_filename(self):
@@ -68,6 +50,62 @@ class CamelsCol(HydroDataset):
     def default_t_range(self):
         return ["1981-05-21", "2022-12-31"]
 
+    _subclass_static_definitions = {
+        "p_mean": {"specific_name": "p_mean", "unit": "mm"},
+        "area": {"specific_name": "area_km2", "unit": "km^2"},
+    }
+    _dynamic_variable_mapping = {
+        StandardVariable.STREAMFLOW: {
+            "default_source": "vol",
+            "sources": {
+                "vol": {"specific_name": "q_cms_obs", "unit": "m^3/s"},
+                "spec": {"specific_name": "q_mm_obs", "unit": "mm/d"}
+            },
+        },
+        
+        StandardVariable.PRECIPITATION: {
+            "default_source": "sfo",
+            "sources": {
+                "sfo": {"specific_name": "pcp_mm", "unit": "mm/day"},
+            },
+        },
+        
+        StandardVariable.TEMPERATURE_MAX: {
+            "default_source": "sfo",
+            "sources": {
+                "sfo": {"specific_name": "airtemp_C_max", "unit": "°C"}
+            },
+        },
+        
+        StandardVariable.TEMPERATURE_MIN: {
+            "default_source": "sfo",
+            "sources": {
+                "sfo": {"specific_name": "airtemp_C_min", "unit": "°C"},
+            },
+        },
+        
+        StandardVariable.TEMPERATURE_MEAN: {
+            "default_source": "sfo",
+            "sources": {
+                "sfo": {"specific_name": "airtemp_C_mean", "unit": "°C"},
+            },
+        },
+        
+        StandardVariable.RELATIVE_DAYLIGHT_DURATION: {
+            "default_source": "sfo",
+            "sources": {
+                "sfo": {"specific_name": "rel_sun_dur(%)", "unit": "%"},
+            },
+        },
+        
+        StandardVariable.SNOW_WATER_EQUIVALENT: {
+            "default_source": "wsl",
+            "sources": {
+                "wsl": {"specific_name": "swe_mm", "unit": "mm"}
+            },
+        },
+    }
+    '''
     def _get_attribute_units(self):
         return {
             # 地形特征
@@ -138,3 +176,4 @@ class CamelsCol(HydroDataset):
             "°C",  # airtemp_C_mean
             "m^3/s",  # q_cms_obs
         ]
+    '''

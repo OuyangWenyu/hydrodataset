@@ -1,5 +1,11 @@
+import os
+import numpy as np
+import pandas as pd
+import xarray as xr
+from tqdm import tqdm
+
 from aqua_fetch import CAMELS_AUS
-from hydrodataset import HydroDataset
+from hydrodataset import HydroDataset,StandardVariable
 
 
 class CamelsAus(HydroDataset):
@@ -40,6 +46,114 @@ class CamelsAus(HydroDataset):
     def default_t_range(self):
         return ["1950-01-01", "2022-03-31"]
 
+
+    _subclass_static_definitions = {
+        "p_mean": {"specific_name": "p_mean", "unit": "mm"},
+        "area": {"specific_name": "area_km2", "unit": "km^2"},
+    }
+    _dynamic_variable_mapping = {
+        StandardVariable.STREAMFLOW: {
+            "default_source": "bom",
+            "sources": {
+                "bom": {"specific_name": "q_cms_obs", "unit": "m^3/s"},
+                "gr4j": {"specific_name": "streamflow_mld_inclinfilled", "unit": "m^3/s"},
+                "depth_based": {"specific_name": "q_mm_obs", "unit": "m^3/s"}
+            },
+        },
+        
+        StandardVariable.ACTUAL_EVAPOTRANSPIRATION: {
+            "default_source": "silo_morton",
+            "sources": {
+                "silo_morton": {"specific_name": "aet_mm_silo_morton", "unit": "mm/day"},
+            },
+        },
+        
+        StandardVariable.POTENTIAL_EVAPOTRANSPIRATION: {
+            "default_source": "silo_morton",
+            "sources": {
+                "silo_morton": {"specific_name": "et_morton_wet_silo", "unit": "mm/day"},
+                "silo_morton_point": {"specific_name": "aet_mm_silo_morton_point", "unit": "mm/day"},
+                "silo_short_crop": {"specific_name": "aet_mm_silo_short_crop", "unit": "mm/day"},
+                "silo_tall_crop": {"specific_name": "aet_mm_silo_tall_crop", "unit": "mm/day"},
+            },
+        },
+        
+        StandardVariable.EVAPORATION: {
+            "default_source": "silo_morton_lake",
+            "sources": {
+                "silo_morton_lake": {"specific_name": "evap_morton_lake_silo", "unit": "mm/day"},
+                "silo_pan": {"specific_name": "evap_pan_silo", "unit": "mm/day"},
+                "silo_syn": {"specific_name": "evap_syn_silo", "unit": "mm/day"}
+            },
+        },
+        
+        StandardVariable.PRECIPITATION: {
+            "default_source": "agcd",
+            "sources": {
+                "agcd": {"specific_name": "pcp_mm_agcd", "unit": "mm/day"},
+                "silo": {"specific_name": "pcp_mm_silo", "unit": "mm/day"},
+                "agcd_var": {"specific_name": "precipitation_var_agcd", "unit": "mm^2/day^2"}
+            },
+        },
+        
+        StandardVariable.TEMPERATURE_MAX: {
+            "default_source": "agcd",
+            "sources": {
+                "agcd": {"specific_name": "airtemp_c_agcd_max", "unit": "°C"},
+                "silo": {"specific_name": "airtemp_c_silo_max", "unit": "°C"}
+            },
+        },
+        
+        StandardVariable.TEMPERATURE_MIN: {
+            "default_source": "agcd",
+            "sources": {
+                "agcd": {"specific_name": "airtemp_c_agcd_min", "unit": "°C"},
+                "silo": {"specific_name": "airtemp_c_silo_min", "unit": "°C"}
+            },
+        },
+        
+        StandardVariable.TEMPERATURE_MEAN: {
+            "default_source": "silo",
+            "sources": {
+                "silo": {"specific_name": "airtemp_c_mean_silo", "unit": "°C"},
+                "agcd": {"specific_name": "airtemp_c_mean_agcd", "unit": "°C"}
+            },
+        },
+        
+        StandardVariable.VAPOR_PRESSURE: {
+            "default_source": "agcd_h09",
+            "sources": {
+                "agcd_h09": {"specific_name": "vp_hpa_agcd_h09", "unit": "hPa"},
+                "agcd_h15": {"specific_name": "vp_hpa_agcd_h15", "unit": "hPa"},
+                "silo": {"specific_name": "vp_hpa_silo", "unit": "hPa"},
+                "silo_deficit": {"specific_name": "vp_deficit_silo", "unit": "hPa"}
+            },
+        },
+        
+        StandardVariable.RELATIVE_HUMIDITY: {
+            "default_source": "silo_tmax",
+            "sources": {
+                "silo_tmax": {"specific_name": "rh__silo_tmax", "unit": "%"},
+                "silo_tmin": {"specific_name": "rh__silo_tmin", "unit": "%"}
+            },
+        },
+        
+        StandardVariable.SEA_LEVEL_PRESSURE: {
+            "default_source": "silo",
+            "sources": {
+                "silo": {"specific_name": "mslp_silo", "unit": "hPa"}
+            },
+        },
+        
+        StandardVariable.SOLAR_RADIATION: {
+            "default_source": "silo",
+            "sources": {
+                "silo": {"specific_name": "solrad_wm2_silo", "unit": "W/m^2"}
+            },
+        }
+    }
+
+'''
     def _get_attribute_units(self):
         return {
             # 地形特征
@@ -134,3 +248,4 @@ class CamelsAus(HydroDataset):
         ]
 
     subclass_variable_name_map = {}
+'''

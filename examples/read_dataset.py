@@ -60,7 +60,7 @@ def main():
         # default="camels_br",
         # default="camels_ch",
         # default="camels_cl",
-        # default="camels_col",
+        default="camels_col",
         # default="camels_de",
         # default="camels_dk",
         # default="camels_fi",
@@ -70,7 +70,7 @@ def main():
         # default="camels_lux",
         # default="camels_nz",
         # default="camels_se",
-        default="camels_us",
+        # default="camels_us",
         # default="camelsh_kr",
         # default="camelsh",
         # default="bull",
@@ -114,21 +114,21 @@ def main():
     print("--------------------------------")
 
     # the dynamic features and static features are internal funcs
-    # ts_all = ds._dynamic_features()
-    # print("All dynamic features:")
-    # print(ts_all)
-    # print("--------------------------------")
+    ts_all = ds._dynamic_features()
+    print("All dynamic features:")
+    print(ts_all)
+    print("--------------------------------")
 
     ts_available = ds.get_available_dynamic_features()
     print("Available dynamic features:")
     print(ts_available)
     print("--------------------------------")
 
-    # attr_all = ds._static_features()
-    # print("All static features:")
-    # print(attr_all)
-    # print("--------------------------------")
-
+    attr_all = ds._static_features()
+    print("All static features:")
+    print(attr_all)
+    print("--------------------------------")
+    
     attr_available = ds.get_available_static_features()
     print("Available static features:")
     print(attr_available)

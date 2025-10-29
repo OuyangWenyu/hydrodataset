@@ -26,11 +26,17 @@ class StandardVariable:
     PRECIPITATION = "precipitation"
     TEMPERATURE_MAX = "temperature_max"
     TEMPERATURE_MIN = "temperature_min"
+    TEMPERATURE_MEAN = "temperature_mean"
     DAYLIGHT_DURATION = "daylight_duration"
     SOLAR_RADIATION = "solar_radiation"
     SNOW_WATER_EQUIVALENT = "snow_water_equivalent"
     VAPOR_PRESSURE = "vapor_pressure"
     POTENTIAL_EVAPOTRANSPIRATION = "potential_evapotranspiration"
+    ACTUAL_EVAPOTRANSPIRATION = "actual_evapotranspiration"
+    EVAPORATION = "evaporation"
+    RELATIVE_HUMIDITY = "humidity"
+    SEA_LEVEL_PRESSURE = "sea_level_pressure"
+    RELATIVE_DAYLIGHT_DURATION = "sunshine_duration"
 
 
 class HydroDataset(ABC):

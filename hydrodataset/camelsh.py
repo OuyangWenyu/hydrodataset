@@ -1,10 +1,4 @@
-import os
-import xarray as xr
-from collections import OrderedDict
-from hydrodataset import HydroDataset
-from tqdm import tqdm
-import numpy as np
-from pathlib import Path
+from hydrodataset import HydroDataset,StandardVariable
 from aqua_fetch import CAMELSH
 
 
@@ -20,20 +14,18 @@ class Camelsh(HydroDataset):
         ds_description: Dictionary containing dataset file paths
     """
 
-    def __init__(self, data_path, region=None, download=False, cache_path=None):
+    def __init__(self, data_path, region=None, download=False):
         """Initialize CAMELSH dataset.
 
         Args:
             data_path: Path to the CAMELSH data directory
             region: Geographic region identifier (optional)
-            download: Whether to download data automatically (default: False)
-            cache_path: Path to the cache directory
+            download: Whether to download data automatically (default: False)   
         """
-        super().__init__(data_path, cache_path=cache_path)
+        super().__init__(data_path)
         self.region = region
         self.download = download
         self.aqua_fetch = CAMELSH(data_path)
-        self.set_data_source_describe()
 
     @property
     def _attributes_cache_filename(self):
@@ -47,34 +39,134 @@ class Camelsh(HydroDataset):
     def default_t_range(self):
         return ["1980-01-01", "2024-12-31"]
 
-    def set_data_source_describe(self):
-        """Set up dataset file path descriptions.
+    _subclass_static_definitions = {
+        "huc_02": {"specific_name": "huc_02", "unit": "dimensionless"},
+        "gauge_lat": {"specific_name": "lat", "unit": "degree"},
+        "gauge_lon": {"specific_name": "long", "unit": "degree"},
+        "elev_mean": {"specific_name": "elev_mean", "unit": "m"},
+        "slope_mean": {"specific_name": "slope_mkm1", "unit": "m/km"},
+        "area": {"specific_name": "area_km2", "unit": "km^2"},
+        "geol_1st_class": {"specific_name": "geol_1st_class", "unit": "dimensionless"},
+        "geol_2nd_class": {"specific_name": "geol_2nd_class", "unit": "dimensionless"},
+        "geol_porostiy": {"specific_name": "geol_porostiy", "unit": "dimensionless"},
+        "geol_permeability": {"specific_name": "geol_permeability", "unit": "m^2"},
+        "frac_forest": {"specific_name": "frac_forest", "unit": "dimensionless"},
+        "lai_max": {"specific_name": "lai_max", "unit": "dimensionless"},
+        "lai_diff": {"specific_name": "lai_diff", "unit": "dimensionless"},
+        "dom_land_cover_frac": {
+            "specific_name": "dom_land_cover_frac",
+            "unit": "dimensionless",
+        },
+        "dom_land_cover": {"specific_name": "dom_land_cover", "unit": "dimensionless"},
+        "root_depth_50": {"specific_name": "root_depth_50", "unit": "m"},
+        "root_depth_99": {"specific_name": "root_depth_99", "unit": "m"},
+        "soil_depth_statsgo": {"specific_name": "soil_depth_statsgo", "unit": "m"},
+        "soil_porosity": {"specific_name": "soil_porosity", "unit": "dimensionless"},
+        "soil_conductivity": {"specific_name": "soil_conductivity", "unit": "cm/hr"},
+        "max_water_content": {"specific_name": "max_water_content", "unit": "m"},
+        "pet_mean": {"specific_name": "pet_mean", "unit": "mm/day"},
+    }
+    _dynamic_variable_mapping = {
+        StandardVariable.STREAMFLOW: {
+            "default_source": "usgs",
+            "sources": {"usgs": {"specific_name": "q_cms_obs", "unit": "m^3/s"}},
+        },
+        # TODO: For maurer and nldas, we have not checked the specific names and units.
+        StandardVariable.PRECIPITATION: {
+            "default_source": "daymet",
+            "sources": {
+                "daymet": {"specific_name": "pcp_mm", "unit": "mm/day"},
+                "maurer": {"specific_name": "prcp_maurer", "unit": "mm/day"},
+                "nldas": {"specific_name": "prcp_nldas", "unit": "mm/day"},
+            },
+        },
+        StandardVariable.TEMPERATURE_MAX: {
+            "default_source": "daymet",
+            "sources": {
+                "daymet": {"specific_name": "airtemp_c_max", "unit": "°C"},
+                "maurer": {"specific_name": "tmax_maurer", "unit": "°C"},
+                "nldas": {"specific_name": "tmax_nldas", "unit": "°C"},
+            },
+        },
+        StandardVariable.TEMPERATURE_MIN: {
+            "default_source": "daymet",
+            "sources": {
+                "daymet": {"specific_name": "airtemp_c_min", "unit": "°C"},
+                "maurer": {"specific_name": "tmin_maurer", "unit": "°C"},
+                "nldas": {"specific_name": "tmin_nldas", "unit": "°C"},
+            },
+        },
+        StandardVariable.DAYLIGHT_DURATION: {
+            "default_source": "daymet",
+            "sources": {
+                "daymet": {"specific_name": "dayl", "unit": "s"},
+                "maurer": {"specific_name": "dayl_maurer", "unit": "s"},
+                "nldas": {"specific_name": "dayl_nldas", "unit": "s"},
+            },
+        },
+        StandardVariable.SOLAR_RADIATION: {
+            "default_source": "daymet",
+            "sources": {
+                "daymet": {"specific_name": "solrad_wm2", "unit": "W/m^2"},
+                "maurer": {"specific_name": "srad_maurer", "unit": "W/m^2"},
+                "nldas": {"specific_name": "srad_nldas", "unit": "W/m^2"},
+            },
+        },
+        StandardVariable.SNOW_WATER_EQUIVALENT: {
+            "default_source": "daymet",
+            "sources": {
+                "daymet": {"specific_name": "swe_mm", "unit": "mm/day"},
+                "maurer": {"specific_name": "swe_maurer", "unit": "mm/day"},
+                "nldas": {"specific_name": "swe_nldas", "unit": "mm/day"},
+            },
+        },
+        StandardVariable.VAPOR_PRESSURE: {
+            "default_source": "daymet",
+            "sources": {
+                "daymet": {"specific_name": "vp_hpa", "unit": "hPa"},
+                "maurer": {"specific_name": "vp_maurer", "unit": "hPa"},
+                "nldas": {"specific_name": "vp_nldas", "unit": "hPa"},
+            },
+        },
+        StandardVariable.POTENTIAL_EVAPOTRANSPIRATION: {
+            "default_source": "sac-sma",
+            "sources": {"sac-sma": {"specific_name": "PET", "unit": "mm/day"}},
+        },
+    }
 
-        Configures paths for various dataset components including timeseries,
-        attributes, shapefiles, site info, and hourly data files.
-        """
-        self.ds_description = OrderedDict()
-        self.ds_description["timeseries_dir"] = os.path.join(
-            self.data_path,
-            "CAMELSH",
-            "timeseries",
-            "Data",
-            "CAMELSH",
-            "timeseries",
-        )  # timeseries_nonobs
-        self.ds_description["attributes_file"] = os.path.join(
-            self.data_path, "CAMELSH", "attributes"
-        )
-        self.ds_description["shapefile_dir"] = os.path.join(
-            self.data_path, "CAMELSH", "shapefiles"
-        )
-        self.ds_description["site_info_file"] = os.path.join(
-            self.data_path, "CAMELSH", "info.csv"
-        )
-        self.ds_description["Hourly2_file"] = os.path.join(
-            self.data_path, "CAMELSH", "Hourly2", "Hourly2"
-        )
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+'''
     def _get_attribute_units(self):
         return {
             # 地形特征
@@ -152,12 +244,4 @@ class Camelsh(HydroDataset):
             "kg/m^2",
             "W/m²​​ ",
         ]
-
-    @property
-    def streamflow_unit(self):
-        """Get streamflow unit.
-
-        Returns:
-            str: Streamflow unit string
-        """
-        return "foot^3/s"
+'''
