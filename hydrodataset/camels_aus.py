@@ -61,7 +61,7 @@ class CamelsAus(HydroDataset):
             },
         },
         
-        StandardVariable.ACTUAL_EVAPOTRANSPIRATION: {
+        StandardVariable.EVAPOTRANSPIRATION: {
             "default_source": "silo_morton",
             "sources": {
                 "silo_morton": {"specific_name": "aet_mm_silo_morton", "unit": "mm/day"},
