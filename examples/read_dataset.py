@@ -113,14 +113,25 @@ def main():
     print(gage_ids)
     print("--------------------------------")
 
-    ts_all = ds._dynamic_features()
-    print("All dynamic features:")
-    print(ts_all)
+    # the dynamic features and static features are internal funcs
+    # ts_all = ds._dynamic_features()
+    # print("All dynamic features:")
+    # print(ts_all)
+    # print("--------------------------------")
+
+    ts_available = ds.get_available_dynamic_features()
+    print("Available dynamic features:")
+    print(ts_available)
     print("--------------------------------")
 
-    attr_all = ds._static_features()
-    print("All static features:")
-    print(attr_all)
+    # attr_all = ds._static_features()
+    # print("All static features:")
+    # print(attr_all)
+    # print("--------------------------------")
+
+    attr_available = ds.get_available_static_features()
+    print("Available static features:")
+    print(attr_available)
     print("--------------------------------")
 
     print("Reading timeseries data...")
