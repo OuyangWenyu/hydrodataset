@@ -51,83 +51,81 @@ uv sync --all-extras
 ```
 This command will install the base dependencies plus all optional dependencies for development and documentation.
 
-## Usage
+## Core API and Usage
 
-### 1. Configure Your Data Path
+The primary goal of `hydrodataset` is to provide a simple, unified API for accessing various hydrological datasets. The core interface is exposed through the dataset objects. A typical workflow is demonstrated in `examples/read_dataset.py` and summarized below.
 
-Before using `hydrodataset`, you need to create a configuration file named `hydro_setting.yml` in your user home directory. You need to edit this file to specify where the datasets should be stored.
-
--   **Windows**: `C:\Users\<YourUsername>\hydro_setting.yml`
--   **Linux/macOS**: `/home/<YourUsername>/hydro_setting.yml`
--   **MacOS**: `/Users/<YourUsername>/hydro_setting.yml`
-
-You only need to fill in the `root`, `datasets-origin` and `cache` paths. `datasets-origin` will be the base directory where all datasets are stored and `cache` will be the directory where the netcdf files of the datasets are stored.
-
-```yaml
-local_data_path:
-  root: 'E:\data'
-  datasets-origin: 'E:\data\ClassA\1st_origin\hydrodatasets'
-  cache: 'E:\data\.cache'
-  ... # Other fields can be left empty
-```
-
-### 2. Accessing Data
-
-The new architecture simplifies data access significantly. You no longer need to worry about download parameters or complex directory structures; `AquaFetch` handles that automatically.
-
-The first time you run the code for a dataset, it will be downloaded and cached as a NetCDF file. This might take some time. Subsequent runs will be much faster.
-
-Here is a typical example:
+First, initialize the dataset class you want to use. Then, you can explore the available data and read it.
 
 ```python
-from hydrodataset.camels import Camels
+from hydrodataset.camels_us import CamelsUs
 from hydrodataset import SETTING
 import os
 
-# The data_path is now just the name of the dataset directory
-# It will be created inside the `datasets-origin` you defined in hydro_setting.yml
-data_path = os.path.join(SETTING["local_data_path"]["datasets-origin"], "camels_us")
+# All datasets are expected to be in the directory defined in your hydro_setting.yml
+# A example of hydro_setting.yml in Windows is like this:
+# local_data_path:
+#   root: 'D:\data\waterism' # Update with your root data directory
+#   datasets-origin: 'D:\data\waterism\datasets-origin'
+#   cache: 'D:\data\waterism\cache'
+data_path = SETTING["local_data_path"]["datasets-origin"]
 
 # Initialize the dataset class
-camels_us = Camels(data_path=data_path)
+ds = CamelsUs(data_path)
 
-# Get a list of all basin IDs
-basin_ids = camels_us.read_object_ids()
-print(f"Found {len(basin_ids)} basins.")
+# 1. Check which features are available
+print("Available static features:")
+print(ds.available_static_features)
 
-# Read time-series data (e.g., streamflow and precipitation) for the first 5 basins
-# Data is returned as an xarray.Dataset
-ts_data = camels_us.read_ts_xrdataset(
-    gage_id_lst=basin_ids[:5],
-    t_range=["1990-01-01", "1995-12-31"],
-    var_lst=["streamflow", "prcp"]
-)
-print("Time-series data:")
-print(ts_data)
+print("\nAvailable dynamic features:")
+print(ds.available_dynamic_features)
 
-# Read static attribute data (e.g., elevation and soil conductivity)
-attr_data = camels_us.read_attr_xrdataset(
-    gage_id_lst=basin_ids[:5],
-    var_lst=["elev_mean", "soil_conductivity"]
+# 2. Get a list of all basin IDs
+basin_ids = ds.read_object_ids()
+
+# 3. Read static (attribute) data for a subset of basins
+# Note: We use standardized names like 'area' and 'p_mean'
+attr_data = ds.read_attr_xrdataset(
+    gage_id_lst=basin_ids[:2],
+    var_lst=["area", "p_mean"]
 )
 print("\nStatic attribute data:")
 print(attr_data)
 
+# 4. Read dynamic (time-series) data for the same basins
+# Note: We use standardized names like 'streamflow' and 'precipitation'
+ts_data = ds.read_ts_xrdataset(
+    gage_id_lst=basin_ids[:2],
+    t_range=["1990-01-01", "1995-12-31"],
+    var_lst=["streamflow", "precipitation"]
+)
+print("\nTime-series data:")
+print(ts_data)
 ```
 
-## Supported Datasets
+### Standardized Variable Names
 
-`hydrodataset` supports a wide range of datasets provided by `AquaFetch`, including:
--   **CAMELS**: The full series (AUS, BR, CH, CL, COL, DE, DK, FI, FR, GB, IND, LUX, NZ, SE, US, US-Hourly, KR-Hourly).
--   **BULL**: The BULL dataset.
--   **Caravan**: The Caravan_DK dataset.
--   **HYSETS**: The HYSETS dataset.
--   **Estreams**: The Estreams dataset.
--   **Hype**: The Hype dataset.
--   **LamaH**: The LamaH-ICE dataset.
--   And many more will be added in the future.
+A key feature of the new architecture is the use of standardized variable names. This allows you to use the same variable name to fetch the same type of data across different datasets, without needing to know the specific, internal naming scheme of each one.
 
-Each dataset has its own class within `hydrodataset` (e.g., `CamelsAus`, `CamelsBr`, `Hysets`).
+For example, you can get streamflow from both CAMELS-US and CAMELS-AUS using the same variable name:
+
+```python
+# Get streamflow from CAMELS-US
+us_ds.read_ts_xrdataset(gage_id_lst=["01013500"], var_lst=["streamflow"], t_range=["1990-01-01", "1995-12-31"])
+
+# Get streamflow from CAMELS-AUS
+aus_ds.read_ts_xrdataset(gage_id_lst=["A4260522"], var_lst=["streamflow"], t_range=["1990-01-01", "1995-12-31"])
+```
+
+Similarly, you can use `precipitation`, `temperature_max`, etc., across datasets. A comprehensive list of these standardized names and their coverage across all datasets is in progress and will be published soon.
+
+## Project Status & Future Work
+
+The new, unified API architecture is currently in active development.
+
+*   **Current Implementation**: The framework has been fully implemented and tested for the **`camels_us`** and **`camels_aus`** datasets.
+*   **In Progress**: We are in the process of migrating all other datasets supported by the library to this new architecture.
+*   **Release Schedule**: We plan to release new versions frequently in the short term as more datasets are integrated. Please check back for updates.
 
 ## Credits
 
