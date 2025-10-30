@@ -149,7 +149,7 @@ exclude = [
 source = "vcs"
 
 [tool.hatch.build.hooks.vcs]
-version_file = "hydrodataset/__init__.py"
+version-file = "hydrodataset/__init__.py"
 
 [tool.hatch.metadata]
 allow-direct-references = true
