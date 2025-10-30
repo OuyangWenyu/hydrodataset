@@ -298,53 +298,43 @@ class CamelsCh(HydroDataset):
             "default_source": "vol",
             "sources": {
                 "vol": {"specific_name": "q_cms_obs", "unit": "m^3/s"},
-                "spec": {"specific_name": "q_mm_obs", "unit": "mm/d"}
+                "spec": {"specific_name": "q_mm_obs", "unit": "mm/d"},
             },
         },
-        
         StandardVariable.PRECIPITATION: {
             "default_source": "sfo",
             "sources": {
                 "sfo": {"specific_name": "pcp_mm", "unit": "mm/day"},
             },
         },
-        
         StandardVariable.TEMPERATURE_MAX: {
             "default_source": "sfo",
-            "sources": {
-                "sfo": {"specific_name": "airtemp_C_max", "unit": "°C"}
-            },
+            "sources": {"sfo": {"specific_name": "airtemp_C_max", "unit": "°C"}},
         },
-        
         StandardVariable.TEMPERATURE_MIN: {
             "default_source": "sfo",
             "sources": {
                 "sfo": {"specific_name": "airtemp_C_min", "unit": "°C"},
             },
         },
-        
         StandardVariable.TEMPERATURE_MEAN: {
             "default_source": "sfo",
             "sources": {
                 "sfo": {"specific_name": "airtemp_C_mean", "unit": "°C"},
             },
         },
-        
         StandardVariable.RELATIVE_DAYLIGHT_DURATION: {
             "default_source": "sfo",
             "sources": {
                 "sfo": {"specific_name": "rel_sun_dur(%)", "unit": "%"},
             },
         },
-        
         StandardVariable.SNOW_WATER_EQUIVALENT: {
             "default_source": "wsl",
-            "sources": {
-                "wsl": {"specific_name": "swe_mm", "unit": "mm"}
-            },
+            "sources": {"wsl": {"specific_name": "swe_mm", "unit": "mm"}},
         },
     }
-    '''
+    """
     def _get_attribute_units(self):
         return {
             # 地形特征
@@ -420,4 +410,4 @@ class CamelsCh(HydroDataset):
             "%",  # rel_sun_dur(%)
             "mm",  # swe_mm
         ]
-    '''
+    """

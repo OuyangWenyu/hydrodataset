@@ -104,7 +104,7 @@ class Estreams(HydroDataset):
     def _get_timeseries_units(self):
         return [
             "mm/day",  # pcp_mm
-            "°C",  # airtemp_C_mean     
+            "°C",  # airtemp_C_mean
             "°C",  # airtemp_C_min
             "°C",  # airtemp_C_max
             "hPa",  # sp_mean

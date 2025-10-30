@@ -159,8 +159,12 @@ class Camelsh(HydroDataset):
         cleaned_var_lst = self._clean_feature_names(original_var_lst)
         var_name_mapping = dict(zip(original_var_lst, cleaned_var_lst))
 
-        print(f"Start batch processing {total_stations} stations, {batch_size} stations per batch")
-        print(f"Total number of batches: {(total_stations + batch_size - 1)//batch_size}")
+        print(
+            f"Start batch processing {total_stations} stations, {batch_size} stations per batch"
+        )
+        print(
+            f"Total number of batches: {(total_stations + batch_size - 1)//batch_size}"
+        )
 
         # Ensure cache directory exists
         self.cache_dir.mkdir(parents=True, exist_ok=True)
@@ -388,7 +392,9 @@ class Camelsh(HydroDataset):
                 continue
 
         if not relevant_datasets:
-            raise ValueError(f"Specified stations not found in any batch files: {gage_id_lst}")
+            raise ValueError(
+                f"Specified stations not found in any batch files: {gage_id_lst}"
+            )
 
         print(f"Reading data from {len(relevant_datasets)} batches...")
 
