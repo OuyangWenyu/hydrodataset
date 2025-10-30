@@ -1,7 +1,7 @@
 """
 Author: Wenyu Ouyang
 Date: 2022-09-05 23:20:24
-LastEditTime: 2025-10-19 21:16:09
+LastEditTime: 2025-10-30 11:13:29
 LastEditors: Wenyu Ouyang
 Description: set file dir
 FilePath: \hydrodataset\hydrodataset\__init__.py
@@ -64,17 +64,25 @@ def read_setting(setting_path):
 
 try:
     SETTING = read_setting(SETTING_FILE)
+    # set some constants for hydrodataset
+    ROOT_DIR = SETTING["local_data_path"]["datasets-origin"]
+    # As hydrodataset has a lot of datasets, maybe disk C of user is not enough, so we set the cache directory here.
+    CACHE_DIR = SETTING["local_data_path"]["cache"]
 except ValueError as e:
-    print(e)
+    print(f"Warning: {e}")
+    # Set default values for CI/testing environments
+    SETTING = None
+    ROOT_DIR = os.path.join(Path.home(), "hydrodataset_data", "datasets-origin")
+    CACHE_DIR = os.path.join(Path.home(), "hydrodataset_data", "cache")
 except Exception as e:
     print(f"Unexpected error: {e}")
-
-# set some constants for hydrodataset
-ROOT_DIR = SETTING["local_data_path"]["datasets-origin"]
-# As hydrodataset has a lot of datasets, maybe disk C of user is not enough, so we set the cache directory here.
-CACHE_DIR = SETTING["local_data_path"]["cache"]
+    # Set default values for CI/testing environments
+    SETTING = None
+    ROOT_DIR = os.path.join(Path.home(), "hydrodataset_data", "datasets-origin")
+    CACHE_DIR = os.path.join(Path.home(), "hydrodataset_data", "cache")
 
 # set some constants for datasets
+# deprecated Constant for datasets in the near future
 DATASETS = ["CAMELS", "Caravan", "GRDC", "HYSETS", "LamaH", "MOPEX"]
 CAMELS_REGIONS = ["AUS", "BR", "CL", "GB", "US"]
 LAMAH_REGIONS = ["CE"]
