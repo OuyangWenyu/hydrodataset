@@ -47,6 +47,9 @@ class Camelsh(HydroDataset):
         # Basic station information
         "area": {"specific_name": "area_km2", "unit": "km^2"},
         "p_mean": {"specific_name": "p_mean", "unit": "mm/day"},
+        "p_seasonality": {"specific_name": "p_seasonality", "unit": "none"},
+        "frac_snow": {"specific_name": "frac_snow", "unit": "none"},
+        "aridity": {"specific_name": "aridity_index", "unit": "none"}
     }
     _dynamic_variable_mapping = {
         # unit in aquafetch is m^3/s.in paper is kg/m^2
