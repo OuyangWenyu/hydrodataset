@@ -43,10 +43,6 @@ class LamahIce(HydroDataset):
     def default_t_range(self):
         return ["1950-01-01", "2021-12-31"]
 
-
-
-
-
     def _get_attribute_units(self):
         return {
             # 地形特征
@@ -109,6 +105,4 @@ class LamahIce(HydroDataset):
         }
 
     def _get_timeseries_units(self):
-        return [
-            
-        ]
+        return []

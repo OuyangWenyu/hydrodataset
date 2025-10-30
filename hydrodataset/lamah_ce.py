@@ -44,10 +44,6 @@ class LamahCe(HydroDataset):
     def default_t_range(self):
         return ["1981-01-01", "2019-12-31"]
 
-
-
-
-
     def _get_attribute_units(self):
         return {
             # 地形特征
@@ -123,21 +119,20 @@ class LamahCe(HydroDataset):
             "mm/day",  # evap_pan_SILO
             "mm/day",  # evap_syn_SILO
             "mm/day",  # pcp_mm_agcd
-            'mm/day',  # pcp_mm_silo
-            'mm^2/d^2 ',  # precipitation_var_AGCD
-            '°C',  # airtemp_C_agcd_max
-            '°C',  # airtemp_C_agcd_min
-            'hPa',  # vp_hpa_agcd_h09
-            'hPa',  # vp_hpa_agcd_h15
-            'hPa',  # mslp_SILO
-            'MJ/m²',  # solrad_wm2_silo
-            '%',  # rh_%_silo_tmax
-            '%',  # rh_%_silo_tmin
-            '°C',  # airtemp_C_silo_max
-            '°C',  # airtemp_C_silo_min
-            'hPa',  # vp_deficit_SILO
-            'hPa',  # vp_hpa_silo
-            '°C',  # airtemp_C_mean_silo
-            '°C',  # airtemp_C_mean_agcd
+            "mm/day",  # pcp_mm_silo
+            "mm^2/d^2 ",  # precipitation_var_AGCD
+            "°C",  # airtemp_C_agcd_max
+            "°C",  # airtemp_C_agcd_min
+            "hPa",  # vp_hpa_agcd_h09
+            "hPa",  # vp_hpa_agcd_h15
+            "hPa",  # mslp_SILO
+            "MJ/m²",  # solrad_wm2_silo
+            "%",  # rh_%_silo_tmax
+            "%",  # rh_%_silo_tmin
+            "°C",  # airtemp_C_silo_max
+            "°C",  # airtemp_C_silo_min
+            "hPa",  # vp_deficit_SILO
+            "hPa",  # vp_hpa_silo
+            "°C",  # airtemp_C_mean_silo
+            "°C",  # airtemp_C_mean_agcd
         ]
-

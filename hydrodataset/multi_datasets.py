@@ -1,6 +1,7 @@
 """
 Read multiple camels series datasets
 """
+
 import collections
 from functools import reduce
 import pandas as pd
@@ -308,16 +309,16 @@ class MultiDatasets(HydroDataset):
             if forcing_cols[i] == "":
                 forcing_data[:, :, i] = np.full((len(sites_id), nt), np.nan)
             elif forcing_cols[i] == "PET" and dataset.get_name() == "CAMELS_US":
-                forcing_data[
-                    :, :, i : i + 1
-                ] = dataset.read_camels_us_model_output_data(
-                    sites_id, t_range_list, ["PET"]
+                forcing_data[:, :, i : i + 1] = (
+                    dataset.read_camels_us_model_output_data(
+                        sites_id, t_range_list, ["PET"]
+                    )
                 )
             elif forcing_cols[i] == "PET_A" and dataset.get_name() == "LamaH_CE":
-                forcing_data[
-                    :, :, i : i + 1
-                ] = dataset.read_lamah_hydro_model_time_series(
-                    sites_id, t_range_list, ["PET_A"]
+                forcing_data[:, :, i : i + 1] = (
+                    dataset.read_lamah_hydro_model_time_series(
+                        sites_id, t_range_list, ["PET_A"]
+                    )
                 )
         return forcing_data
 
@@ -410,11 +411,13 @@ class MultiDatasets(HydroDataset):
                     # self.str_attr_name = ["high_prec_timing", "low_prec_timing", "geol_1st_class"]
                     restore_attr = np.array(
                         [
-                            ""
-                            if np.isnan(tmp)
-                            else f_dict[list(constant_dict_lst[j].values())[0]][
-                                int(tmp)
-                            ]
+                            (
+                                ""
+                                if np.isnan(tmp)
+                                else f_dict[list(constant_dict_lst[j].values())[0]][
+                                    int(tmp)
+                                ]
+                            )
                             for tmp in attrs_this_region[:, j]
                         ]
                     )
@@ -628,7 +631,7 @@ class MultiDatasets(HydroDataset):
                             "geol_prim",
                             "geol_prim_prop",
                         ]
-                    }
+                    },
                 )
             elif self.regions[i] == "BR":
                 attr_dict = collections.OrderedDict(
@@ -658,7 +661,7 @@ class MultiDatasets(HydroDataset):
                             "geol_class_1st",
                             "geol_class_1st_perc",
                         ]
-                    }
+                    },
                 )
             elif self.regions[i] == "CL":
                 attr_dict = collections.OrderedDict(
@@ -688,7 +691,7 @@ class MultiDatasets(HydroDataset):
                             "geol_class_1st",
                             "geol_class_1st_frac",
                         ]
-                    }
+                    },
                 )
             elif self.regions[i] == "GB":
                 attr_dict = collections.OrderedDict(
@@ -718,7 +721,7 @@ class MultiDatasets(HydroDataset):
                             "",
                             "",
                         ]
-                    }
+                    },
                 )
             elif self.regions[i] == "US":
                 attr_dict = collections.OrderedDict(
@@ -748,7 +751,7 @@ class MultiDatasets(HydroDataset):
                             "geol_1st_class",
                             "glim_1st_class_frac",
                         ]
-                    }
+                    },
                 )
             elif self.regions[i] == "YR":
                 raise NotImplementedError(
@@ -786,7 +789,7 @@ class MultiDatasets(HydroDataset):
                             "gc_dom",
                             "",
                         ]
-                    }
+                    },
                 )
             else:
                 raise NotImplementedError(CAMELS_NO_DATASET_ERROR_LOG)
@@ -832,7 +835,7 @@ class MultiDatasets(HydroDataset):
                             "tmin_SILO",
                             "vp_SILO",
                         ]
-                    }
+                    },
                 )
             elif self.regions[i] == "BR":
                 forcing_dict = collections.OrderedDict(
@@ -849,7 +852,7 @@ class MultiDatasets(HydroDataset):
                             "temperature_min_cpc",
                             "",
                         ]
-                    }
+                    },
                 )
             elif self.regions[i] == "CL":
                 forcing_dict = collections.OrderedDict(
@@ -866,7 +869,7 @@ class MultiDatasets(HydroDataset):
                             "tmin_cr2met",
                             "",
                         ]
-                    }
+                    },
                 )
             elif self.regions[i] == "GB":
                 forcing_dict = collections.OrderedDict(
@@ -883,7 +886,7 @@ class MultiDatasets(HydroDataset):
                             "",
                             "",
                         ]
-                    }
+                    },
                 )
             elif self.regions[i] == "US":
                 forcing_dict = collections.OrderedDict(
@@ -900,7 +903,7 @@ class MultiDatasets(HydroDataset):
                             "tmin",
                             "vp",
                         ]
-                    }
+                    },
                 )
             elif self.regions[i] == "YR":
                 raise NotImplementedError(
@@ -921,7 +924,7 @@ class MultiDatasets(HydroDataset):
                             "tmin",
                             "",
                         ]
-                    }
+                    },
                 )
             elif self.regions[i] == "CE":
                 forcing_dict = collections.OrderedDict(
@@ -938,7 +941,7 @@ class MultiDatasets(HydroDataset):
                             "2m_temp_min",
                             "",
                         ]
-                    }
+                    },
                 )
             else:
                 raise NotImplementedError(CAMELS_NO_DATASET_ERROR_LOG)

@@ -7,6 +7,7 @@ Description: Read Camels datasets
 FilePath: \hydrodataset\hydrodataset\mopex.py
 Copyright (c) 2021-2022 Wenyu Ouyang. All rights reserved.
 """
+
 import collections
 import fnmatch
 import os
@@ -217,7 +218,9 @@ class Mopex(HydroDataset):
         var_lst = self.get_relevant_cols().tolist() + self.get_target_cols().tolist()
         y = np.full([len(self.read_object_ids()), nt, len(var_lst)], np.nan)
 
-        for k, gage_id in enumerate(tqdm(self.read_object_ids(), desc="Read streamflow data of CANOPEX")):
+        for k, gage_id in enumerate(
+            tqdm(self.read_object_ids(), desc="Read streamflow data of CANOPEX")
+        ):
             canopex_id = self.camels_sites[
                 self.camels_sites["STATION_ID"] == "'" + gage_id + "'"
             ]["CANOPEX_ID"].values[0]
