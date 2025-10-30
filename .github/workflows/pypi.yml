@@ -5,7 +5,7 @@ name: pypi
 
 on:
     release:
-        types: [created]
+        types: [published]
 
 jobs:
     deploy:
@@ -32,6 +32,13 @@ jobs:
             # Tests require large dataset downloads not suitable for CI
             # - name: Run tests
             #   run: uv run pytest tests/ -v
+
+            - name: Verify git tag and version
+              run: |
+                  echo "Current ref: ${{ github.ref }}"
+                  echo "Current ref name: ${{ github.ref_name }}"
+                  git describe --tags --exact-match || echo "Not on exact tag"
+                  git log -1 --oneline
 
             - name: Build package
               run: uv build
