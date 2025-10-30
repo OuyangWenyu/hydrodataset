@@ -44,7 +44,7 @@ dependencies = [
     "xlrd>=2.0.2",
     "requests>=2.32.4",
     "py7zr>=1.0.0",
-    "aqua-fetch[all]",
+    "aqua-fetch[all] @ git+https://github.com/iHeadWater/AquaFetch.git@dev",
 ]
 
 [project.optional-dependencies]
@@ -144,8 +144,6 @@ exclude = [
     "*.egg",
 ]
 
-[tool.uv.sources]
-aqua-fetch = { git = "https://github.com/iHeadWater/AquaFetch.git", rev = "dev" }
 
 [tool.hatch.version]
 source = "vcs"
