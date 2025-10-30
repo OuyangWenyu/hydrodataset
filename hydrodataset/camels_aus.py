@@ -59,7 +59,7 @@ class CamelsAus(HydroDataset):
                     "specific_name": "streamflow_mld_inclinfilled",
                     "unit": "m^3/s",
                 },
-                "depth_based": {"specific_name": "q_mm_obs", "unit": "m^3/s"},
+                "depth_based": {"specific_name": "q_mm_obs", "unit": "mm/day"},
             },
         },
         StandardVariable.EVAPOTRANSPIRATION: {
@@ -112,10 +112,10 @@ class CamelsAus(HydroDataset):
             "sources": {
                 "agcd": {"specific_name": "pcp_mm_agcd", "unit": "mm/day"},
                 "silo": {"specific_name": "pcp_mm_silo", "unit": "mm/day"},
-                "agcd_var": {
-                    "specific_name": "precipitation_var_agcd",
-                    "unit": "mm^2/day^2",
-                },
+                # "agcd_var": {
+                #     "specific_name": "precipitation_var_agcd",
+                #     "unit": "mm^2/day^2",
+                # }, # May not be used
             },
         },
         StandardVariable.TEMPERATURE_MAX: {
@@ -151,21 +151,11 @@ class CamelsAus(HydroDataset):
         StandardVariable.RELATIVE_HUMIDITY: {
             "default_source": "silo",
             "sources": {
-<<<<<<< HEAD
-                "silo": {"specific_name": "rh__silo_tmax", "unit": "%"},
-            },
-        },
-        StandardVariable.RELATIVE_HUMIDITY_MIN: {
-            "default_source": "silo",
-            "sources": {
-                "silo": {"specific_name": "rh__silo_tmin", "unit": "%"}
-=======
                 "silo_tmax": {"specific_name": "rh__silo_tmax", "unit": "%"},
                 "silo_tmin": {"specific_name": "rh__silo_tmin", "unit": "%"},
->>>>>>> 8ae7a265fa5f96be16c42ca797616f1cd222b924
             },
         },
-        StandardVariable.SEA_LEVEL_PRESSURE: {
+        StandardVariable.SURFACE_PRESSURE: {
             "default_source": "silo",
             "sources": {"silo": {"specific_name": "mslp_silo", "unit": "hPa"}},
         },

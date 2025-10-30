@@ -1,7 +1,7 @@
 """
 Author: Wenyu Ouyang
 Date: 2022-09-05 23:20:24
-LastEditTime: 2025-10-29 20:39:06
+LastEditTime: 2025-10-30 09:11:40
 LastEditors: Wenyu Ouyang
 Description: main modules for hydrodataset
 FilePath: \hydrodataset\hydrodataset\hydro_dataset.py
@@ -23,28 +23,40 @@ class StandardVariable:
     """A class to hold standardized variable names as constants."""
 
     STREAMFLOW = "streamflow"
+    WATER_LEVEL = "water_level"
+
     PRECIPITATION = "precipitation"
+    CRAINF_FRAC = "crainf_frac"  # Fraction of total precipitation that is convective
+
     TEMPERATURE_MAX = "temperature_max"
     TEMPERATURE_MIN = "temperature_min"
     TEMPERATURE_MEAN = "temperature_mean"
+
     DAYLIGHT_DURATION = "daylight_duration"
+    RELATIVE_DAYLIGHT_DURATION = "relative_daylight_duration"
+
     SOLAR_RADIATION = "solar_radiation"
+    LONGWAVE_SOLAR_RADIATION = "longwave_solar_radiation"
+
     SNOW_WATER_EQUIVALENT = "snow_water_equivalent"
+
     VAPOR_PRESSURE = "vapor_pressure"
+
+    SURFACE_PRESSURE = "surface_pressure"
+
+    WIND_SPEED = "wind_speed"
+    MERIDIONAL_WIND_SPEED = "meridional_wind_speed"
+
+    RELATIVE_HUMIDITY = "relative_humidity"
+    RELATIVE_HUMIDITY_MIN = "relative_humidity_min"
+
+    CAPE = "cape"  # Convective available potential energy
+
     POTENTIAL_EVAPOTRANSPIRATION = "potential_evapotranspiration"
     EVAPORATION = "evaporation"
-    RELATIVE_HUMIDITY = "relative_humidity"
-    SEA_LEVEL_PRESSURE = "sea_level_pressure"
-    RELATIVE_DAYLIGHT_DURATION = "relative_daylight_duration"
     EVAPOTRANSPIRATION = "evapotranspiration"
-    WIND_SPEED = "wind_speed"
-    WATER_LEVEL ="water_level"
-    CAPE ="cape"            #Convective available potential energy
-    CRAINF_FRAC="crainf_frac"           #Fraction of total precipitation that is convective
-    SURFACE_PRESSURE ="surface_pressure"
-    LONGWAVE_SOLAR_RADIATION ="longwave_solar_radiation"
-    MERIDIONAL_WIND_SPEED ="meridional_wind_speed"
-    RELATIVE_HUMIDITY_MIN ="relative_humidity_min"
+
+
 class HydroDataset(ABC):
     """An interface for Hydrological Dataset
 

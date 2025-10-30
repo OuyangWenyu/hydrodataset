@@ -24,7 +24,7 @@ class Camelsh(HydroDataset):
         Args:
             data_path: Path to the CAMELSH data directory
             region: Geographic region identifier (optional)
-            download: Whether to download data automatically (default: False)   
+            download: Whether to download data automatically (default: False)
         """
         super().__init__(data_path)
         self.region = region
@@ -47,14 +47,11 @@ class Camelsh(HydroDataset):
         # 基本站点信息
         "area": {"specific_name": "area_km2", "unit": "km^2"},
         "p_mean": {"specific_name": "p_mean", "unit": "mm/day"},
-       
     }
     _dynamic_variable_mapping = {
         StandardVariable.STREAMFLOW: {
             "default_source": "nldas",
-            "sources": {
-                "nldas": {"specific_name": "q_cms_obs", "unit": "m^3/s"}
-            },
+            "sources": {"nldas": {"specific_name": "q_cms_obs", "unit": "m^3/s"}},
         },
         StandardVariable.PRECIPITATION: {
             "default_source": "nldas",
@@ -83,9 +80,7 @@ class Camelsh(HydroDataset):
         },
         StandardVariable.POTENTIAL_EVAPOTRANSPIRATION: {
             "default_source": "nldas",
-            "sources": {
-                "nldas": {"specific_name": "pet_mm", "unit": "mm/hour"}
-            },
+            "sources": {"nldas": {"specific_name": "pet_mm", "unit": "mm/hour"}},
         },
         StandardVariable.SURFACE_PRESSURE: {
             "default_source": "nldas",
@@ -170,8 +165,12 @@ class Camelsh(HydroDataset):
             batch_end = min(batch_idx + batch_size, total_stations)
             batch_stations = gage_id_lst[batch_idx:batch_end]
 
-            print(f"\n处理批次 {batch_num}/{(total_stations + batch_size - 1)//batch_size}")
-            print(f"站点范围: {batch_idx} - {batch_end-1} (共 {len(batch_stations)} 个站点)")
+            print(
+                f"\n处理批次 {batch_num}/{(total_stations + batch_size - 1)//batch_size}"
+            )
+            print(
+                f"站点范围: {batch_idx} - {batch_end-1} (共 {len(batch_stations)} 个站点)"
+            )
 
             try:
                 # 获取本批次数据
@@ -211,7 +210,9 @@ class Camelsh(HydroDataset):
                     if var_data:
                         combined = xr.concat(var_data, dim="basin")
                         combined["basin"] = batch_stations
-                        combined.attrs["units"] = unit_lookup.get(cleaned_var, "unknown")
+                        combined.attrs["units"] = unit_lookup.get(
+                            cleaned_var, "unknown"
+                        )
                         new_data_vars[cleaned_var] = combined
 
                 # 创建本批次的Dataset
@@ -234,6 +235,7 @@ class Camelsh(HydroDataset):
             except Exception as e:
                 print(f"批次 {batch_num} 处理失败: {e}")
                 import traceback
+
                 traceback.print_exc()
                 continue
 
@@ -316,6 +318,7 @@ class Camelsh(HydroDataset):
 
         # 查找所有批次文件
         import glob
+
         batch_pattern = str(self.cache_dir / "batch*_camelsh_timeseries.nc")
         batch_files = sorted(glob.glob(batch_pattern))
 
@@ -349,10 +352,14 @@ class Camelsh(HydroDataset):
                 common_basins = list(set(gage_id_lst) & set(batch_basins))
 
                 if common_basins:
-                    print(f"批次 {os.path.basename(batch_file)}: 包含 {len(common_basins)} 个所需站点")
+                    print(
+                        f"批次 {os.path.basename(batch_file)}: 包含 {len(common_basins)} 个所需站点"
+                    )
 
                     # 检查变量是否存在
-                    missing_vars = [v for v in target_vars_to_fetch if v not in ds_batch.data_vars]
+                    missing_vars = [
+                        v for v in target_vars_to_fetch if v not in ds_batch.data_vars
+                    ]
                     if missing_vars:
                         ds_batch.close()
                         raise ValueError(
@@ -362,8 +369,7 @@ class Camelsh(HydroDataset):
                     # 选择变量和站点
                     ds_subset = ds_batch[target_vars_to_fetch]
                     ds_selected = ds_subset.sel(
-                        basin=common_basins,
-                        time=slice(t_range[0], t_range[1])
+                        basin=common_basins, time=slice(t_range[0], t_range[1])
                     )
 
                     relevant_datasets.append(ds_selected)
@@ -397,115 +403,3 @@ class Camelsh(HydroDataset):
                 final_ds = final_ds.sel(basin=existing_basins)
 
         return final_ds
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-'''
-    def _get_attribute_units(self):
-        return {
-            # 地形特征
-            "dis_m3_": "m^3/s",
-            "run_mm_": "millimeter",
-            "inu_pc_": "percent",
-            "lka_pc_": "1e-1 * percent",
-            "lkv_mc_": "1e6 * m^3",
-            "rev_mc_": "1e6 * m^3",
-            "dor_pc_": "percent (x10)",
-            "ria_ha_": "hectares",
-            "riv_tc_": "1e3 * m^3",
-            "gwt_cm_": "centimeter",
-            "ele_mt_": "meter",
-            "slp_dg_": "1e-1 * degree",
-            "sgr_dk_": "decimeter/km",
-            "clz_cl_": "dimensionless",
-            "cls_cl_": "dimensionless",
-            "tmp_dc_": "degree_Celsius",
-            "pre_mm_": "millimeters",
-            "pet_mm_": "millimeters",
-            "aet_mm_": "millimeters",
-            "ari_ix_": "1e-2",
-            "cmi_ix_": "1e-2",
-            "snw_pc_": "percent",
-            "glc_cl_": "dimensionless",
-            "glc_pc_": "percent",
-            "pnv_cl_": "dimensionless",
-            "pnv_pc_": "percent",
-            "wet_cl_": "dimensionless",
-            "wet_pc_": "percent",
-            "for_pc_": "percent",
-            "crp_pc_": "percent",
-            "pst_pc_": "percent",
-            "ire_pc_": "percent",
-            "gla_pc_": "percent",
-            "prm_pc_": "percent",
-            "pac_pc_": "percent",
-            "tbi_cl_": "dimensionless",
-            "tec_cl_": "dimensionless",
-            "fmh_cl_": "dimensionless",
-            "fec_cl_": "dimensionless",
-            "cly_pc_": "percent",
-            "slt_pc_": "percent",
-            "snd_pc_": "percent",
-            "soc_th_": "tonne/hectare",
-            "swc_pc_": "percent",
-            "lit_cl_": "dimensionless",
-            "kar_pc_": "percent",
-            "ero_kh_": "kg/hectare/year",
-            "pop_ct_": "1e3",
-            "ppd_pk_": "1/km^2",
-            "urb_pc_": "percent",
-            "nli_ix_": "1e-2",
-            "rdd_mk_": "meter/km^2",
-            "hft_ix_": "1e-1",
-            "gad_id_": "dimensionless",
-            "gdp_ud_": "dimensionless",
-            "hdi_ix_": "1e-3",
-        }
-
-    def _get_timeseries_units(self):
-        return [
-            "mm/day",
-            "m",
-            "°C",
-            "kg/kg",
-            "Pa",
-            "m/s",
-            "m/s",
-            "W/m^2",
-            "​​Fraction",
-            "​​J/kg​​ ",
-            "kg/m^2",
-            "kg/m^2",
-            "W/m²​​ ",
-        ]
-'''
