@@ -49,14 +49,15 @@ class Camelsh(HydroDataset):
         "p_mean": {"specific_name": "p_mean", "unit": "mm/day"},
     }
     _dynamic_variable_mapping = {
+        # unit in aquafetch is m^3/s.in paper is kg/m^2
         StandardVariable.STREAMFLOW: {
             "default_source": "nldas",
-            "sources": {"nldas": {"specific_name": "q_cms_obs", "unit": "m^3/s"}},
+            "sources": {"nldas": {"specific_name": "q_cms_obs", "unit": "kg/m^2"}},
         },
         StandardVariable.PRECIPITATION: {
             "default_source": "nldas",
             "sources": {
-                "nldas": {"specific_name": "pcp_mm", "unit": "mm/hour"},
+                "nldas": {"specific_name": "pcp_mm", "unit": "mm"},
             },
         },
         StandardVariable.TEMPERATURE_MEAN: {
@@ -78,9 +79,10 @@ class Camelsh(HydroDataset):
                 "nldas": {"specific_name": "swdown", "unit": "W/m^2"},
             },
         },
+        # unit in aquafetch is mm/day.in paper is kg/m^2
         StandardVariable.POTENTIAL_EVAPOTRANSPIRATION: {
             "default_source": "nldas",
-            "sources": {"nldas": {"specific_name": "pet_mm", "unit": "mm/hour"}},
+            "sources": {"nldas": {"specific_name": "pet_mm", "unit": "kg/m^2"}},
         },
         StandardVariable.SURFACE_PRESSURE: {
             "default_source": "nldas",
