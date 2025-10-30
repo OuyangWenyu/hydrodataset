@@ -44,7 +44,7 @@ class Camelsh(HydroDataset):
         return ["1980-01-01", "2024-12-31"]
 
     _subclass_static_definitions = {
-        # 基本站点信息
+        # Basic station information
         "area": {"specific_name": "area_km2", "unit": "km^2"},
         "p_mean": {"specific_name": "p_mean", "unit": "mm/day"},
     }
@@ -88,13 +88,14 @@ class Camelsh(HydroDataset):
                 "nldas": {"specific_name": "psurf", "unit": "Pa"},
             },
         },
-        # 10-meter above ground Zonal wind speed
+        # 10-meter above ground Zonal wind speed(east to west)
         StandardVariable.WIND_SPEED: {
             "default_source": "nldas",
             "sources": {
                 "nldas": {"specific_name": "wind_e", "unit": "m/s"},
             },
         },
+        # 10-meter above ground Meridional wind speed(north to south)
         StandardVariable.MERIDIONAL_WIND_SPEED: {
             "default_source": "nldas",
             "sources": {
@@ -129,51 +130,51 @@ class Camelsh(HydroDataset):
 
     def cache_timeseries_xrdataset(self, batch_size=100):
         """
-        分批缓存时间序列数据到NetCDF文件，每批保存为独立文件
+        Cache timeseries data to NetCDF files in batches, each batch saved as a separate file
 
         Args:
-            batch_size: 每批处理的站点数量，默认100个站点
+            batch_size: Number of stations to process per batch, default is 100 stations
         """
         if not hasattr(self, "aqua_fetch"):
             raise NotImplementedError("aqua_fetch attribute is required")
 
-        # 构建变量名到单位的映射
+        # Build mapping from variable names to units
         unit_lookup = {}
         if hasattr(self, "_dynamic_variable_mapping"):
             for std_name, mapping_info in self._dynamic_variable_mapping.items():
                 for source, source_info in mapping_info["sources"].items():
                     unit_lookup[source_info["specific_name"]] = source_info["unit"]
 
-        # 获取所有站点ID
+        # Get all station IDs
         gage_id_lst = self.read_object_ids().tolist()
         total_stations = len(gage_id_lst)
 
-        # 获取原始变量列表并清理
+        # Get original variable list and clean
         original_var_lst = self.aqua_fetch.dynamic_features
         cleaned_var_lst = self._clean_feature_names(original_var_lst)
         var_name_mapping = dict(zip(original_var_lst, cleaned_var_lst))
 
-        print(f"开始分批处理 {total_stations} 个站点，每批 {batch_size} 个站点")
-        print(f"总批次数: {(total_stations + batch_size - 1)//batch_size}")
+        print(f"Start batch processing {total_stations} stations, {batch_size} stations per batch")
+        print(f"Total number of batches: {(total_stations + batch_size - 1)//batch_size}")
 
-        # 确保缓存目录存在
+        # Ensure cache directory exists
         self.cache_dir.mkdir(parents=True, exist_ok=True)
 
-        # 分批处理站点并独立保存
+        # Process stations in batches and save independently
         batch_num = 1
         for batch_idx in range(0, total_stations, batch_size):
             batch_end = min(batch_idx + batch_size, total_stations)
             batch_stations = gage_id_lst[batch_idx:batch_end]
 
             print(
-                f"\n处理批次 {batch_num}/{(total_stations + batch_size - 1)//batch_size}"
+                f"\nProcessing batch {batch_num}/{(total_stations + batch_size - 1)//batch_size}"
             )
             print(
-                f"站点范围: {batch_idx} - {batch_end-1} (共 {len(batch_stations)} 个站点)"
+                f"Station range: {batch_idx} - {batch_end-1} (total {len(batch_stations)} stations)"
             )
 
             try:
-                # 获取本批次数据
+                # Get data for this batch
                 batch_data = self.aqua_fetch.fetch_stations_features(
                     stations=batch_stations,
                     dynamic_features=original_var_lst,
@@ -187,13 +188,13 @@ class Camelsh(HydroDataset):
                     batch_data[1] if isinstance(batch_data, tuple) else batch_data
                 )
 
-                # 处理变量
+                # Process variables
                 new_data_vars = {}
                 time_coord = dynamic_data.coords["time"]
 
                 for original_var in tqdm(
                     original_var_lst,
-                    desc=f"处理变量 (批次 {batch_num})",
+                    desc=f"Processing variables (batch {batch_num})",
                     total=len(original_var_lst),
                 ):
                     cleaned_var = var_name_mapping[original_var]
@@ -215,7 +216,7 @@ class Camelsh(HydroDataset):
                         )
                         new_data_vars[cleaned_var] = combined
 
-                # 创建本批次的Dataset
+                # Create Dataset for this batch
                 batch_ds = xr.Dataset(
                     data_vars=new_data_vars,
                     coords={
@@ -224,16 +225,16 @@ class Camelsh(HydroDataset):
                     },
                 )
 
-                # 保存本批次到独立文件
+                # Save this batch to independent file
                 batch_filename = f"batch{batch_num:03d}_camelsh_timeseries.nc"
                 batch_filepath = self.cache_dir.joinpath(batch_filename)
 
-                print(f"保存批次 {batch_num} 到: {batch_filepath}")
+                print(f"Saving batch {batch_num} to: {batch_filepath}")
                 batch_ds.to_netcdf(batch_filepath)
-                print(f"批次 {batch_num} 保存成功")
+                print(f"Batch {batch_num} saved successfully")
 
             except Exception as e:
-                print(f"批次 {batch_num} 处理失败: {e}")
+                print(f"Batch {batch_num} processing failed: {e}")
                 import traceback
 
                 traceback.print_exc()
@@ -241,7 +242,7 @@ class Camelsh(HydroDataset):
 
             batch_num += 1
 
-        print(f"\n所有批次处理完成！共保存 {batch_num - 1} 个批次文件")
+        print(f"\nAll batches processed! Total {batch_num - 1} batch files saved")
 
     def read_ts_xrdataset(
         self,
@@ -252,18 +253,18 @@ class Camelsh(HydroDataset):
         **kwargs,
     ):
         """
-        读取时间序列数据（支持标准化变量名和多数据源）
+        Read timeseries data (supports standardized variable names and multiple data sources)
 
-        从分批保存的缓存文件中读取数据
+        Read data from batch-saved cache files
 
         Args:
-            gage_id_lst: 站点ID列表
-            t_range: 时间范围 [start, end]
-            var_lst: 标准变量名列表
-            sources: 数据源字典，格式为 {变量名: 数据源} 或 {变量名: [数据源列表]}
+            gage_id_lst: List of station IDs
+            t_range: Time range [start, end]
+            var_lst: List of standard variable names
+            sources: Data source dictionary, format is {variable_name: data_source} or {variable_name: [data_source_list]}
 
         Returns:
-            xr.Dataset: 包含请求数据的xarray数据集
+            xr.Dataset: xarray dataset containing requested data
         """
         if (
             not hasattr(self, "_dynamic_variable_mapping")
@@ -282,7 +283,7 @@ class Camelsh(HydroDataset):
         target_vars_to_fetch = []
         rename_map = {}
 
-        # 处理变量名映射和数据源选择
+        # Process variable name mapping and data source selection
         for std_name in var_lst:
             if std_name not in self._dynamic_variable_mapping:
                 raise ValueError(
@@ -291,7 +292,7 @@ class Camelsh(HydroDataset):
 
             mapping_info = self._dynamic_variable_mapping[std_name]
 
-            # 确定使用哪个或哪些数据源
+            # Determine which data source(s) to use
             is_explicit_source = sources and std_name in sources
             sources_to_use = []
             if is_explicit_source:
@@ -303,7 +304,7 @@ class Camelsh(HydroDataset):
             else:
                 sources_to_use.append(mapping_info["default_source"])
 
-            # 只有在用户显式请求多个数据源时才需要后缀
+            # Only need suffix when user explicitly requests multiple data sources
             needs_suffix = is_explicit_source and len(sources_to_use) > 1
             for source in sources_to_use:
                 if source not in mapping_info["sources"]:
@@ -316,57 +317,57 @@ class Camelsh(HydroDataset):
                 output_name = f"{std_name}_{source}" if needs_suffix else std_name
                 rename_map[actual_var_name] = output_name
 
-        # 查找所有批次文件
+        # Find all batch files
         import glob
 
         batch_pattern = str(self.cache_dir / "batch*_camelsh_timeseries.nc")
         batch_files = sorted(glob.glob(batch_pattern))
 
         if not batch_files:
-            print("未找到批次缓存文件，开始创建缓存...")
+            print("No batch cache files found, starting cache creation...")
             self.cache_timeseries_xrdataset()
             batch_files = sorted(glob.glob(batch_pattern))
 
             if not batch_files:
-                raise FileNotFoundError("缓存创建失败，未找到批次文件")
+                raise FileNotFoundError("Cache creation failed, no batch files found")
 
-        print(f"找到 {len(batch_files)} 个批次文件")
+        print(f"Found {len(batch_files)} batch files")
 
-        # 如果没有指定站点，则需要读取所有批次
+        # If no stations specified, read all stations
         if gage_id_lst is None:
-            print("未指定站点列表，将读取所有站点...")
+            print("No station list specified, will read all stations...")
             gage_id_lst = self.read_object_ids().tolist()
 
-        # 将站点ID转为字符串（保证一致性）
+        # Convert station IDs to strings (ensure consistency)
         gage_id_lst = [str(gid) for gid in gage_id_lst]
 
-        # 遍历批次文件，找到包含所需站点的批次
+        # Iterate through batch files to find batches containing required stations
         relevant_datasets = []
         for batch_file in batch_files:
             try:
-                # 先只打开坐标，不加载数据
+                # First open only coordinates, don't load data
                 ds_batch = xr.open_dataset(batch_file)
                 batch_basins = [str(b) for b in ds_batch.basin.values]
 
-                # 检查此批次是否包含所需站点
+                # Check if this batch contains required stations
                 common_basins = list(set(gage_id_lst) & set(batch_basins))
 
                 if common_basins:
                     print(
-                        f"批次 {os.path.basename(batch_file)}: 包含 {len(common_basins)} 个所需站点"
+                        f"Batch {os.path.basename(batch_file)}: contains {len(common_basins)} required stations"
                     )
 
-                    # 检查变量是否存在
+                    # Check if variables exist
                     missing_vars = [
                         v for v in target_vars_to_fetch if v not in ds_batch.data_vars
                     ]
                     if missing_vars:
                         ds_batch.close()
                         raise ValueError(
-                            f"批次 {os.path.basename(batch_file)} 缺少变量: {missing_vars}"
+                            f"Batch {os.path.basename(batch_file)} missing variables: {missing_vars}"
                         )
 
-                    # 选择变量和站点
+                    # Select variables and stations
                     ds_subset = ds_batch[target_vars_to_fetch]
                     ds_selected = ds_subset.sel(
                         basin=common_basins, time=slice(t_range[0], t_range[1])
@@ -378,26 +379,26 @@ class Camelsh(HydroDataset):
                     ds_batch.close()
 
             except Exception as e:
-                print(f"读取批次文件 {batch_file} 失败: {e}")
+                print(f"Failed to read batch file {batch_file}: {e}")
                 continue
 
         if not relevant_datasets:
-            raise ValueError(f"在所有批次文件中未找到指定站点: {gage_id_lst}")
+            raise ValueError(f"Specified stations not found in any batch files: {gage_id_lst}")
 
-        print(f"从 {len(relevant_datasets)} 个批次中读取数据...")
+        print(f"Reading data from {len(relevant_datasets)} batches...")
 
-        # 合并所有相关批次的数据
+        # Merge data from all relevant batches
         if len(relevant_datasets) == 1:
             final_ds = relevant_datasets[0]
         else:
             final_ds = xr.concat(relevant_datasets, dim="basin")
 
-        # 重命名为标准变量名
+        # Rename to standard variable names
         final_ds = final_ds.rename(rename_map)
 
-        # 确保按照输入顺序排列站点
+        # Ensure stations are arranged in input order
         if len(gage_id_lst) > 0:
-            # 只选择实际存在的站点
+            # Only select actually existing stations
             existing_basins = [b for b in gage_id_lst if b in final_ds.basin.values]
             if existing_basins:
                 final_ds = final_ds.sel(basin=existing_basins)

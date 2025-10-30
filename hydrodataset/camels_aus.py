@@ -54,10 +54,10 @@ class CamelsAus(HydroDataset):
         StandardVariable.STREAMFLOW: {
             "default_source": "bom",
             "sources": {
-                "bom": {"specific_name": "q_cms_obs", "unit": "m^3/s"},
+                "bom": {"specific_name": "q_cms_obs", "unit": "mm^3/s"},
                 "gr4j": {
                     "specific_name": "streamflow_mld_inclinfilled",
-                    "unit": "m^3/s",
+                    "unit": "ML/day",
                 },
                 "depth_based": {"specific_name": "q_mm_obs", "unit": "mm/day"},
             },
@@ -161,6 +161,6 @@ class CamelsAus(HydroDataset):
         },
         StandardVariable.SOLAR_RADIATION: {
             "default_source": "silo",
-            "sources": {"silo": {"specific_name": "solrad_wm2_silo", "unit": "W/m^2"}},
+            "sources": {"silo": {"specific_name": "solrad_wm2_silo", "unit": "MJ/m^2"}},
         },
     }
