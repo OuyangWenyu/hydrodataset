@@ -41,7 +41,7 @@ jobs:
                   git log -1 --oneline
 
             - name: Build package
-              run: uv build
+              run: uv build --no-isolation
 
             - name: Publish to PyPI
               env:
