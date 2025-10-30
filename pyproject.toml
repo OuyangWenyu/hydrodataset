@@ -76,6 +76,12 @@ lint = [
     "black",
     "flake8",
 ]
+release = [
+    "build",
+    "twine",
+    "hatchling",
+    "hatch-vcs",
+]
 
 [project.urls]
 Homepage = "https://github.com/OuyangWenyu/hydrodataset"
@@ -145,11 +151,30 @@ exclude = [
 ]
 
 
+# Hatch version management
 [tool.hatch.version]
 source = "vcs"
+fallback-version = "0.2.0"
+
+[tool.hatch.version.raw-options]
+local_scheme = "no-local-version"
 
 [tool.hatch.build.hooks.vcs]
-version-file = "hydrodataset/__init__.py"
+version-file = "hydrodataset/_version.py"
+
+[tool.hatch.build.targets.wheel]
+packages = ["hydrodataset"]
+
+[tool.hatch.build.targets.sdist]
+include = [
+    "/hydrodataset",
+    "/tests",
+    "/docs",
+    "/README.md",
+    "/LICENSE",
+    "/AUTHORS.rst",
+    "/MANIFEST.in",
+]
 
 [tool.hatch.metadata]
 allow-direct-references = true
