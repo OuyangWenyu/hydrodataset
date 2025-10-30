@@ -26,7 +26,7 @@ jobs:
               run: uv python install 3.11
 
             - name: Install dependencies
-              run: uv sync --all-extras
+              run: uv sync --extra release
 
             # Temporarily skip tests until they are fully implemented
             # Tests require large dataset downloads not suitable for CI
@@ -39,9 +39,24 @@ jobs:
                   echo "Current ref name: ${{ github.ref_name }}"
                   git describe --tags --exact-match || echo "Not on exact tag"
                   git log -1 --oneline
+                  git tag -l
 
             - name: Build package
-              run: uv build --no-build-isolation
+              run: uv run python -m build
+
+            - name: Verify package version (no local segment)
+              run: |
+                  # Check if version contains '+' (local version identifier)
+                  WHEEL_FILE=$(ls dist/*.whl | head -1)
+                  echo "Built wheel: $WHEEL_FILE"
+                  if echo "$WHEEL_FILE" | grep -q '+'; then
+                      echo "Error: Package version contains local segment ('+'), which PyPI does not accept"
+                      exit 1
+                  fi
+                  echo "✓ Package version is PyPI-compliant"
+
+            - name: Check package with twine
+              run: uv run twine check dist/*
 
             - name: Publish to PyPI
               env:
