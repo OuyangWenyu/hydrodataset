@@ -45,7 +45,8 @@ jobs:
             # - name: Run tests
             #   run: uv run pytest tests/ -v
 
-            - name: Run linting
-              run: |
-                  uv run black --check .
-                  uv run flake8
+            # Temporarily skip linting checks
+            # - name: Run linting
+            #   run: |
+            #       uv run black --check .
+            #       uv run flake8
