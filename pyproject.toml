@@ -107,17 +107,16 @@ exclude_lines = [
     "raise NotImplementedError",
     "if 0:",
     "if __name__ == .__main__.:",
-    "class .*\\bProtocol\\):",
+    "class .*\\bProtocol\):",
     "@(abc\\.)?abstractmethod",
 ]
 
 [tool.black]
 line-length = 88
 target-version = ['py310', 'py311', 'py312']
-include = '\.pyi?$'
-exclude = '''
-/(
-    \.eggs
+include = '\\.pyi?$' # Corrected escape for dot
+exclude = """
+/(    \.eggs
   | \.git
   | \.hg
   | \.mypy_cache
@@ -127,8 +126,7 @@ exclude = '''
   | buck-out
   | build
   | dist
-)/
-'''
+)/ ""
 
 [tool.flake8]
 max-line-length = 88
@@ -150,3 +148,6 @@ source = "vcs"
 
 [tool.hatch.build.hooks.vcs]
 version_file = "hydrodataset/__init__.py"
+
+[tool.hatch.metadata]
+allow-direct-references = true
