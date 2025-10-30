@@ -1,10 +1,10 @@
 [build-system]
-requires = ["setuptools>=45", "wheel", "setuptools_scm[toml]>=6.2"]
-build-backend = "setuptools.build_meta"
+requires = ["hatchling", "hatch-vcs"]
+build-backend = "hatchling.build"
 
 [project]
 name = "hydrodataset"
-version = "0.1.13"
+dynamic = ["version"]
 description = "A Python package for downloading and reading hydrological datasets"
 readme = "README.md"
 license = {text = "MIT"}
@@ -83,12 +83,6 @@ Repository = "https://github.com/OuyangWenyu/hydrodataset"
 Documentation = "https://github.com/OuyangWenyu/hydrodataset"
 "Bug Tracker" = "https://github.com/OuyangWenyu/hydrodataset/issues"
 
-[tool.setuptools.packages.find]
-include = ["hydrodataset*"]
-
-[tool.setuptools.package-data]
-hydrodataset = ["*"]
-
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 python_files = ["test_*.py"]
@@ -150,24 +144,11 @@ exclude = [
     "*.egg",
 ]
 
-[tool.bumpversion]
-current_version = "0.1.13"
-parse = "(?P<major>\\d+)\\.(?P<minor>\\d+)\\.(?P<patch>\\d+)"
-serialize = ["{major}.{minor}.{patch}"]
-search = "{current_version}"
-replace = "{new_version}"
-commit = true
-tag = true
-
-[[tool.bumpversion.files]]
-filename = "pyproject.toml"
-search = 'version = "{current_version}"'
-replace = 'version = "{new_version}"'
-
-[[tool.bumpversion.files]]
-filename = "hydrodataset/__init__.py"
-search = "__version__ = '{current_version}'"
-replace = "__version__ = '{new_version}'"
-
 [tool.uv.sources]
 aqua-fetch = { git = "https://github.com/iHeadWater/AquaFetch.git", rev = "dev" }
+
+[tool.hatch.version]
+source = "vcs"
+
+[tool.hatch.build.hooks.vcs]
+version_file = "hydrodataset/__init__.py"
