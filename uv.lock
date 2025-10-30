@@ -208,12 +208,16 @@ wheels = [
 
 [[package]]
 name = "aqua-fetch"
-version = "1.0.1"
-source = { git = "https://github.com/iHeadWater/AquaFetch.git?rev=dev#b50e6139ef8f3aa497e3c121d631ef505de44719" }
+version = "1.0.0"
+source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "pandas", version = "2.1.1", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version < '3.11'" },
     { name = "pandas", version = "2.1.4", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version >= '3.11'" },
     { name = "requests" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/f6/b9/aefde1dae1265a1db6bd0d9163a53e5823649cc11ed0a8b8eb82fbe3f3fd/aqua_fetch-1.0.0.tar.gz", hash = "sha256:92d1bf97d17786b2841dab6544161891d1c29bda224333b5261fef53634820cd", size = 255512, upload-time = "2025-08-24T10:16:53.866Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/d9/cb/b12598547cb67b195266d28e5c1e390e0c7f1d54bf5a8d9a0c3d954ac5f0/aqua_fetch-1.0.0-py3-none-any.whl", hash = "sha256:2c685b6463453aef2cb197079f9b98a76d1fce5a045731ada697d7b3d44289d6", size = 269490, upload-time = "2025-08-24T10:16:51.17Z" },
 ]
 
 [package.optional-dependencies]
@@ -1906,6 +1910,7 @@ wheels = [
 name = "hydrodataset"
 source = { editable = "." }
 dependencies = [
+    { name = "aqua-fetch", extra = ["all"] },
     { name = "bokeh" },
     { name = "codetiming" },
     { name = "dask", extra = ["complete", "distributed"] },
@@ -1928,9 +1933,6 @@ dependencies = [
 ]
 
 [package.optional-dependencies]
-aqua = [
-    { name = "aqua-fetch", extra = ["all"] },
-]
 dev = [
     { name = "black" },
     { name = "bump2version" },
@@ -1970,7 +1972,7 @@ release = [
 
 [package.metadata]
 requires-dist = [
-    { name = "aqua-fetch", extras = ["all"], marker = "extra == 'aqua'", git = "https://github.com/iHeadWater/AquaFetch.git?rev=dev" },
+    { name = "aqua-fetch", extras = ["all"] },
     { name = "black", marker = "extra == 'dev'" },
     { name = "black", marker = "extra == 'lint'" },
     { name = "bokeh", specifier = ">=2.4.2" },
@@ -2015,7 +2017,7 @@ requires-dist = [
     { name = "xlrd", specifier = ">=2.0.2" },
     { name = "zarr" },
 ]
-provides-extras = ["aqua", "dev", "docs", "lint", "release"]
+provides-extras = ["dev", "docs", "lint", "release"]
 
 [[package]]
 name = "hydroerr"

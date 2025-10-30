@@ -44,6 +44,7 @@ dependencies = [
     "xlrd>=2.0.2",
     "requests>=2.32.4",
     "py7zr>=1.0.0",
+    "aqua-fetch[all]",
 ]
 
 [project.optional-dependencies]
@@ -80,9 +81,6 @@ release = [
     "twine",
     "hatchling",
     "hatch-vcs",
-]
-aqua = [
-    "aqua-fetch[all] @ git+https://github.com/iHeadWater/AquaFetch.git@dev",
 ]
 
 [project.urls]
