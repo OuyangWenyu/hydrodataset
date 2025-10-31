@@ -1,6 +1,6 @@
 import os
 import xarray as xr
-from hydrodataset import HydroDataset
+from hydrodataset import HydroDataset, StandardVariable
 from tqdm import tqdm
 import numpy as np
 from aqua_fetch import CAMELS_SK
@@ -45,94 +45,110 @@ class CamelshKr(HydroDataset):
     def default_t_range(self):
         return ["2000-01-01", "2019-12-31"]
 
-    def _get_attribute_units(self):
-        return {
-            # 地形特征
-            "dis_m3_": "m^3/s",
-            "run_mm_": "millimeter",
-            "inu_pc_": "percent",
-            "lka_pc_": "1e-1 * percent",
-            "lkv_mc_": "1e6 * m^3",
-            "rev_mc_": "1e6 * m^3",
-            "dor_pc_": "percent (x10)",
-            "ria_ha_": "hectares",
-            "riv_tc_": "1e3 * m^3",
-            "gwt_cm_": "centimeter",
-            "ele_mt_": "meter",
-            "slp_dg_": "1e-1 * degree",
-            "sgr_dk_": "decimeter/km",
-            "clz_cl_": "dimensionless",
-            "cls_cl_": "dimensionless",
-            "tmp_dc_": "degree_Celsius",
-            "pre_mm_": "millimeters",
-            "pet_mm_": "millimeters",
-            "aet_mm_": "millimeters",
-            "ari_ix_": "1e-2",
-            "cmi_ix_": "1e-2",
-            "snw_pc_": "percent",
-            "glc_cl_": "dimensionless",
-            "glc_pc_": "percent",
-            "pnv_cl_": "dimensionless",
-            "pnv_pc_": "percent",
-            "wet_cl_": "dimensionless",
-            "wet_pc_": "percent",
-            "for_pc_": "percent",
-            "crp_pc_": "percent",
-            "pst_pc_": "percent",
-            "ire_pc_": "percent",
-            "gla_pc_": "percent",
-            "prm_pc_": "percent",
-            "pac_pc_": "percent",
-            "tbi_cl_": "dimensionless",
-            "tec_cl_": "dimensionless",
-            "fmh_cl_": "dimensionless",
-            "fec_cl_": "dimensionless",
-            "cly_pc_": "percent",
-            "slt_pc_": "percent",
-            "snd_pc_": "percent",
-            "soc_th_": "tonne/hectare",
-            "swc_pc_": "percent",
-            "lit_cl_": "dimensionless",
-            "kar_pc_": "percent",
-            "ero_kh_": "kg/hectare/year",
-            "pop_ct_": "1e3",
-            "ppd_pk_": "1/km^2",
-            "urb_pc_": "percent",
-            "nli_ix_": "1e-2",
-            "rdd_mk_": "meter/km^2",
-            "hft_ix_": "1e-1",
-            "gad_id_": "dimensionless",
-            "gdp_ud_": "dimensionless",
-            "hdi_ix_": "1e-3",
-        }
+    # not find information of features
+    _subclass_static_definitions = {
+        "p_mean": {"specific_name": "p_mean", "unit": "mm/day"},
+        "area": {"specific_name": "area_km2", "unit": "km^2"},
+    }
 
-    def _get_timeseries_units(self):
-        return [
-            "unknown",  # total_precipitation
-            "unknown",  # temperature_2m
-            "unknown",  # dewpoint_temperature_2m
-            "unknown",  # snow_cover
-            "unknown",  # snow_depth
-            "unknown",  # potential_evaporation
-            "unknown",  # u_component_of_wind_10m
-            "unknown",  # v_component_of_wind_10m
-            "unknown",  # surface_pressure
-            "unknown",  # surface_net_thermal_radiation
-            "unknown",  # surface_net_solar_radiation
-            "unknown",  # precip_obs
-            "unknown",  # air_temp_obs
-            "unknown",  # wind_dir_obs
-            "unknown",  # wind_sp_obs
-            "unknown",  # q_cms_obs
-            "unknown",  # water_level
-        ]
-
-    def read_mean_prcp(self, gage_id_lst, unit="mm/d") -> xr.Dataset:
-        data_output_ds_ = self.read_attr_xrdataset(
-            gage_id_lst,
-            ["p_mean"],
-        )
-        data_output_ds_ = data_output_ds_.rename(
-            {"STAID": "basin"}
-        )  # 重命名 STAID 为 basin
-        return data_output_ds_
+    _dynamic_variable_mapping = {
+        StandardVariable.STREAMFLOW: {
+            "default_source": "obs",
+            "sources": {
+                "obs": {"specific_name": "q_cms_obs", "unit": "m^3/s"},
+            },
+        },
+        StandardVariable.WATER_LEVEL: {
+            "default_source": "obs",
+            "sources": {
+                "obs": {"specific_name": "water_level", "unit": "m"},
+            },
+        },
+        StandardVariable.PRECIPITATION: {
+            "default_source": "era5",
+            "sources": {
+                "era5": {"specific_name": "total_precipitation", "unit": "mm/day"},
+                "obs": {"specific_name": "precip_obs", "unit": "mm/day"},
+            },
+        },
+        StandardVariable.TEMPERATURE_MEAN: {
+            "default_source": "era5",
+            "sources": {
+                "era5": {"specific_name": "temperature_2m", "unit": "°C"},
+                "obs": {"specific_name": "air_temp_obs", "unit": "°C"},
+                "dewpoint": {"specific_name": "dewpoint_temperature_2m", "unit": "°C"},
+            },
+        },
+        StandardVariable.VAPOR_PRESSURE: {
+            "default_source": "era5",
+            "sources": {
+                "era5": {"specific_name": "dewpoint_temperature_2m", "unit": "°C"},
+            },
+        },
+        StandardVariable.SNOW_DEPTH: {
+            "default_source": "era5_depth",
+            "sources": {
+                "era5_depth": {"specific_name": "snow_depth", "unit": "m"},
+            },
+        },
+        StandardVariable.SNOW_COVER: {
+            "default_source": "era5_cover",
+            "sources": {
+                "era5_cover": {"specific_name": "snow_cover", "unit": "fraction"},
+            },
+        },
+        StandardVariable.POTENTIAL_EVAPOTRANSPIRATION: {
+            "default_source": "era5",
+            "sources": {
+                "era5": {"specific_name": "potential_evaporation", "unit": "mm/day"},
+            },
+        },
+        StandardVariable.U_WIND_SPEED: {
+            "default_source": "era5",
+            "sources": {
+                "era5": {"specific_name": "u_component_of_wind_10m", "unit": "m/s"},
+            },
+        },
+        StandardVariable.V_WIND_SPEED: {
+            "default_source": "era5",
+            "sources": {
+                "era5": {"specific_name": "v_component_of_wind_10m", "unit": "m/s"},
+            },
+        },
+        StandardVariable.WIND_SPEED: {
+            "default_source": "obs_speed",
+            "sources": {
+                "obs_speed": {"specific_name": "wind_sp_obs", "unit": "m/s"},
+            },
+        },
+        StandardVariable.WIND_DIR: {
+            "default_source": "obs_dir",
+            "sources": {
+                "obs_dir": {"specific_name": "wind_dir_obs", "unit": "degree"},
+            },
+        },
+        StandardVariable.SURFACE_PRESSURE: {
+            "default_source": "era5",
+            "sources": {
+                "era5": {"specific_name": "surface_pressure", "unit": "Pa"},
+            },
+        },
+        StandardVariable.THERMAL_RADIATION: {
+            "default_source": "era5",
+            "sources": {
+                "era5": {
+                    "specific_name": "surface_net_thermal_radiation",
+                    "unit": "W/m^2",
+                },
+            },
+        },
+        StandardVariable.SOLAR_RADIATION: {
+            "default_source": "era5",
+            "sources": {
+                "era5": {
+                    "specific_name": "surface_net_solar_radiation",
+                    "unit": "W/m^2",
+                },
+            },
+        },
+    }

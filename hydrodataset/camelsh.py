@@ -94,14 +94,14 @@ class Camelsh(HydroDataset):
             },
         },
         # 10-meter above ground Zonal wind speed(east to west)
-        StandardVariable.WIND_SPEED: {
+        StandardVariable.U_WIND_SPEED: {
             "default_source": "nldas",
             "sources": {
                 "nldas": {"specific_name": "wind_e", "unit": "m/s"},
             },
         },
         # 10-meter above ground Meridional wind speed(north to south)
-        StandardVariable.MERIDIONAL_WIND_SPEED: {
+        StandardVariable.V_WIND_SPEED: {
             "default_source": "nldas",
             "sources": {
                 "nldas": {"specific_name": "wind_n", "unit": "m/s"},

@@ -1,4 +1,4 @@
-from hydrodataset import HydroDataset
+from hydrodataset import HydroDataset, StandardVariable
 from aqua_fetch import CAMELS_GB
 
 
@@ -39,77 +39,70 @@ class CamelsGb(HydroDataset):
     def default_t_range(self):
         return ["1970-10-01", "2015-09-30"]
 
-    def _get_attribute_units(self):
-        return {
-            # 地形特征
-            "dis_m3_": "m^3/s",
-            "run_mm_": "millimeter",
-            "inu_pc_": "percent",
-            "lka_pc_": "1e-1 * percent",
-            "lkv_mc_": "1e6 * m^3",
-            "rev_mc_": "1e6 * m^3",
-            "dor_pc_": "percent (x10)",
-            "ria_ha_": "hectares",
-            "riv_tc_": "1e3 * m^3",
-            "gwt_cm_": "centimeter",
-            "ele_mt_": "meter",
-            "slp_dg_": "1e-1 * degree",
-            "sgr_dk_": "decimeter/km",
-            "clz_cl_": "dimensionless",
-            "cls_cl_": "dimensionless",
-            "tmp_dc_": "degree_Celsius",
-            "pre_mm_": "millimeters",
-            "pet_mm_": "millimeters",
-            "aet_mm_": "millimeters",
-            "ari_ix_": "1e-2",
-            "cmi_ix_": "1e-2",
-            "snw_pc_": "percent",
-            "glc_cl_": "dimensionless",
-            "glc_pc_": "percent",
-            "pnv_cl_": "dimensionless",
-            "pnv_pc_": "percent",
-            "wet_cl_": "dimensionless",
-            "wet_pc_": "percent",
-            "for_pc_": "percent",
-            "crp_pc_": "percent",
-            "pst_pc_": "percent",
-            "ire_pc_": "percent",
-            "gla_pc_": "percent",
-            "prm_pc_": "percent",
-            "pac_pc_": "percent",
-            "tbi_cl_": "dimensionless",
-            "tec_cl_": "dimensionless",
-            "fmh_cl_": "dimensionless",
-            "fec_cl_": "dimensionless",
-            "cly_pc_": "percent",
-            "slt_pc_": "percent",
-            "snd_pc_": "percent",
-            "soc_th_": "tonne/hectare",
-            "swc_pc_": "percent",
-            "lit_cl_": "dimensionless",
-            "kar_pc_": "percent",
-            "ero_kh_": "kg/hectare/year",
-            "pop_ct_": "1e3",
-            "ppd_pk_": "1/km^2",
-            "urb_pc_": "percent",
-            "nli_ix_": "1e-2",
-            "rdd_mk_": "meter/km^2",
-            "hft_ix_": "1e-1",
-            "gad_id_": "dimensionless",
-            "gdp_ud_": "dimensionless",
-            "hdi_ix_": "1e-3",
-        }
+    # get the information of features from dataset file"CAMELSGB_EIDC_SupportingDocumentation"
+    _subclass_static_definitions = {
+        "p_mean": {"specific_name": "p_mean", "unit": "mm/day"},
+        "area": {"specific_name": "area_km2", "unit": "km^2"},
+        "gauge_lat": {"specific_name": "lat", "unit": "degree"},
+        "gauge_lon": {"specific_name": "long", "unit": "degree"},
+        "elev_mean": {"specific_name": "elev_mean", "unit": "m"},
+        "pet_mean": {"specific_name": "pet_mean", "unit": "mm/day"},
+    }
 
-    def _get_timeseries_units(self):
-        return [
-            "mm/day",  # pcp_mm
-            "mm/day",  # pet_mm
-            "°C",  # airtemp_C_mean
-            "mm/day",  # q_mm_obs
-            "m^3/s",  # q_cms_obs
-            "mm/day",  # pet_mm_intercep
-            "g/kg",  # rh_%
-            "W/m^2",  # solrad_wm2
-            "W/m^2",  # lwdownrad_wm2
-            "m/s",  # windspeed_mps
-        ]
+    _dynamic_variable_mapping = {
+        StandardVariable.STREAMFLOW: {
+            "default_source": "hydrological",
+            "sources": {
+                "hydrological": {"specific_name": "q_cms_obs", "unit": "m^3/s"},
+                "depth_based": {"specific_name": "q_mm_obs", "unit": "mm/day"},
+            },
+        },
+        StandardVariable.PRECIPITATION: {
+            "default_source": "meteorological",
+            "sources": {
+                "meteorological": {"specific_name": "pcp_mm", "unit": "mm/day"},
+            },
+        },
+        StandardVariable.TEMPERATURE_MEAN: {
+            "default_source": "meteorological",
+            "sources": {
+                "meteorological": {"specific_name": "airtemp_C_mean", "unit": "°C"},
+            },
+        },
+        StandardVariable.POTENTIAL_EVAPOTRANSPIRATION: {
+            "default_source": "meteorological",
+            "sources": {
+                "meteorological": {"specific_name": "pet_mm", "unit": "mm/day"},
+                "with_interception": {
+                    "specific_name": "pet_mm_intercep",
+                    "unit": "mm/day",
+                },
+            },
+        },
+        StandardVariable.RELATIVE_HUMIDITY: {
+            "default_source": "meteorological",
+            "sources": {
+                "meteorological": {"specific_name": "rh_%", "unit": "g/kg"},
+            },
+        },
+        StandardVariable.SOLAR_RADIATION: {
+            "default_source": "meteorological",
+            "sources": {
+                "meteorological": {"specific_name": "solrad_wm2", "unit": "W/m^2"},
+            },
+        },
+        StandardVariable.LONGWAVE_SOLAR_RADIATION: {
+            "default_source": "meteorological",
+            "sources": {
+                "meteorological": {"specific_name": "lwsolrad_wm2", "unit": "W/m^2"},
+            },
+        },
+        StandardVariable.WIND_SPEED: {
+            "default_source": "meteorological",
+            "sources": {
+                "meteorological": {"specific_name": "windspeed_mps", "unit": "m/s"},
+            },
+        },
+    }
+
+   

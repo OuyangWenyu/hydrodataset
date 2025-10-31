@@ -40,20 +40,20 @@ class CamelsCh(HydroDataset):
             df = pd.read_csv(
                 self.clim_attr_path,
                 skiprows=1,
-                sep=',',  # Changed from ';' to ','
-                index_col='gauge_id',
+                sep=",",  # Changed from ';' to ','
+                index_col="gauge_id",
                 dtype={
-                    'gauge_id': str,
-                    'p_mean': float,
-                    'aridity': float,
-                    'pet_mean': float,
-                    'p_seasonality': float,
-                    'frac_snow': float,
-                    'high_prec_freq': float,
-                    'high_prec_dur': float,
-                    'high_prec_timing': str,
-                    'low_prec_timing': str
-                }
+                    "gauge_id": str,
+                    "p_mean": float,
+                    "aridity": float,
+                    "pet_mean": float,
+                    "p_seasonality": float,
+                    "frac_snow": float,
+                    "high_prec_freq": float,
+                    "high_prec_dur": float,
+                    "high_prec_timing": str,
+                    "low_prec_timing": str,
+                },
             )
             return df
 
@@ -62,9 +62,9 @@ class CamelsCh(HydroDataset):
             df = pd.read_csv(
                 self.geol_attr_path,
                 skiprows=1,
-                sep=',',  # Changed from ';' to ','
-                index_col='gauge_id',
-                dtype=np.float32
+                sep=",",  # Changed from ';' to ','
+                index_col="gauge_id",
+                dtype=np.float32,
             )
             df.index = df.index.astype(int).astype(str)
             return df
@@ -73,10 +73,10 @@ class CamelsCh(HydroDataset):
             """Returns a dataframe with glacier attributes using comma separator."""
             df = pd.read_csv(
                 self.glacier_attr_path,
-                sep=',',  # Changed from ';' to ','
+                sep=",",  # Changed from ';' to ','
                 skiprows=1,
-                index_col='gauge_id',
-                dtype=np.float32
+                index_col="gauge_id",
+                dtype=np.float32,
             )
             df.index = df.index.astype(int).astype(str)
             return df
@@ -86,23 +86,23 @@ class CamelsCh(HydroDataset):
             df = pd.read_csv(
                 self.hum_inf_attr_path,
                 skiprows=1,
-                sep=',',  # Changed from ';' to ','
-                index_col='gauge_id',
+                sep=",",  # Changed from ';' to ','
+                index_col="gauge_id",
                 dtype={
-                    'gauge_id': str,
-                    'n_inhabitants': int,
-                    'dens_inhabitants': float,
-                    'hp_count': int,
-                    'hp_qturb': float,
-                    'hp_inst_turb': float,
-                    'hp_max_power': float,
-                    'num_reservoir': int,
-                    'reservoir_cap': float,
-                    'reservoir_he': float,
-                    'reservoir_fs': float,
-                    'reservoir_irr': float,
-                    'reservoir_nousedata': float,
-                }
+                    "gauge_id": str,
+                    "n_inhabitants": int,
+                    "dens_inhabitants": float,
+                    "hp_count": int,
+                    "hp_qturb": float,
+                    "hp_inst_turb": float,
+                    "hp_max_power": float,
+                    "num_reservoir": int,
+                    "reservoir_cap": float,
+                    "reservoir_he": float,
+                    "reservoir_fs": float,
+                    "reservoir_irr": float,
+                    "reservoir_nousedata": float,
+                },
             )
             return df
 
@@ -111,9 +111,9 @@ class CamelsCh(HydroDataset):
             df = pd.read_csv(
                 self.hydrogeol_attr_path,
                 skiprows=1,
-                sep=',',  # Changed from ';' to ','
-                index_col='gauge_id',
-                dtype=float
+                sep=",",  # Changed from ';' to ','
+                index_col="gauge_id",
+                dtype=float,
             )
             df.index = df.index.astype(int).astype(str)
             return df
@@ -123,18 +123,23 @@ class CamelsCh(HydroDataset):
             df = pd.read_csv(
                 self.hydrol_attr_path,
                 skiprows=1,
-                sep=',',  # Changed from ';' to ','
-                index_col='gauge_id',
+                sep=",",  # Changed from ';' to ','
+                index_col="gauge_id",
                 dtype={
-                    'gauge_id': str,
-                    'sign_number_of_years': int,
-                    'q_mean': float,
-                    'runoff_ratio': float, 'stream_elas': float, 'slope_fdc': float,
-                    'baseflow_index_landson': float,
-                    'hfd_mean': float,
-                    'Q5': float, 'Q95': float, 'high_q_freq': float, 'high_q_dur': float,
-                    'low_q_freq': float
-                }
+                    "gauge_id": str,
+                    "sign_number_of_years": int,
+                    "q_mean": float,
+                    "runoff_ratio": float,
+                    "stream_elas": float,
+                    "slope_fdc": float,
+                    "baseflow_index_landson": float,
+                    "hfd_mean": float,
+                    "Q5": float,
+                    "Q95": float,
+                    "high_q_freq": float,
+                    "high_q_dur": float,
+                    "low_q_freq": float,
+                },
             )
             return df
 
@@ -143,24 +148,24 @@ class CamelsCh(HydroDataset):
             return pd.read_csv(
                 self.lc_attr_path,
                 skiprows=1,
-                sep=',',  # Changed from ';' to ','
-                index_col='gauge_id',
+                sep=",",  # Changed from ';' to ','
+                index_col="gauge_id",
                 dtype={
-                    'gauge_id': str,
-                    'crop_perc': float,
-                    'grass_perc': float,
-                    'scrub_perc': float,
-                    'dwood_perc': float,
-                    'mixed_wood_perc': float,
-                    'ewood_perc': float,
-                    'wetlands_perc': float,
-                    'inwater_perc': float,
-                    'ice_perc': float,
-                    'loose_rock_perc': float,
-                    'rock_perc': float,
-                    'urban_perc': float,
-                    'dom_land_cover': str
-                }
+                    "gauge_id": str,
+                    "crop_perc": float,
+                    "grass_perc": float,
+                    "scrub_perc": float,
+                    "dwood_perc": float,
+                    "mixed_wood_perc": float,
+                    "ewood_perc": float,
+                    "wetlands_perc": float,
+                    "inwater_perc": float,
+                    "ice_perc": float,
+                    "loose_rock_perc": float,
+                    "rock_perc": float,
+                    "urban_perc": float,
+                    "dom_land_cover": str,
+                },
             )
 
         def custom_soil_attrs(self) -> pd.DataFrame:
@@ -168,8 +173,8 @@ class CamelsCh(HydroDataset):
             df = pd.read_csv(
                 self.soil_attr_path,
                 skiprows=1,
-                sep=',',  # Changed from ';' to ','
-                index_col='gauge_id'
+                sep=",",  # Changed from ';' to ','
+                index_col="gauge_id",
             )
             df.index = df.index.astype(int).astype(str)
             return df
@@ -179,9 +184,9 @@ class CamelsCh(HydroDataset):
             df = pd.read_csv(
                 self.topo_attr_path,
                 skiprows=1,
-                sep=',',  # Changed from ';' to ','
-                index_col='gauge_id',
-                encoding="unicode_escape"
+                sep=",",  # Changed from ';' to ','
+                index_col="gauge_id",
+                encoding="unicode_escape",
             )
             df.index = df.index.astype(int).astype(str)
             return df
@@ -201,7 +206,8 @@ class CamelsCh(HydroDataset):
                     self.soil_attrs(),
                     self.topo_attrs(),
                 ],
-                axis=1)
+                axis=1,
+            )
             df.index = df.index.astype(str)
             df.rename(columns=self.static_map, inplace=True)
             return df
@@ -210,10 +216,10 @@ class CamelsCh(HydroDataset):
             """Reads daily dynamic data for one catchment with comma separator."""
             df = pd.read_csv(
                 os.path.join(self.dynamic_path, f"CAMELS_CH_obs_based_{station}.csv"),
-                sep=',',  # Changed from ';' to ','
-                index_col='date',
+                sep=",",  # Changed from ';' to ','
+                index_col="date",
                 parse_dates=True,
-                dtype=np.float32
+                dtype=np.float32,
             )
             df.rename(columns=self.dyn_map, inplace=True)
             return df
@@ -221,15 +227,13 @@ class CamelsCh(HydroDataset):
         def custom_stations(self) -> list:
             """Returns station ids for catchments with comma separator."""
             stns = pd.read_csv(
-                self.glacier_attr_path,
-                sep=',',  # Changed from ';' to ','
-                skiprows=1
-            )['gauge_id'].values.tolist()
+                self.glacier_attr_path, sep=",", skiprows=1  # Changed from ';' to ','
+            )["gauge_id"].values.tolist()
             return [str(stn) for stn in stns]
 
         def custom_dynamic_path(self):
             """Return the correct path for dynamic data (timeseries not time_series)."""
-            return os.path.join(self.camels_path, 'timeseries', 'observation_based')
+            return os.path.join(self.camels_path, "timeseries", "observation_based")
 
         def do_nothing(self, *args, **kwargs):
             """Placeholder method to disable certain operations."""
@@ -237,21 +241,21 @@ class CamelsCh(HydroDataset):
 
         # Create class attributes dictionary to override CAMELS_CH methods
         class_attrs = {
-            'url': new_url,
-            'dynamic_path': property(custom_dynamic_path),
-            'climate_attrs': custom_climate_attrs,
-            'geol_attrs': custom_geol_attrs,
-            'glacier_attrs': custom_glacier_attrs,
-            'human_inf_attrs': custom_human_inf_attrs,
-            'hydrogeol_attrs': custom_hydrogeol_attrs,
-            'hydrol_attrs': custom_hydrol_attrs,
-            'landcolover_attrs': custom_landcolover_attrs,
-            'soil_attrs': custom_soil_attrs,
-            'topo_attrs': custom_topo_attrs,
-            '_static_data': custom_static_data,
-            '_read_stn_dyn': custom_read_stn_dyn,
-            'stations': custom_stations,
-            '_maybe_to_netcdf': do_nothing,
+            "url": new_url,
+            "dynamic_path": property(custom_dynamic_path),
+            "climate_attrs": custom_climate_attrs,
+            "geol_attrs": custom_geol_attrs,
+            "glacier_attrs": custom_glacier_attrs,
+            "human_inf_attrs": custom_human_inf_attrs,
+            "hydrogeol_attrs": custom_hydrogeol_attrs,
+            "hydrol_attrs": custom_hydrol_attrs,
+            "landcolover_attrs": custom_landcolover_attrs,
+            "soil_attrs": custom_soil_attrs,
+            "topo_attrs": custom_topo_attrs,
+            "_static_data": custom_static_data,
+            "_read_stn_dyn": custom_read_stn_dyn,
+            "stations": custom_stations,
+            "_maybe_to_netcdf": do_nothing,
         }
 
         # Create custom CAMELS_CH class with overridden methods
@@ -274,6 +278,7 @@ class CamelsCh(HydroDataset):
                     break
             if check_zip_extract:
                 from hydroutils import hydro_file
+
                 hydro_file.zip_extract(self.data_source_dir.joinpath("CAMELS_CH"))
             self.aqua_fetch = CustomCamelsCh(data_path)
 
@@ -293,6 +298,7 @@ class CamelsCh(HydroDataset):
         "p_mean": {"specific_name": "p_mean", "unit": "mm"},
         "area": {"specific_name": "area_km2", "unit": "km^2"},
     }
+    # get the information of features from dataset file"camels_ch_data_description.pdf"
     _dynamic_variable_mapping = {
         StandardVariable.STREAMFLOW: {
             "default_source": "vol",
@@ -334,80 +340,3 @@ class CamelsCh(HydroDataset):
             "sources": {"wsl": {"specific_name": "swe_mm", "unit": "mm"}},
         },
     }
-    """
-    def _get_attribute_units(self):
-        return {
-            # 地形特征
-            "p_mean": "mm/day",
-            "area_km2": "km^2",
-            "dis_m3_": "m^3/s",
-            "run_mm_": "millimeter",
-            "inu_pc_": "percent",
-            "lka_pc_": "1e-1 * percent",
-            "lkv_mc_": "1e6 * m^3",
-            "rev_mc_": "1e6 * m^3",
-            "dor_pc_": "percent (x10)",
-            "ria_ha_": "hectares",
-            "riv_tc_": "1e3 * m^3",
-            "gwt_cm_": "centimeter",
-            "ele_mt_": "meter",
-            "slp_dg_": "1e-1 * degree",
-            "sgr_dk_": "decimeter/km",
-            "clz_cl_": "dimensionless",
-            "cls_cl_": "dimensionless",
-            "tmp_dc_": "degree_Celsius",
-            "pre_mm_": "millimeters",
-            "pet_mm_": "millimeters",
-            "aet_mm_": "millimeters",
-            "ari_ix_": "1e-2",
-            "cmi_ix_": "1e-2",
-            "snw_pc_": "percent",
-            "glc_cl_": "dimensionless",
-            "glc_pc_": "percent",
-            "pnv_cl_": "dimensionless",
-            "pnv_pc_": "percent",
-            "wet_cl_": "dimensionless",
-            "wet_pc_": "percent",
-            "for_pc_": "percent",
-            "crp_pc_": "percent",
-            "pst_pc_": "percent",
-            "ire_pc_": "percent",
-            "gla_pc_": "percent",
-            "prm_pc_": "percent",
-            "pac_pc_": "percent",
-            "tbi_cl_": "dimensionless",
-            "tec_cl_": "dimensionless",
-            "fmh_cl_": "dimensionless",
-            "fec_cl_": "dimensionless",
-            "cly_pc_": "percent",
-            "slt_pc_": "percent",
-            "snd_pc_": "percent",
-            "soc_th_": "tonne/hectare",
-            "swc_pc_": "percent",
-            "lit_cl_": "dimensionless",
-            "kar_pc_": "percent",
-            "ero_kh_": "kg/hectare/year",
-            "pop_ct_": "1e3",
-            "ppd_pk_": "1/km^2",
-            "urb_pc_": "percent",
-            "nli_ix_": "1e-2",
-            "rdd_mk_": "meter/km^2",
-            "hft_ix_": "1e-1",
-            "gad_id_": "dimensionless",
-            "gdp_ud_": "dimensionless",
-            "hdi_ix_": "1e-3",
-        }
-
-    def _get_timeseries_units(self):
-        return [
-            "m^3/s",  # q_cms_obs
-            "mm/day",  # q_mm_obs
-            "m",  # waterlevel(m)
-            "mm/day",  # pcp_mm
-            "°C",  # airtemp_C_min
-            "°C",  # airtemp_C_mean
-            "°C",  # airtemp_C_max
-            "%",  # rel_sun_dur(%)
-            "mm",  # swe_mm
-        ]
-    """
