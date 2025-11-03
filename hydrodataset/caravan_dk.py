@@ -1,17 +1,14 @@
+import os
 from aqua_fetch import Caravan_DK
-from hydrodataset import HydroDataset
+from hydrodataset import HydroDataset, StandardVariable
 
 
 class CaravanDK(HydroDataset):
-    """Caravan_DK dataset class extending RainfallRunoff.
+    """Caravan_DK dataset class extending HydroDataset.
 
-    This class provides access to the Caravan_DK dataset, which contains hourly
-    hydrological and meteorological data for various watersheds.
-
-    Attributes:
-        region: Geographic region identifier
-        download: Whether to download data automatically
-        ds_description: Dictionary containing dataset file paths
+    This class uses a custom data reading implementation to support a newer
+    dataset version than the one supported by the underlying aquafetch library.
+    It overrides the download URLs and provides its own parsing and caching logic.
     """
 
     def __init__(self, data_path, region=None, download=False):
@@ -21,12 +18,65 @@ class CaravanDK(HydroDataset):
             data_path: Path to the Caravan_DK data directory
             region: Geographic region identifier (optional)
             download: Whether to download data automatically (default: False)
-            cache_path: Path to the cache directory
         """
         super().__init__(data_path)
         self.region = region
         self.download = download
-        self.aqua_fetch = Caravan_DK(data_path)
+
+        # Define the new URLs for the latest dataset version
+        new_url = "https://zenodo.org/records/15200118"
+
+        def do_nothing(self, *args, **kwargs):
+            pass
+
+        def custom_boundary_file(self) -> os.PathLike:
+            return os.path.join(
+                self.path, "shapefiles", "camelsdk", "camelsdk_basin_shapes.shp"
+            )
+
+        def custom_csv_path(self):
+            return os.path.join(self.path, "timeseries", "csv", "camelsdk")
+
+        def custom_nc_path(self):
+            return os.path.join(self.path, "timeseries", "netcdf", "camelsdk")
+
+        def custom_other_attr_fpath(self):
+            """returns path to attributes_other_camelsdk.csv file"""
+            return os.path.join(
+                self.path, "attributes", "camelsdk", "attributes_other_camelsdk.csv"
+            )
+
+        def custom_caravan_attr_fpath(self):
+            """returns path to attributes_caravan_camelsdk.csv file"""
+            return os.path.join(
+                self.path, "attributes", "camelsdk", "attributes_caravan_camelsdk.csv"
+            )
+
+        def custom_hyd_atlas_fpath(self):
+            return os.path.join(
+                self.path,
+                "attributes",
+                "camelsdk",
+                "attributes_hydroatlas_camelsdk.csv",
+            )
+
+        # Create class attributes dictionary for dynamic class creation
+        class_attrs = {
+            "url": new_url,
+            "boundary_file": property(custom_boundary_file),
+            "csv_path": property(custom_csv_path),
+            "nc_path": property(custom_nc_path),
+            "other_attr_fpath": property(custom_other_attr_fpath),
+            "caravan_attr_fpath": property(custom_caravan_attr_fpath),
+            "hyd_atlas_fpath": property(custom_hyd_atlas_fpath),
+            "_maybe_to_netcdf": do_nothing,
+        }
+
+        # Create a custom Caravan_DK class using type() to preserve the class name
+        CustomCaravanDK = type("Caravan_DK", (Caravan_DK,), class_attrs)
+
+        # Instantiate our custom class
+        self.aqua_fetch = CustomCaravanDK(data_path)
 
     @property
     def _attributes_cache_filename(self):
@@ -40,95 +90,321 @@ class CaravanDK(HydroDataset):
     def default_t_range(self):
         return ["1981-01-02", "2020-12-31"]
 
-    def _get_attribute_units(self):
-        return {
-            # 地形特征
-            "dis_m3_": "m^3/s",
-            "run_mm_": "millimeter",
-            "inu_pc_": "percent",
-            "lka_pc_": "1e-1 * percent",
-            "lkv_mc_": "1e6 * m^3",
-            "rev_mc_": "1e6 * m^3",
-            "dor_pc_": "percent (x10)",
-            "ria_ha_": "hectares",
-            "riv_tc_": "1e3 * m^3",
-            "gwt_cm_": "centimeter",
-            "ele_mt_": "meter",
-            "slp_dg_": "1e-1 * degree",
-            "sgr_dk_": "decimeter/km",
-            "clz_cl_": "dimensionless",
-            "cls_cl_": "dimensionless",
-            "tmp_dc_": "degree_Celsius",
-            "pre_mm_": "millimeters",
-            "pet_mm_": "millimeters",
-            "aet_mm_": "millimeters",
-            "ari_ix_": "1e-2",
-            "cmi_ix_": "1e-2",
-            "snw_pc_": "percent",
-            "glc_cl_": "dimensionless",
-            "glc_pc_": "percent",
-            "pnv_cl_": "dimensionless",
-            "pnv_pc_": "percent",
-            "wet_cl_": "dimensionless",
-            "wet_pc_": "percent",
-            "for_pc_": "percent",
-            "crp_pc_": "percent",
-            "pst_pc_": "percent",
-            "ire_pc_": "percent",
-            "gla_pc_": "percent",
-            "prm_pc_": "percent",
-            "pac_pc_": "percent",
-            "tbi_cl_": "dimensionless",
-            "tec_cl_": "dimensionless",
-            "fmh_cl_": "dimensionless",
-            "fec_cl_": "dimensionless",
-            "cly_pc_": "percent",
-            "slt_pc_": "percent",
-            "snd_pc_": "percent",
-            "soc_th_": "tonne/hectare",
-            "swc_pc_": "percent",
-            "lit_cl_": "dimensionless",
-            "kar_pc_": "percent",
-            "ero_kh_": "kg/hectare/year",
-            "pop_ct_": "1e3",
-            "ppd_pk_": "1/km^2",
-            "urb_pc_": "percent",
-            "nli_ix_": "1e-2",
-            "rdd_mk_": "meter/km^2",
-            "hft_ix_": "1e-1",
-            "gad_id_": "dimensionless",
-            "gdp_ud_": "dimensionless",
-            "hdi_ix_": "1e-3",
-        }
+    # Define standardized static variable mappings
+    # These variables are already present in the dataset, so we just map them
+    # get the information of features from "https://essd.copernicus.org/articles/17/1551/2025/essd-17-1551-2025.pdf"
+    _subclass_static_definitions = {
+        "p_mean": {"specific_name": "p_mean", "unit": "mm/day"},
+        "area": {"specific_name": "area_km2", "unit": "km^2"},
+    }
 
-    def _get_timeseries_units(self):
-        return [
-            "mm^3/s",  # q_cms_obs ML/day->mm^3/s,×1.1574 × 10⁻2
-            "ML/day",  # streamflow_MLd
-            "mm/day",  # q_mm_obs
-            "mm/day",  # aet_mm_silo_morton
-            "mm/day",  # aet_mm_silo_morton_point
-            "mm/day",  # et_morton_wet_SILO
-            "mm/day",  # aet_mm_silo_short_crop
-            "mm/day",  # aet_mm_silo_tall_crop
-            "mm/day",  # evap_morton_lake_SILO
-            "mm/day",  # evap_pan_SILO
-            "mm/day",  # evap_syn_SILO
-            "mm/day",  # pcp_mm_agcd
-            "mm/day",  # pcp_mm_silo
-            "mm^2/d^2 ",  # precipitation_var_AGCD
-            "°C",  # airtemp_C_agcd_max
-            "°C",  # airtemp_C_agcd_min
-            "hPa",  # vp_hpa_agcd_h09
-            "hPa",  # vp_hpa_agcd_h15
-            "hPa",  # mslp_SILO
-            "MJ/m²",  # solrad_wm2_silo
-            "%",  # rh_%_silo_tmax
-            "%",  # rh_%_silo_tmin
-            "°C",  # airtemp_C_silo_max
-            "°C",  # airtemp_C_silo_min
-            "hPa",  # vp_deficit_SILO
-            "hPa",  # vp_hpa_silo
-            "°C",  # airtemp_C_mean_silo
-            "°C",  # airtemp_C_mean_agcd
-        ]
+    # Define standardized dynamic variable mappings
+    _dynamic_variable_mapping = {
+        StandardVariable.STREAMFLOW: {
+            "default_source": "observations",
+            "sources": {
+                "observations": {"specific_name": "q_cms_obs", "unit": "m^3/s"}
+            },
+        },
+        StandardVariable.PRECIPITATION: {
+            "default_source": "era5_land",
+            "sources": {
+                "era5_land": {
+                    "specific_name": "total_precipitation_sum",
+                    "unit": "mm/day",
+                }
+            },
+        },
+        StandardVariable.TEMPERATURE_MAX: {
+            "default_source": "era5_land",
+            "sources": {
+                "era5_land": {"specific_name": "temperature_2m_max", "unit": "°C"},
+                "dewpoint": {
+                    "specific_name": "dewpoint_temperature_2m_max",
+                    "unit": "°C",
+                },
+            },
+        },
+        StandardVariable.TEMPERATURE_MIN: {
+            "default_source": "era5_land",
+            "sources": {
+                "era5_land": {"specific_name": "temperature_2m_min", "unit": "°C"},
+                "dewpoint": {
+                    "specific_name": "dewpoint_temperature_2m_min",
+                    "unit": "°C",
+                },
+            },
+        },
+        StandardVariable.TEMPERATURE_MEAN: {
+            "default_source": "era5_land",
+            "sources": {
+                "era5_land": {"specific_name": "temperature_2m_mean", "unit": "°C"},
+                "dewpoint": {
+                    "specific_name": "dewpoint_temperature_2m_mean",
+                    "unit": "°C",
+                },
+            },
+        },
+        StandardVariable.POTENTIAL_EVAPOTRANSPIRATION: {
+            "default_source": "era5_land",
+            "sources": {
+                "era5_land": {
+                    "specific_name": "potential_evaporation_sum_era5_land",
+                    "unit": "mm/day",
+                },
+                "fao_penman_monteith": {
+                    "specific_name": "potential_evaporation_sum_fao_penman_monteith",
+                    "unit": "mm/day",
+                },
+            },
+        },
+        StandardVariable.SNOW_WATER_EQUIVALENT: {
+            "default_source": "mean",
+            "sources": {
+                "mean": {
+                    "specific_name": "snow_depth_water_equivalent_mean",
+                    "unit": "mm",
+                },
+            },
+        },
+        StandardVariable.SNOW_WATER_EQUIVALENT_MIN: {
+            "default_source": "min",
+            "sources": {
+                "min": {
+                    "specific_name": "snow_depth_water_equivalent_min",
+                    "unit": "mm",
+                },
+            },
+        },
+        StandardVariable.SNOW_WATER_EQUIVALENT_MAX: {
+            "default_source": "max",
+            "sources": {
+                "max": {
+                    "specific_name": "snow_depth_water_equivalent_max",
+                    "unit": "mm",
+                },
+            },
+        },
+        StandardVariable.SOLAR_RADIATION: {
+            "default_source": "mean",
+            "sources": {
+                "mean": {
+                    "specific_name": "surface_net_solar_radiation_mean",
+                    "unit": "W/m^2",
+                },
+            },
+        },
+        StandardVariable.SOLAR_RADIATION_MIN: {
+            "default_source": "min",
+            "sources": {
+                "min": {
+                    "specific_name": "surface_net_solar_radiation_min",
+                    "unit": "W/m^2",
+                },
+            },
+        },
+        StandardVariable.SOLAR_RADIATION_MAX: {
+            "default_source": "max",
+            "sources": {
+                "max": {
+                    "specific_name": "surface_net_solar_radiation_max",
+                    "unit": "W/m^2",
+                },
+            },
+        },
+        StandardVariable.THERMAL_RADIATION_MIN: {
+            "default_source": "min",
+            "sources": {
+                "min": {
+                    "specific_name": "surface_net_thermal_radiation_min",
+                    "unit": "W/m^2",
+                },
+            },
+        },
+        StandardVariable.THERMAL_RADIATION_MAX: {
+            "default_source": "max",
+            "sources": {
+                "max": {
+                    "specific_name": "surface_net_thermal_radiation_max",
+                    "unit": "W/m^2",
+                },
+            },
+        },
+        StandardVariable.THERMAL_RADIATION: {
+            "default_source": "mean",
+            "sources": {
+                "mean": {
+                    "specific_name": "surface_net_thermal_radiation_mean",
+                    "unit": "W/m^2",
+                },
+            },
+        },
+        StandardVariable.SURFACE_PRESSURE_MIN: {
+            "default_source": "min",
+            "sources": {
+                "min": {"specific_name": "surface_pressure_min", "unit": "Pa"},
+            },
+        },
+        StandardVariable.SURFACE_PRESSURE_MAX: {
+            "default_source": "max",
+            "sources": {
+                "max": {"specific_name": "surface_pressure_max", "unit": "Pa"},
+            },
+        },
+        StandardVariable.SURFACE_PRESSURE: {
+            "default_source": "mean",
+            "sources": {
+                "mean": {"specific_name": "surface_pressure_mean", "unit": "Pa"},
+            },
+        },
+        StandardVariable.U_WIND_SPEED_MIN: {
+            "default_source": "min",
+            "sources": {
+                "min": {"specific_name": "u_component_of_wind_10m_min", "unit": "m/s"},
+            },
+        },
+        StandardVariable.U_WIND_SPEED_MAX: {
+            "default_source": "max",
+            "sources": {
+                "max": {"specific_name": "u_component_of_wind_10m_max", "unit": "m/s"},
+            },
+        },
+        StandardVariable.U_WIND_SPEED: {
+            "default_source": "mean",
+            "sources": {
+                "mean": {
+                    "specific_name": "u_component_of_wind_10m_mean",
+                    "unit": "m/s",
+                },
+            },
+        },
+        StandardVariable.V_WIND_SPEED_MIN: {
+            "default_source": "min",
+            "sources": {
+                "min": {"specific_name": "v_component_of_wind_10m_min", "unit": "m/s"},
+            },
+        },
+        StandardVariable.V_WIND_SPEED_MAX: {
+            "default_source": "max",
+            "sources": {
+                "max": {"specific_name": "v_component_of_wind_10m_max", "unit": "m/s"},
+            },
+        },
+        StandardVariable.V_WIND_SPEED: {
+            "default_source": "mean",
+            "sources": {
+                "mean": {
+                    "specific_name": "v_component_of_wind_10m_mean",
+                    "unit": "m/s",
+                },
+            },
+        },
+        StandardVariable.VOLUMETRIC_SOIL_WATER_LAYER1_MIN: {
+            "default_source": "min",
+            "sources": {
+                "min": {
+                    "specific_name": "volumetric_soil_water_layer_1_min",
+                    "unit": "m^3/m^3",
+                },
+            },
+        },
+        StandardVariable.VOLUMETRIC_SOIL_WATER_LAYER1_MAX: {
+            "default_source": "max",
+            "sources": {
+                "max": {
+                    "specific_name": "volumetric_soil_water_layer_1_max",
+                    "unit": "m^3/m^3",
+                },
+            },
+        },
+        StandardVariable.VOLUMETRIC_SOIL_WATER_LAYER1: {
+            "default_source": "mean",
+            "sources": {
+                "mean": {
+                    "specific_name": "volumetric_soil_water_layer_1_mean",
+                    "unit": "m^3/m^3",
+                },
+            },
+        },
+        StandardVariable.VOLUMETRIC_SOIL_WATER_LAYER2_MIN: {
+            "default_source": "min",
+            "sources": {
+                "min": {
+                    "specific_name": "volumetric_soil_water_layer_2_min",
+                    "unit": "m^3/m^3",
+                },
+            },
+        },
+        StandardVariable.VOLUMETRIC_SOIL_WATER_LAYER2_MAX: {
+            "default_source": "max",
+            "sources": {
+                "max": {
+                    "specific_name": "volumetric_soil_water_layer_2_max",
+                    "unit": "m^3/m^3",
+                },
+            },
+        },
+        StandardVariable.VOLUMETRIC_SOIL_WATER_LAYER2: {
+            "default_source": "mean",
+            "sources": {
+                "mean": {
+                    "specific_name": "volumetric_soil_water_layer_2_mean",
+                    "unit": "m^3/m^3",
+                },
+            },
+        },
+        StandardVariable.VOLUMETRIC_SOIL_WATER_LAYER3_MIN: {
+            "default_source": "min",
+            "sources": {
+                "min": {
+                    "specific_name": "volumetric_soil_water_layer_3_min",
+                    "unit": "m^3/m^3",
+                },
+            },
+        },
+        StandardVariable.VOLUMETRIC_SOIL_WATER_LAYER3_MAX: {
+            "default_source": "max",
+            "sources": {
+                "max": {
+                    "specific_name": "volumetric_soil_water_layer_3_max",
+                    "unit": "m^3/m^3",
+                },
+            },
+        },
+        StandardVariable.VOLUMETRIC_SOIL_WATER_LAYER3: {
+            "default_source": "mean",
+            "sources": {
+                "mean": {
+                    "specific_name": "volumetric_soil_water_layer_3_mean",
+                    "unit": "m^3/m^3",
+                },
+            },
+        },
+        StandardVariable.VOLUMETRIC_SOIL_WATER_LAYER4_MIN: {
+            "default_source": "min",
+            "sources": {
+                "min": {
+                    "specific_name": "volumetric_soil_water_layer_4_min",
+                    "unit": "m^3/m^3",
+                },
+            },
+        },
+        StandardVariable.VOLUMETRIC_SOIL_WATER_LAYER4_MAX: {
+            "default_source": "max",
+            "sources": {
+                "max": {
+                    "specific_name": "volumetric_soil_water_layer_4_max",
+                    "unit": "m^3/m^3",
+                },
+            },
+        },
+        StandardVariable.VOLUMETRIC_SOIL_WATER_LAYER4: {
+            "default_source": "mean",
+            "sources": {
+                "mean": {
+                    "specific_name": "volumetric_soil_water_layer_4_mean",
+                    "unit": "m^3/m^3",
+                },
+            },
+        },
+    }

@@ -40,6 +40,7 @@ class CamelsEs(HydroDataset):
     def default_t_range(self):
         return ["1981-01-02", "2020-12-31"]
 
+    # get the information of features from dataset file"CAMELS_ES\CAMELS-ES_v110\v110\timeseries\csv\camelses\README.md"
     def _get_attribute_units(self):
         return {
             # 地形特征

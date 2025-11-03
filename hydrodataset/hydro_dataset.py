@@ -43,19 +43,31 @@ class StandardVariable:
     SOLAR_RADIATION_MAX = "solar_radiation_max"
     SOLAR_RADIATION_MEDIAN = "solar_radiation_median"
     THERMAL_RADIATION = "thermal_radiation"
+    THERMAL_RADIATION_MIN = "thermal_radiation_min"
+    THERMAL_RADIATION_MAX = "thermal_radiation_max"
     LONGWAVE_SOLAR_RADIATION = "longwave_solar_radiation"
 
     SNOW_WATER_EQUIVALENT = "snow_water_equivalent"
+    SNOW_WATER_EQUIVALENT_MIN = "snow_water_equivalent_min"
+    SNOW_WATER_EQUIVALENT_MAX = "snow_water_equivalent_max"
     SNOW_DEPTH = "snow_depth"
     SNOW_COVER = "snow_cover"
+    SNOW_SUBLIMATION = "snow_sublimation"
+    SNOW_DENSITY = "snow_density"
 
     VAPOR_PRESSURE = "vapor_pressure"
 
     SURFACE_PRESSURE = "surface_pressure"
+    SURFACE_PRESSURE_MIN = "surface_pressure_min"
+    SURFACE_PRESSURE_MAX = "surface_pressure_max"
 
     WIND_SPEED = "wind_speed"
     U_WIND_SPEED = "u_wind_speed"
+    U_WIND_SPEED_MIN = "u_wind_speed_min"
+    U_WIND_SPEED_MAX = "u_wind_speed_max"
     V_WIND_SPEED = "v_wind_speed"
+    V_WIND_SPEED_MIN = "v_wind_speed_min"
+    V_WIND_SPEED_MAX = "v_wind_speed_max"
     WIND_DIR = "wind_dir"
     LOW_LEVEL_WIND_SHEAR = "low_level_wind_shear"
     DEEP_LEVEL_WIND_SHEAR = "deep_level_wind_shear"
@@ -76,12 +88,22 @@ class StandardVariable:
 
     SOIL_MOISTURE = "soil_moisture"
     VOLUMETRIC_SOIL_WATER_LAYER1 = "volumetric_soil_water_layer1"  # 0-7cm
+    VOLUMETRIC_SOIL_WATER_LAYER1_MIN = "volumetric_soil_water_layer1_min"
+    VOLUMETRIC_SOIL_WATER_LAYER1_MAX = "volumetric_soil_water_layer1_max"
     VOLUMETRIC_SOIL_WATER_LAYER2 = "volumetric_soil_water_layer2"  # 7-28cm
+    VOLUMETRIC_SOIL_WATER_LAYER2_MIN = "volumetric_soil_water_layer2_min"
+    VOLUMETRIC_SOIL_WATER_LAYER2_MAX = "volumetric_soil_water_layer2_max"
     VOLUMETRIC_SOIL_WATER_LAYER3 = "volumetric_soil_water_layer3"  # 28-100cm
+    VOLUMETRIC_SOIL_WATER_LAYER3_MIN = "volumetric_soil_water_layer3_min"
+    VOLUMETRIC_SOIL_WATER_LAYER3_MAX = "volumetric_soil_water_layer3_max"
     VOLUMETRIC_SOIL_WATER_LAYER4 = "volumetric_soil_water_layer4"  # 100-289cm
+    VOLUMETRIC_SOIL_WATER_LAYER4_MIN = "volumetric_soil_water_layer4_min"
+    VOLUMETRIC_SOIL_WATER_LAYER4_MAX = "volumetric_soil_water_layer4_max"
 
     MIN_RAIN_RATE = "min_rain_rate"
     MAX_RAIN_RATE = "max_rain_rate"
+
+    GROUND_HEAT_FLUX = "ground_heat_flux"
 
 
 class HydroDataset(ABC):

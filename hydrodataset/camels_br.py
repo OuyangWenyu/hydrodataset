@@ -16,7 +16,7 @@ import numpy as np
 import xarray as xr
 from tqdm import tqdm
 from aqua_fetch import CAMELS_BR
-from hydrodataset import HydroDataset
+from hydrodataset import HydroDataset, StandardVariable
 
 
 class CamelsBr(HydroDataset):
@@ -92,57 +92,110 @@ class CamelsBr(HydroDataset):
     def default_t_range(self):
         return ["1980-01-01", "2024-07-31"]
 
-    def _get_attribute_units(self):
-        # NOTE: Not verified AND not used
-        return {
-            # topography
-            "area": "km2",
-            "elevation": "m",
-            "slope": "%",
-            "aspect": "degree",
-            "geomorphons": "-",
-            # climate
-            "p_mean": "mm/day",
-            "et_mean": "mm/day",
-            "aridity": "-",
-            "pet_mean": "mm/day",
-            "p_seasonality": "-",
-            "t_mean": "C",
-            "t_seasonality": "-",
-            # soil
-            "soil_depth": "cm",
-            "soil_texture": "-",
-            "soil_porosity": "-",
-            "soil_conductivity": "mm/h",
-            # geology
-            "geology_class": "-",
-            "geology_permeability": "m/day",
-            # land_cover
-            "land_cover_class": "-",
-            "land_cover_percentage": "%",
-            # hydrology
-            "q_mean": "mm/day",
-            "runoff_ratio": "-",
-            "baseflow_index": "-",
-            "flow_seasonality": "-",
-            # human_intervention
-            "dam_density": "dams/km2",
-            "population_density": "people/km2",
-        }
+    # get the information of features from dataset file"CAMELS_BR_readme"
+    _subclass_static_definitions = {
+        "area": {"specific_name": "area_km2", "unit": "km^2"},
+        "p_mean": {"specific_name": "p_mean", "unit": "mm/day"},
+    }
 
-    def _get_timeseries_units(self):
-        # NOTE: Not verified AND not used
-        return [
-            "mm/day",  # streamflow
-            "m3/s",  # streamflow
-            "mm/day",  # precipitation
-            "mm/day",  # evapotranspiration
-            "mm/day",  # potential_evapotranspiration
-            "C",  # temperature_mean
-            "C",  # temperature_min
-            "C",  # temperature_max
-            "%",  # soil_moisture
-        ]
+    _dynamic_variable_mapping = {
+        StandardVariable.STREAMFLOW: {
+            "default_source": "m3s",
+            "sources": {
+                "m3s": {"specific_name": "streamflow_m3s", "unit": "m^3/s"},
+                "mm": {"specific_name": "streamflow_mm", "unit": "mm/day"},
+                "simulated": {
+                    "specific_name": "simulated_streamflow_m3s",
+                    "unit": "m^3/s",
+                },
+            },
+        },
+        StandardVariable.PRECIPITATION: {
+            "default_source": "era5land",
+            "sources": {
+                "era5land": {"specific_name": "p_era5land", "unit": "mm/day"},
+                "mswep": {"specific_name": "p_mswep", "unit": "mm/day"},
+                "cpc": {"specific_name": "p_cpc", "unit": "mm/day"},
+                "chirps": {"specific_name": "p_chirps", "unit": "mm/day"},
+                "brdwgd": {"specific_name": "p_brdwgd", "unit": "mm/day"},
+                "ana_gauges": {"specific_name": "p_ana_gauges", "unit": "mm/day"},
+            },
+        },
+        StandardVariable.EVAPOTRANSPIRATION: {
+            "default_source": "era5land",
+            "sources": {
+                "era5land": {"specific_name": "aet_era5land", "unit": "mm/day"},
+                "gleam": {"specific_name": "aet_gleam", "unit": "mm/day"},
+                "mgb": {"specific_name": "aet_mgb", "unit": "mm/day"},
+            },
+        },
+        StandardVariable.POTENTIAL_EVAPOTRANSPIRATION: {
+            "default_source": "era5land",
+            "sources": {
+                "era5land": {"specific_name": "pet_era5land", "unit": "mm/day"},
+                "gleam": {"specific_name": "pet_gleam", "unit": "mm/day"},
+            },
+        },
+        StandardVariable.TEMPERATURE_MAX: {
+            "default_source": "era5land",
+            "sources": {
+                "era5land": {"specific_name": "tmax_era5land", "unit": "°C"},
+                "cpc": {"specific_name": "tmax_cpc", "unit": "°C"},
+                "brdwgd": {"specific_name": "tmax_brdwgd", "unit": "°C"},
+            },
+        },
+        StandardVariable.TEMPERATURE_MIN: {
+            "default_source": "era5land",
+            "sources": {
+                "era5land": {"specific_name": "tmin_era5land", "unit": "°C"},
+                "cpc": {"specific_name": "tmin_cpc", "unit": "°C"},
+                "brdwgd": {"specific_name": "tmin_brdwgd", "unit": "°C"},
+            },
+        },
+        StandardVariable.TEMPERATURE_MEAN: {
+            "default_source": "era5land",
+            "sources": {
+                "era5land": {"specific_name": "tmean_era5land", "unit": "°C"},
+            },
+        },
+        StandardVariable.SOIL_MOISTURE: {
+            "default_source": "surface_gleam",
+            "sources": {
+                "surface_gleam": {
+                    "specific_name": "sm_surface_gleam",
+                    "unit": "m^3/m^3",
+                },
+                "rootzone_gleam": {
+                    "specific_name": "sm_rootzone_gleam",
+                    "unit": "m^3/m^3",
+                },
+            },
+        },
+        StandardVariable.VOLUMETRIC_SOIL_WATER_LAYER1: {
+            "default_source": "era5land",
+            "sources": {
+                "era5land": {"specific_name": "sm_layer1_era5land", "unit": "m^3/m^3"},
+            },
+        },
+        StandardVariable.VOLUMETRIC_SOIL_WATER_LAYER2: {
+            "default_source": "era5land",
+            "sources": {
+                "era5land": {"specific_name": "sm_layer2_era5land", "unit": "m^3/m^3"},
+            },
+        },
+        StandardVariable.VOLUMETRIC_SOIL_WATER_LAYER3: {
+            "default_source": "era5land",
+            "sources": {
+                "era5land": {"specific_name": "sm_layer3_era5land", "unit": "m^3/m^3"},
+            },
+        },
+        StandardVariable.VOLUMETRIC_SOIL_WATER_LAYER4: {
+            "default_source": "era5land",
+            "sources": {
+                "era5land": {"specific_name": "sm_layer4_era5land", "unit": "m^3/m^3"},
+            },
+        },
+    }
 
     def _build_variable_map(self):
         """

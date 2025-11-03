@@ -1,13 +1,168 @@
 import os
 import xarray as xr
-from hydrodataset import HydroDataset
+from hydrodataset import HydroDataset, StandardVariable
 from tqdm import tqdm
 import numpy as np
-from aqua_fetch import LamaHCE
+from typing import Union, List
+import pandas as pd
+from aqua_fetch import LamaHCE as _AquaFetchLamaHCE
+from aqua_fetch.utils import check_attributes
+
+
+# Define custom LamaHCE class at module level to avoid pickle issues
+# Named LamaHCE to maintain compatibility with file naming conventions
+class LamaHCE(_AquaFetchLamaHCE):
+    """
+    Custom LamaHCE class that overrides fetch_static_features to have default value 'all'
+    and overrides path properties to adapt to the actual dataset structure.
+    """
+
+    @property
+    def data_type_dir(self):
+        """Override to adapt to the actual LamaH-CE dataset structure.
+
+        The actual structure is:
+        lamaHCE/
+            2_LamaH-CE_daily/
+                A_basins_total_upstrm/
+                B_basins_intermediate_all/
+                ...
+            1_LamaH-CE_daily_hourly/
+                A_basins_total_upstrm/
+                ...
+
+        Original AquaFetch code expected:
+        lamaHCE/
+            A_basins_total_upstrm/
+            B_basins_intermediate_all/
+            ...
+        """
+        SEP = os.sep
+
+        # Determine which parent folder based on timestep
+        if self.timestep == "H":
+            parent_folder = "1_LamaH-CE_daily_hourly"
+        else:
+            parent_folder = "2_LamaH-CE_daily"
+
+        # Find the folder that ends with data_type
+        parent_path = os.path.join(self.path, parent_folder)
+
+        # List all directories in parent folder
+        if os.path.exists(parent_path):
+            dirs = [f for f in os.listdir(parent_path) if f.endswith(self.data_type)]
+            if dirs:
+                f = dirs[0]
+                return os.path.join(parent_path, f)
+
+        # Fallback: try original behavior if new structure doesn't exist
+        dirs = [f for f in os.listdir(self.path) if f.endswith(self.data_type)]
+        if dirs:
+            f = dirs[0]
+            return os.path.join(self.path, f)
+
+        raise FileNotFoundError(
+            f"Could not find directory ending with '{self.data_type}' "
+            f"in {self.path} or {parent_path}"
+        )
+
+    @property
+    def q_dir(self):
+        """Override to adapt to the actual dataset structure."""
+        SEP = os.sep
+
+        # Determine which parent folder based on timestep
+        if self.timestep == "H":
+            parent_folder = "1_LamaH-CE_daily_hourly"
+        else:
+            parent_folder = "2_LamaH-CE_daily"
+
+        # Try new structure first
+        new_path = os.path.join(self.path, parent_folder, "D_gauges", "2_timeseries")
+        if os.path.exists(new_path):
+            return new_path
+
+        # Fallback to original structure
+        return os.path.join(self.path, "D_gauges", "2_timeseries")
+
+    def gauge_attributes(self) -> pd.DataFrame:
+        """Override to adapt to the actual dataset structure.
+
+        Original code expected:
+        lamaHCE/D_gauges/1_attributes/Gauge_attributes.csv
+
+        Actual structure:
+        lamaHCE/2_LamaH-CE_daily/D_gauges/1_attributes/Gauge_attributes.csv
+        """
+        # Determine which parent folder based on timestep
+        if self.timestep == "H":
+            parent_folder = "1_LamaH-CE_daily_hourly"
+        else:
+            parent_folder = "2_LamaH-CE_daily"
+
+        # Try new structure first
+        fname = os.path.join(
+            self.path, parent_folder, "D_gauges", "1_attributes", "Gauge_attributes.csv"
+        )
+
+        if not os.path.exists(fname):
+            # Fallback to original structure
+            fname = os.path.join(
+                self.path, "D_gauges", "1_attributes", "Gauge_attributes.csv"
+            )
+
+        df = pd.read_csv(fname, sep=";", index_col="ID")
+        df.index = df.index.astype(str)
+        return df
+
+    def fetch_static_features(
+        self,
+        stations: Union[str, List[str]] = "all",
+        static_features: Union[str, List[str]] = "all",  # Changed from None to 'all'
+    ) -> pd.DataFrame:
+        """
+        static features of LamaHCE
+
+        Modified to have default static_features='all' instead of None
+
+        Parameters
+        ----------
+            stations : str
+                name/id of station of which to extract the data
+            static_features : list/str, optional (default="all")
+                The name/names of features to fetch. By default, all available
+                static features are returned.
+
+        Examples
+        --------
+            >>> from aqua_fetch import LamaHCE
+            >>> dataset = LamaHCE(timestep='D', data_type='total_upstrm')
+            >>> df = dataset.fetch_static_features('99')  # (1, 61)
+            ...  # get list of all static features
+            >>> dataset.static_features
+            >>> dataset.fetch_static_features('99',
+            >>> static_features=['area_calc', 'elev_mean', 'agr_fra', 'sand_fra'])  # (1, 4)
+        """
+
+        df = self.static_data()
+
+        static_features = check_attributes(
+            static_features, self.static_features, "static features"
+        )
+        stations = check_attributes(stations, self.stations(), "stations")
+
+        df = df[static_features]
+
+        df.index = df.index.astype(str)
+        df = df.loc[stations]
+        if isinstance(df, pd.Series):
+            df = pd.DataFrame(df).transpose()
+
+        return df
 
 
 class LamahCe(HydroDataset):
-    """LamaHCE dataset class extending RainfallRunoff.
+    """LamaHCE dataset class extending HydroDataset.
 
     This class provides access to the LamaHCE dataset, which contains hourly
     hydrological and meteorological data for various watersheds.
@@ -30,6 +185,7 @@ class LamahCe(HydroDataset):
         super().__init__(data_path, cache_path=cache_path)
         self.region = region
         self.download = download
+        # Use the custom LamaHCE class defined at module level
         self.aqua_fetch = LamaHCE(data_path)
 
     @property
@@ -44,95 +200,112 @@ class LamahCe(HydroDataset):
     def default_t_range(self):
         return ["1981-01-01", "2019-12-31"]
 
-    def _get_attribute_units(self):
-        return {
-            # 地形特征
-            "dis_m3_": "m^3/s",
-            "run_mm_": "millimeter",
-            "inu_pc_": "percent",
-            "lka_pc_": "1e-1 * percent",
-            "lkv_mc_": "1e6 * m^3",
-            "rev_mc_": "1e6 * m^3",
-            "dor_pc_": "percent (x10)",
-            "ria_ha_": "hectares",
-            "riv_tc_": "1e3 * m^3",
-            "gwt_cm_": "centimeter",
-            "ele_mt_": "meter",
-            "slp_dg_": "1e-1 * degree",
-            "sgr_dk_": "decimeter/km",
-            "clz_cl_": "dimensionless",
-            "cls_cl_": "dimensionless",
-            "tmp_dc_": "degree_Celsius",
-            "pre_mm_": "millimeters",
-            "pet_mm_": "millimeters",
-            "aet_mm_": "millimeters",
-            "ari_ix_": "1e-2",
-            "cmi_ix_": "1e-2",
-            "snw_pc_": "percent",
-            "glc_cl_": "dimensionless",
-            "glc_pc_": "percent",
-            "pnv_cl_": "dimensionless",
-            "pnv_pc_": "percent",
-            "wet_cl_": "dimensionless",
-            "wet_pc_": "percent",
-            "for_pc_": "percent",
-            "crp_pc_": "percent",
-            "pst_pc_": "percent",
-            "ire_pc_": "percent",
-            "gla_pc_": "percent",
-            "prm_pc_": "percent",
-            "pac_pc_": "percent",
-            "tbi_cl_": "dimensionless",
-            "tec_cl_": "dimensionless",
-            "fmh_cl_": "dimensionless",
-            "fec_cl_": "dimensionless",
-            "cly_pc_": "percent",
-            "slt_pc_": "percent",
-            "snd_pc_": "percent",
-            "soc_th_": "tonne/hectare",
-            "swc_pc_": "percent",
-            "lit_cl_": "dimensionless",
-            "kar_pc_": "percent",
-            "ero_kh_": "kg/hectare/year",
-            "pop_ct_": "1e3",
-            "ppd_pk_": "1/km^2",
-            "urb_pc_": "percent",
-            "nli_ix_": "1e-2",
-            "rdd_mk_": "meter/km^2",
-            "hft_ix_": "1e-1",
-            "gad_id_": "dimensionless",
-            "gdp_ud_": "dimensionless",
-            "hdi_ix_": "1e-3",
-        }
+    # get the information of features from table 3 in "https://doi.org/10.5194/essd-13-4529-2021"
+    # Static variable definitions based on inspected data
+    _subclass_static_definitions = {
+        "p_mean": {"specific_name": "p_mean", "unit": "mm/day"},
+        "area": {"specific_name": "area_km2", "unit": "km^2"},
+    }
 
-    def _get_timeseries_units(self):
-        return [
-            "mm^3/s",  # q_cms_obs ML/day->mm^3/s,×1.1574 × 10⁻2
-            "ML/day",  # streamflow_MLd
-            "mm/day",  # q_mm_obs
-            "mm/day",  # aet_mm_silo_morton
-            "mm/day",  # aet_mm_silo_morton_point
-            "mm/day",  # et_morton_wet_SILO
-            "mm/day",  # aet_mm_silo_short_crop
-            "mm/day",  # aet_mm_silo_tall_crop
-            "mm/day",  # evap_morton_lake_SILO
-            "mm/day",  # evap_pan_SILO
-            "mm/day",  # evap_syn_SILO
-            "mm/day",  # pcp_mm_agcd
-            "mm/day",  # pcp_mm_silo
-            "mm^2/d^2 ",  # precipitation_var_AGCD
-            "°C",  # airtemp_C_agcd_max
-            "°C",  # airtemp_C_agcd_min
-            "hPa",  # vp_hpa_agcd_h09
-            "hPa",  # vp_hpa_agcd_h15
-            "hPa",  # mslp_SILO
-            "MJ/m²",  # solrad_wm2_silo
-            "%",  # rh_%_silo_tmax
-            "%",  # rh_%_silo_tmin
-            "°C",  # airtemp_C_silo_max
-            "°C",  # airtemp_C_silo_min
-            "hPa",  # vp_deficit_SILO
-            "hPa",  # vp_hpa_silo
-            "°C",  # airtemp_C_mean_silo
-            "°C",  # airtemp_C_mean_agcd
-        ]
+    # Dynamic variable mapping based on inspected data
+    _dynamic_variable_mapping = {
+        StandardVariable.STREAMFLOW: {
+            "default_source": "observations",
+            "sources": {
+                "observations": {"specific_name": "q_cms_obs", "unit": "m^3/s"},
+            },
+        },
+        StandardVariable.PRECIPITATION: {
+            "default_source": "era5",
+            "sources": {
+                "era5": {"specific_name": "pcp_mm", "unit": "mm"},
+            },
+        },
+        StandardVariable.TEMPERATURE_MAX: {
+            "default_source": "era5",
+            "sources": {
+                "era5": {"specific_name": "airtemp_c_max", "unit": "°C"},
+                "dp": {"specific_name": "dptemp_c_max_2m", "unit": "°C"},
+            },
+        },
+        StandardVariable.TEMPERATURE_MIN: {
+            "default_source": "era5",
+            "sources": {
+                "era5": {"specific_name": "airtemp_c_min", "unit": "°C"},
+                "dp": {"specific_name": "dptemp_c_min_2m", "unit": "°C"},
+            },
+        },
+        StandardVariable.TEMPERATURE_MEAN: {
+            "default_source": "era5",
+            "sources": {
+                "era5": {"specific_name": "airtemp_c_mean", "unit": "°C"},
+                "dp": {"specific_name": "dptemp_c_mean_2m", "unit": "°C"},
+            },
+        },
+        StandardVariable.EVAPOTRANSPIRATION: {
+            "default_source": "era5",
+            "sources": {
+                "era5": {"specific_name": "total_et", "unit": "mm"},
+            },
+        },
+        StandardVariable.SNOW_WATER_EQUIVALENT: {
+            "default_source": "era5",
+            "sources": {
+                "era5": {"specific_name": "swe_mm", "unit": "mm"},
+            },
+        },
+        StandardVariable.SOLAR_RADIATION: {
+            "default_source": "era5",
+            "sources": {
+                "era5": {"specific_name": "solrad_wm2", "unit": "W/m^2"},
+            },
+        },
+        StandardVariable.SOLAR_RADIATION_MAX: {
+            "default_source": "era5",
+            "sources": {
+                "era5": {"specific_name": "solrad_wm2_max", "unit": "W/m^2"},
+            },
+        },
+        StandardVariable.THERMAL_RADIATION: {
+            "default_source": "era5",
+            "sources": {
+                "era5": {"specific_name": "thermrad_wm2", "unit": "W/m^2"},
+            },
+        },
+        StandardVariable.THERMAL_RADIATION_MAX: {
+            "default_source": "era5",
+            "sources": {
+                "era5": {"specific_name": "thermrad_wm2_max", "unit": "W/m^2"},
+            },
+        },
+        StandardVariable.SURFACE_PRESSURE: {
+            "default_source": "era5",
+            "sources": {
+                "era5": {"specific_name": "airpres_hpa", "unit": "Pa"},
+            },
+        },
+        StandardVariable.U_WIND_SPEED: {
+            "default_source": "era5",
+            "sources": {
+                "era5": {"specific_name": "windspeedu_mps", "unit": "m/s"},
+            },
+        },
+        StandardVariable.V_WIND_SPEED: {
+            "default_source": "era5",
+            "sources": {
+                "era5": {"specific_name": "windspeedv_mps", "unit": "m/s"},
+            },
+        },
+        StandardVariable.VOLUMETRIC_SOIL_WATER_LAYER1: {
+            "default_source": "era5",
+            "sources": {
+                "era5": {"specific_name": "volsw_123", "unit": "m^3/m^3"},
+            },
+        },
+        StandardVariable.VOLUMETRIC_SOIL_WATER_LAYER4: {
+            "default_source": "era5",
+            "sources": {
+                "era5": {"specific_name": "volsw_4", "unit": "m^3/m^3"},
+            },
+        },
+    }
