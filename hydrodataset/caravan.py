@@ -14,56 +14,71 @@ import numpy as np
 from tzfpy import get_tz
 from hydroutils import hydro_file
 from hydrodataset import CACHE_DIR, HydroDataset
+from hydrodataset.hydro_dataset import StandardVariable
 
 
 class Caravan(HydroDataset):
-    def __init__(self, data_path, download=False, region="Global", cache_path=None):
+    def __init__(self, data_path, region=None):
         """
         Initialization for Caravan dataset
+
+        TODO: The newest version is Version 1.6, but now we only support Version 0.3
 
         Parameters
         ----------
         data_path
             where we put the dataset
-        download
-            if true, download
         region
             the region can be US, AUS, BR, CL, GB, CE, NA (North America, meaning HYSETS)
-        cache_path
-            the path to cache the dataset
         """
-        super().__init__(data_path, cache_path=cache_path)
-        self.region = region
+        self.data_path = os.path.join(data_path, "CARAVAN")
+        super().__init__(self.data_path)
+        self.region = "Global" if region is None else region
         region_name_dict = self.region_name_dict
-        if region == "Global":
+        if self.region == "Global":
             self.region_data_name = list(region_name_dict.values())
         else:
-            self.region_data_name = region_name_dict[region]
+            self.region_data_name = region_name_dict[self.region]
         self.data_source_description = self.set_data_source_describe()
-        if download:
-            self.download_data_source()
         try:
             self.is_data_ready()
         except FileNotFoundError as e:
             warnings.warn(e)
-            print(
-                "Please download and unzip the dataset first: just set download=True if you have manually downloaded zip files when you first initialize caravan."
-            )
+            print("Downloading dataset...")
+            self.download_data_source()
+            print("Dataset downloaded successfully.")
+            print("Checking if dataset is ready...")
+            self.is_data_ready()
+            print("Dataset is ready.")
         self.sites = self.read_site_info()
 
     @property
     def _attributes_cache_filename(self):
-        region_name = self.region_data_name
-        if isinstance(region_name, list):
-            region_name = "_".join(region_name)
-        return f"caravan_{region_name}_attributes.nc"
+        return "caravan_attributes.nc"
 
     @property
-    def _attributes_cache_filename(self):
+    def _timeseries_cache_filename(self):
+        """
+        Get glob pattern to match batch cache files.
+
+        Returns
+        -------
+        str
+            Glob pattern to match all batch cache files for the region(s)
+        """
         region_name = self.region_data_name
         if isinstance(region_name, list):
-            region_name = "_".join(region_name)
-        return f"caravan_{region_name}_attributes.nc"
+            # Match all regions: caravan_*_timeseries_batch_*.nc
+            return str(self.cache_dir.joinpath("caravan_*_timeseries_batch_*.nc"))
+        else:
+            # Match specific region: caravan_{region}_timeseries_batch_*.nc
+            return str(
+                self.cache_dir.joinpath(f"caravan_{region_name}_timeseries_batch_*.nc")
+            )
+
+    @property
+    def default_t_range(self):
+        return ["1981-01-01", "2020-12-31"]
 
     @property
     def region_name_dict(self):
@@ -76,6 +91,67 @@ class Caravan(HydroDataset):
             "NA": "hysets",
             "CE": "lamah",
         }
+
+    _subclass_static_definitions = {
+        "area": {"specific_name": "area", "unit": "km^2"},
+        "p_mean": {"specific_name": "p_mean", "unit": "mm/day"},
+    }
+    _dynamic_variable_mapping = {
+        StandardVariable.STREAMFLOW: {
+            "default_source": "each_region",
+            "sources": {
+                "each_region": {"specific_name": "streamflow", "unit": "mm/day"}
+            },
+        },
+        StandardVariable.PRECIPITATION: {
+            "default_source": "each_region",
+            "sources": {
+                "each_region": {
+                    "specific_name": "total_precipitation_sum",
+                    "unit": "mm/day",
+                },
+            },
+        },
+        StandardVariable.TEMPERATURE_MAX: {
+            "default_source": "each_region",
+            "sources": {
+                "each_region": {"specific_name": "temperature_2m_max", "unit": "°C"},
+            },
+        },
+        StandardVariable.TEMPERATURE_MIN: {
+            "default_source": "each_region",
+            "sources": {
+                "each_region": {"specific_name": "temperature_2m_min", "unit": "°C"},
+            },
+        },
+        StandardVariable.SOLAR_RADIATION: {
+            "default_source": "each_region",
+            "sources": {
+                "each_region": {
+                    "specific_name": "surface_net_solar_radiation_mean",
+                    "unit": "W/m^2",
+                },
+            },
+        },
+        StandardVariable.SNOW_WATER_EQUIVALENT: {
+            "default_source": "each_region",
+            "sources": {
+                "each_region": {
+                    "specific_name": "snow_depth_water_equivalent_mean",
+                    "unit": "mm/day",
+                },
+            },
+        },
+        StandardVariable.POTENTIAL_EVAPOTRANSPIRATION: {
+            "default_source": "each_region",
+            "sources": {
+                "each_region": {
+                    "specific_name": "potential_evaporation_sum",
+                    "unit": "mm/day",
+                }
+            },
+        },
+    }
 
     def get_name(self):
         return "Caravan_" + self.region
@@ -93,8 +169,10 @@ class Caravan(HydroDataset):
 
         # We use A_basins_total_upstrm
         # shp file of basins
-        # TODO: Caravan Global is not fully tested yet
-        shp_dir = os.path.join(dataset_dir, "shapefiles", self.region_data_name)
+        if self.region == "Global":
+            shp_dir = os.path.join(dataset_dir, "shapefiles")
+        else:
+            shp_dir = os.path.join(dataset_dir, "shapefiles", self.region_data_name)
         # read the shp in this dir
         shp_files = [f for f in os.listdir(shp_dir) if f.endswith(".shp")]
 
@@ -108,6 +186,7 @@ class Caravan(HydroDataset):
         forcing_dir = flow_dir
         attr_dir = os.path.join(dataset_dir, "attributes")
         ts_csv_dir = os.path.join(dataset_dir, "timeseries", "csv")
+        # TODO: The newest version is Version 1.6, but the url is not updated yet. it's still Version 0.3
         download_url = "https://zenodo.org/record/7944025/files/Caravan.zip"
         return collections.OrderedDict(
             DATASET_DIR=dataset_dir,
@@ -692,12 +771,20 @@ class Caravan(HydroDataset):
         self.cache_attributes_xrdataset()
         self.cache_timeseries_xrdataset(checkregion)
 
-    def read_timeseries(self, basin_ids=None, t_range_list: list = None, var_lst=None):
+    def read_timeseries(
+        self,
+        region,
+        basin_ids=None,
+        t_range_list: list = None,
+        var_lst=None,
+    ):
         """
         Read time-series data from csv files
 
         Parameters
         ----------
+        region
+            the region can be US, AUS, BR, CL, GB, CE, NA (North America, meaning HYSETS)
         basin_ids
             station ids
         t_range
@@ -715,9 +802,8 @@ class Caravan(HydroDataset):
         if var_lst is None:
             var_lst = self.get_relevant_cols()
         if t_range_list is None:
-            t_range_list = ["1980-01-01", "2023-12-31"]
+            t_range_list = self.default_t_range
         ts_dir = self.data_source_description["TS_CSV_DIR"]
-        region = self.region_data_name
         t_range = pd.date_range(start=t_range_list[0], end=t_range_list[-1], freq="1D")
         nt = len(t_range)
         x = np.full([len(basin_ids), nt, len(var_lst)], np.nan)
@@ -793,7 +879,7 @@ class Caravan(HydroDataset):
             batchsize = kwargs.get("batchsize", 100)
             t_range = kwargs.get("t_range", None)
             if t_range is None:
-                t_range = ["1980-01-01", "2023-12-31"]
+                t_range = self.default_t_range
             times = (
                 pd.date_range(start=t_range[0], end=t_range[-1], freq="1D")
                 .strftime("%Y-%m-%d %H:%M:%S")
@@ -810,8 +896,10 @@ class Caravan(HydroDataset):
                 # we make sure the basin ids are sorted
                 assert all(x <= y for x, y in zip(basin_batch, basin_batch[1:]))
                 data = self.read_timeseries(
+                    region=region,
                     basin_ids=basin_batch,
                     t_range_list=t_range,
+                    var_lst=variables,
                 )
                 dataset = xr.Dataset(
                     data_vars={
@@ -903,15 +991,56 @@ class Caravan(HydroDataset):
                     )
                     the_ncfile_data.to_netcdf(the_ncfile)
 
-    def read_attr_xrdataset(self, gage_id_lst=None, var_lst=None, **kwargs):
-        # Define the path to the attributes file
+    def read_attr_xrdataset(
+        self,
+        gage_id_lst=None,
+        var_lst=None,
+        to_numeric: bool = True,
+        **kwargs,
+    ):
+        """
+        Read attribute data as xarray Dataset.
+
+        This method supports both standardized variable names and dataset-specific names.
+        If var_lst contains standardized names (e.g., 'area', 'p_mean'),
+        it will use the parent class implementation. Otherwise, it reads the raw attributes.
+
+        Args:
+            gage_id_lst (list, optional): List of gauge IDs to select.
+            var_lst (list, optional): List of variable names (standardized or raw).
+            to_numeric (bool, optional): Whether to convert non-numeric variables to codes.
+            **kwargs: Additional keyword arguments.
+
+        Returns:
+            xr.Dataset: Dataset containing the requested attributes.
+        """
+        # Check if var_lst contains only standardized variable names
+        if var_lst is not None:
+            all_standard = all(
+                var in self._static_variable_definitions for var in var_lst
+            )
+            if all_standard:
+                # Use parent class implementation for standardized variables
+                return super().read_attr_xrdataset(
+                    gage_id_lst=gage_id_lst,
+                    var_lst=var_lst,
+                    to_numeric=to_numeric,
+                    **kwargs,
+                )
+
+        # For raw attribute names or mixed names, use direct reading
         file_path = self.cache_dir.joinpath(self._attributes_cache_filename)
+
+        if not os.path.isfile(file_path):
+            self.cache_attributes_xrdataset()
 
         # Open the dataset
         ds = xr.open_dataset(file_path)
 
         # Select the basins
-        ds = ds.sel(basin=gage_id_lst)
+        if gage_id_lst is not None:
+            gage_id_lst = [str(gid) for gid in gage_id_lst]
+            ds = ds.sel(basin=gage_id_lst)
 
         # If relevant columns (attributes) are specified, select them
         if var_lst:
@@ -919,15 +1048,22 @@ class Caravan(HydroDataset):
 
         return ds
 
-    def read_ts_xrdataset(self, gage_id_lst, t_range, var_lst, **kwargs):
-        region_name = self.region_data_name
-        if isinstance(region_name, list):
-            region_name = "_".join(region_name)
-        file_paths = sorted(
-            glob.glob(
-                os.path.join(self.cache_dir, f"*caravan_{region_name}_*timeseries*.nc")
-            )
-        )
+    def _load_ts_dataset(self, **kwargs):
+        """Load the time series dataset from cache files.
+
+        This method overrides the parent method to handle multiple batch files.
+
+        Args:
+            **kwargs: Additional keyword arguments.
+                parallel (bool, optional): Whether to use parallel reading. Defaults to False.
+
+        Returns:
+            xr.Dataset: The loaded time series dataset.
+        """
+        file_paths = sorted(glob.glob(self._timeseries_cache_filename))
+        if len(file_paths) == 0:
+            self.cache_timeseries_xrdataset(checkregion="all")
+            file_paths = sorted(glob.glob(self._timeseries_cache_filename))
 
         # Open the dataset in a lazy manner using dask
         parallel = kwargs.get("parallel", False)
@@ -937,25 +1073,53 @@ class Caravan(HydroDataset):
             concat_dim="basin",
             parallel=parallel,
         )
-        # If relevant columns are specified, select them
-        if var_lst:
-            combined_ds = combined_ds[var_lst]
-        if t_range:
-            combined_ds = combined_ds.sel(time=slice(*t_range))
-        if gage_id_lst:
-            combined_ds = combined_ds.sel(basin=gage_id_lst)
-
-        # some units are not recognized by pint_xarray, hence we manually set them
-        unit_mapping = {"W/m2": "watt / meter ** 2", "m3/m3": "meter^3/meter^3"}
-
-        for var in combined_ds.data_vars:
-            if "units" not in combined_ds[var].attrs:
-                unit = _extract_unit(var, combined_ds.attrs["Units"])
-                # If the extracted unit is in the mapping dictionary, replace it
-                unit = unit_mapping.get(unit, unit)
-                combined_ds[var].attrs["units"] = unit
-
         return combined_ds
+
+    def read_ts_xrdataset(
+        self,
+        gage_id_lst: list = None,
+        t_range: list = None,
+        var_lst: list = None,
+        sources: dict = None,
+        **kwargs,
+    ):
+        """
+        Reads time series data as an xarray Dataset with standardized variable names.
+
+        Args:
+            gage_id_lst (list, optional): List of gauge IDs to select.
+            t_range (list, optional): Time range as [start, end].
+            var_lst (list, optional): List of standard variable names (e.g., StandardVariable.STREAMFLOW).
+            sources (dict, optional): Dictionary mapping standard variable names to their sources.
+            **kwargs: Additional keyword arguments. Notably:
+                parallel (bool): Whether to use parallel reading (default: False).
+
+        Returns:
+            xr.Dataset: Dataset with standardized variable names.
+        """
+        # Use parent class implementation for variable mapping logic
+        final_ds = super().read_ts_xrdataset(
+            gage_id_lst=gage_id_lst,
+            t_range=t_range,
+            var_lst=var_lst,
+            sources=sources,
+            **kwargs,
+        )
+
+        # Fix units that are not recognized by pint_xarray
+        unit_mapping = {
+            "W/m2": "watt / meter ** 2",
+            "m3/m3": "meter^3/meter^3",
+            "W/m^2": "watt / meter ** 2",
+        }
+
+        for var in final_ds.data_vars:
+            if "units" in final_ds[var].attrs:
+                unit = final_ds[var].attrs["units"]
+                # If the unit is in the mapping dictionary, replace it
+                final_ds[var].attrs["units"] = unit_mapping.get(unit, unit)
+
+        return final_ds
 
     @property
     def streamflow_unit(self):

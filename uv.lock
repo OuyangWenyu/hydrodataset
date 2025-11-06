@@ -9,10 +9,7 @@ resolution-markers = [
 ]
 
 [manifest]
-overrides = [
-    { name = "pandas", specifier = ">=2.2.0" },
-    { name = "xarray", specifier = ">=2023.0,<2024.11" },
-]
+overrides = [{ name = "pandas", specifier = ">=2.2.0" }]
 
 [[package]]
 name = "aiobotocore"

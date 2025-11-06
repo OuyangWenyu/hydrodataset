@@ -1,7 +1,7 @@
 """
 Author: Wenyu Ouyang
 Date: 2022-09-05 23:20:24
-LastEditTime: 2025-10-30 09:11:40
+LastEditTime: 2025-11-06 19:26:20
 LastEditors: Wenyu Ouyang
 Description: main modules for hydrodataset
 FilePath: \hydrodataset\hydrodataset\hydro_dataset.py
@@ -468,6 +468,26 @@ class HydroDataset(ABC):
                 converted_ds[var_name] = new_da
         return converted_ds
 
+    def _load_ts_dataset(self, **kwargs):
+        """
+        Loads the time series dataset from cache.
+
+        This method can be overridden by subclasses to implement different loading
+        strategies (e.g., loading multiple files).
+
+        Args:
+            **kwargs: Additional keyword arguments for loading.
+
+        Returns:
+            xarray.Dataset: The loaded time series dataset.
+        """
+        ts_cache_file = self.cache_dir.joinpath(self._timeseries_cache_filename)
+
+        if not os.path.isfile(ts_cache_file):
+            self.cache_timeseries_xrdataset()
+
+        return xr.open_dataset(ts_cache_file)
+
     def read_ts_xrdataset(
         self,
         gage_id_lst: list = None,
@@ -527,12 +547,7 @@ class HydroDataset(ABC):
                 rename_map[actual_var_name] = output_name
 
         # Read data from cache using actual variable names
-        ts_cache_file = self.cache_dir.joinpath(self._timeseries_cache_filename)
-
-        if not os.path.isfile(ts_cache_file):
-            self.cache_timeseries_xrdataset()
-
-        ts = xr.open_dataset(ts_cache_file)
+        ts = self._load_ts_dataset(**kwargs)
         missing_vars = [v for v in target_vars_to_fetch if v not in ts.data_vars]
         if missing_vars:
             # To provide a better error message, map back to standard names
