@@ -49,4 +49,37 @@ nav:
     - Changelog: changelog.md
     - Report Issues: https://github.com/OuyangWenyu/hydrodataset/issues
     - API Reference:
-          - hydrodataset module: hydrodataset.md
+          - Overview: api/hydrodataset.md   
+          - Core Modules:
+              - Base Classes: api/hydro_dataset.md
+              - Standard Variables: api/standard_variables.md
+          - CAMELS Series:
+              - CAMELS-AUS: api/camels_aus.md
+              - CAMELS-BR: api/camels_br.md
+              - CAMELS-CH: api/camels_ch.md
+              - CAMELS-CL: api/camels_cl.md
+              - CAMELS-COL: api/camels_col.md
+              - CAMELS-DE: api/camels_de.md
+              - CAMELS-DK: api/camels_dk.md
+              - CAMELS-FI: api/camels_fi.md
+              - CAMELS-FR: api/camels_fr.md
+              - CAMELS-GB: api/camels_gb.md
+              - CAMELS-IND: api/camels_ind.md
+              - CAMELS-LUX: api/camels_lux.md
+              - CAMELS-NZ: api/camels_nz.md
+              - CAMELS-SE: api/camels_se.md
+              - CAMELS-US: api/camels_us.md
+          - CAMELSH Series:
+              - CAMELSH: api/camelsh.md
+              - CAMELSH-KR: api/camelsh_kr.md
+          - Caravan Series:
+              - Caravan-DK: api/caravan_dk.md
+              - GRDC-Caravan: api/grdc_caravan.md
+          - LamaH Series:
+              - LamaH-CE: api/lamah_ce.md
+              - LamaH-ICE: api/lamah_ice.md
+          - Other Datasets:
+              - BULL: api/bull.md
+              - E-STREAMS: api/estreams.md
+              - HYSETS: api/hysets.md
+              - SIMBI: api/simbi.md
