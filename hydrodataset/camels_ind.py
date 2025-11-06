@@ -10,6 +10,7 @@ Copyright (c) 2023-2026 Wenyu Ouyang. All rights reserved.
 
 import os
 from pathlib import Path
+from typing import Optional
 
 from hydrodataset import HydroDataset, StandardVariable
 from aqua_fetch import CAMELS_IND
@@ -184,7 +185,9 @@ class CamelsInd(HydroDataset):
         aqua_fetch: CustomCAMELS_IND instance for data access
     """
 
-    def __init__(self, data_path, region=None, download=False):
+    def __init__(
+        self, data_path: str, region: Optional[str] = None, download: bool = False
+    ) -> None:
         """Initialize CAMELS_IND dataset.
 
         Args:

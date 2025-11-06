@@ -1,6 +1,8 @@
 import os
 import xarray as xr
 import numpy as np
+from typing import Optional
+
 from tqdm import tqdm
 from hydrodataset import HydroDataset, StandardVariable
 from aqua_fetch import CAMELSH
@@ -18,7 +20,9 @@ class Camelsh(HydroDataset):
         ds_description: Dictionary containing dataset file paths
     """
 
-    def __init__(self, data_path, region=None, download=False):
+    def __init__(
+        self, data_path: str, region: Optional[str] = None, download: bool = False
+    ) -> None:
         """Initialize CAMELSH dataset.
 
         Args:
@@ -260,7 +264,7 @@ class Camelsh(HydroDataset):
         var_lst: list = None,
         sources: dict = None,
         **kwargs,
-    ):
+    ) -> xr.Dataset:
         """
         Read timeseries data (supports standardized variable names and multiple data sources)
 

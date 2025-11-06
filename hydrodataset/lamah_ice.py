@@ -1,9 +1,10 @@
 import os
 import xarray as xr
+from typing import Union, List, Optional
+
 from hydrodataset import HydroDataset, StandardVariable
 from tqdm import tqdm
 import numpy as np
-from typing import Union, List
 import pandas as pd
 from datetime import datetime
 from aqua_fetch import LamaHIce as _AquaFetchLamaHIce
@@ -152,7 +153,9 @@ class LamahIce(HydroDataset):
         download: Whether to download data automatically
     """
 
-    def __init__(self, data_path, region=None, download=False):
+    def __init__(
+        self, data_path: str, region: Optional[str] = None, download: bool = False
+    ) -> None:
         """Initialize LamaHICE dataset.
 
         Args:

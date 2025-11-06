@@ -1,3 +1,5 @@
+from typing import Optional
+
 import numpy as np
 import xarray as xr
 
@@ -17,14 +19,15 @@ class Hysets(HydroDataset):
         ds_description: Dictionary containing dataset file paths
     """
 
-    def __init__(self, data_path, region=None, download=False):
+    def __init__(
+        self, data_path: str, region: Optional[str] = None, download: bool = False
+    ) -> None:
         """Initialize HYsets dataset.
 
         Args:
             data_path: Path to the HYsets data directory
             region: Geographic region identifier (optional)
             download: Whether to download data automatically (default: False)
-            cache_path: Path to the cache directory
         """
         super().__init__(data_path)
         self.region = region

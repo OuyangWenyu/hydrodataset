@@ -1,5 +1,7 @@
 import os
 import xarray as xr
+from typing import Optional
+
 from hydrodataset import HydroDataset, StandardVariable
 from tqdm import tqdm
 import numpy as np
@@ -18,7 +20,13 @@ class CamelshKr(HydroDataset):
         ds_description: Dictionary containing dataset file paths
     """
 
-    def __init__(self, data_path, region=None, download=False, cache_path=None):
+    def __init__(
+        self,
+        data_path: str,
+        region: Optional[str] = None,
+        download: bool = False,
+        cache_path: Optional[str] = None,
+    ) -> None:
         """Initialize CAMELSH_KR dataset.
 
         Args:

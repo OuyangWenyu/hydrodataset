@@ -11,6 +11,8 @@ Copyright (c) 2023-2026 Wenyu Ouyang. All rights reserved.
 import collections
 import os
 import logging
+from typing import Optional
+
 import pandas as pd
 import numpy as np
 import xarray as xr
@@ -27,7 +29,9 @@ class CamelsBr(HydroDataset):
     It overrides the download URLs and provides its own parsing and caching logic.
     """
 
-    def __init__(self, data_path, region=None, download=False):
+    def __init__(
+        self, data_path: str, region: Optional[str] = None, download: bool = False
+    ) -> None:
         """Initialize CAMELS_BR dataset.
 
         Args:

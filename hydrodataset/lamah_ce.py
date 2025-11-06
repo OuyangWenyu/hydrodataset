@@ -1,9 +1,10 @@
 import os
 import xarray as xr
+from typing import Union, List, Optional
+
 from hydrodataset import HydroDataset, StandardVariable
 from tqdm import tqdm
 import numpy as np
-from typing import Union, List
 import pandas as pd
 from aqua_fetch import LamaHCE as _AquaFetchLamaHCE
 from aqua_fetch.utils import check_attributes
@@ -173,7 +174,13 @@ class LamahCe(HydroDataset):
         ds_description: Dictionary containing dataset file paths
     """
 
-    def __init__(self, data_path, region=None, download=False, cache_path=None):
+    def __init__(
+        self,
+        data_path: str,
+        region: Optional[str] = None,
+        download: bool = False,
+        cache_path: Optional[str] = None,
+    ) -> None:
         """Initialize LamaHCE dataset.
 
         Args:

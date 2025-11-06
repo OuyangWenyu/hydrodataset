@@ -1,4 +1,6 @@
 import os
+from typing import Optional
+
 from hydrodataset import HydroDataset, StandardVariable
 from tqdm import tqdm
 from aqua_fetch import CAMELS_NZ as _AquaFetchCAMELS_NZ
@@ -159,7 +161,13 @@ class CamelsNz(HydroDataset):
         timestep: Time step for the data ('H' for hourly, 'D' for daily)
     """
 
-    def __init__(self, data_path, region=None, download=False, timestep="H"):
+    def __init__(
+        self,
+        data_path: str,
+        region: Optional[str] = None,
+        download: bool = False,
+        timestep: str = "H",
+    ) -> None:
         """Initialize CAMELS_NZ dataset.
 
         Args:

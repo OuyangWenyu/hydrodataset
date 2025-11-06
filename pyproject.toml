@@ -183,5 +183,5 @@ allow-direct-references = true
 [tool.uv]
 # Override dependencies from aqua-fetch to use more flexible versions
 override-dependencies = [
-    "pandas>=2.2.0",           # Override aqua-fetch's pandas<=2.1.4
+    "pandas>=2.2.0",           # Override aqua-fetch's pandas==2.1.4
 ]

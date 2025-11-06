@@ -2,6 +2,8 @@ import os
 import glob
 import pandas as pd
 import xarray as xr
+from typing import Optional
+
 from tqdm import tqdm
 from aqua_fetch import EStreams
 from hydrodataset import HydroDataset, StandardVariable
@@ -15,7 +17,9 @@ class Estreams(HydroDataset):
     It overrides the download URLs and provides updated methods.
     """
 
-    def __init__(self, data_path, region=None, download=False):
+    def __init__(
+        self, data_path: str, region: Optional[str] = None, download: bool = False
+    ) -> None:
         """Initialize EStreams dataset.
 
         Args:
@@ -217,7 +221,7 @@ class Estreams(HydroDataset):
         var_lst: list = None,
         sources: dict = None,
         **kwargs,
-    ):
+    ) -> xr.Dataset:
         """
         Read timeseries data from batch-saved cache files
 
