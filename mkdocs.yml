@@ -76,6 +76,7 @@ nav:
               - CAMELSH: api/camelsh.md
               - CAMELSH-KR: api/camelsh_kr.md
           - Caravan Series:
+              - Caravan: api/caravan.md
               - Caravan-DK: api/caravan_dk.md
               - GRDC-Caravan: api/grdc_caravan.md
           - LamaH Series:

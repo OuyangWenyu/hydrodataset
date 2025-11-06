@@ -6,7 +6,7 @@ from tqdm import tqdm
 import xarray as xr
 import os
 from pathlib import Path
-from typing import Union
+from typing import Union, Optional, Any
 import tarfile
 from urllib.request import urlopen
 import pandas as pd
@@ -18,7 +18,7 @@ from hydrodataset.hydro_dataset import StandardVariable
 
 
 class Caravan(HydroDataset):
-    def __init__(self, data_path, region=None):
+    def __init__(self, data_path: str, region: Optional[str] = None) -> None:
         """
         Initialization for Caravan dataset
 
@@ -369,7 +369,7 @@ class Caravan(HydroDataset):
         """
         return np.array(["streamflow"])
 
-    def read_object_ids(self, **kwargs) -> np.array:
+    def read_object_ids(self, **kwargs: Any) -> np.array:
         """
         read station ids
 
@@ -390,7 +390,7 @@ class Caravan(HydroDataset):
         gage_id_lst: Union[list, np.array] = None,
         t_range: list = None,
         target_cols: Union[list, np.array] = None,
-        **kwargs,
+        **kwargs: Any,
     ) -> np.array:
         if self.region == "Global":
             return self._read_timeseries_data_global(
@@ -426,11 +426,11 @@ class Caravan(HydroDataset):
 
     def read_relevant_cols(
         self,
-        gage_id_lst: list = None,
-        t_range: list = None,
-        var_lst: list = None,
-        forcing_type="era5land",
-        **kwargs,
+        gage_id_lst: Optional[list] = None,
+        t_range: Optional[list] = None,
+        var_lst: Optional[list] = None,
+        forcing_type: str = "era5land",
+        **kwargs: Any,
     ) -> np.ndarray:
         """_summary_
 
@@ -482,8 +482,12 @@ class Caravan(HydroDataset):
         return data[var_lst]
 
     def read_constant_cols(
-        self, gage_id_lst=None, var_lst=None, is_return_dict=False, **kwargs
-    ):
+        self,
+        gage_id_lst: Optional[list] = None,
+        var_lst: Optional[list] = None,
+        is_return_dict: bool = False,
+        **kwargs: Any,
+    ) -> Union[dict, np.ndarray]:
         """
         Read Attributes data
 
@@ -580,10 +584,10 @@ class Caravan(HydroDataset):
         data = pd.concat(attr)
         return data.to_dict("index") if is_return_dict else data.values
 
-    def read_mean_prep(self, object_ids) -> np.array:
+    def read_mean_prep(self, object_ids: Optional[list] = None) -> np.array:
         return self.read_constant_cols(object_ids, ["p_mean"], is_return_dict=False)
 
-    def cache_attributes_xrdataset(self):
+    def cache_attributes_xrdataset(self) -> None:
         """cache attributes in xr dataset"""
         import pint_xarray  # noqa
         import pint
@@ -756,7 +760,7 @@ class Caravan(HydroDataset):
         cache_attr_file = self.cache_dir.joinpath(self._attributes_cache_filename)
         ds.to_netcdf(cache_attr_file)
 
-    def cache_xrdataset(self, **kwargs):
+    def cache_xrdataset(self, **kwargs: Any) -> None:
         """
         Save all attr data in a netcdf file in the cache directory,
         ts data are already nc format
@@ -773,11 +777,11 @@ class Caravan(HydroDataset):
 
     def read_timeseries(
         self,
-        region,
-        basin_ids=None,
-        t_range_list: list = None,
-        var_lst=None,
-    ):
+        region: str,
+        basin_ids: Optional[list] = None,
+        t_range_list: Optional[list] = None,
+        var_lst: Optional[list] = None,
+    ) -> np.ndarray:
         """
         Read time-series data from csv files
 
@@ -821,7 +825,7 @@ class Caravan(HydroDataset):
                 x[k, ind2, j] = ts_data[var_lst[j]][ind1].values
         return x
 
-    def _get_unit_json(self, onebasinid, region_name):
+    def _get_unit_json(self, onebasinid: str, region_name: str) -> dict:
         ancfile4unit = os.path.join(
             self.data_source_description["FLOW_DIR"],
             region_name,
@@ -858,7 +862,9 @@ class Caravan(HydroDataset):
         result_dict["streamflow"] = "mm/day"
         return result_dict
 
-    def cache_timeseries_xrdataset(self, checkregion, **kwargs):
+    def cache_timeseries_xrdataset(
+        self, checkregion: Optional[str] = None, **kwargs: Any
+    ) -> None:
         if checkregion is not None:
             regions = self.region_data_name if checkregion == "all" else [checkregion]
             self._check_data(regions)
@@ -993,11 +999,11 @@ class Caravan(HydroDataset):
 
     def read_attr_xrdataset(
         self,
-        gage_id_lst=None,
-        var_lst=None,
+        gage_id_lst: Optional[list] = None,
+        var_lst: Optional[list] = None,
         to_numeric: bool = True,
-        **kwargs,
-    ):
+        **kwargs: Any,
+    ) -> xr.Dataset:
         """
         Read attribute data as xarray Dataset.
 
@@ -1048,7 +1054,7 @@ class Caravan(HydroDataset):
 
         return ds
 
-    def _load_ts_dataset(self, **kwargs):
+    def _load_ts_dataset(self, **kwargs: Any) -> xr.Dataset:
         """Load the time series dataset from cache files.
 
         This method overrides the parent method to handle multiple batch files.
@@ -1077,12 +1083,12 @@ class Caravan(HydroDataset):
 
     def read_ts_xrdataset(
         self,
-        gage_id_lst: list = None,
-        t_range: list = None,
-        var_lst: list = None,
-        sources: dict = None,
-        **kwargs,
-    ):
+        gage_id_lst: Optional[list] = None,
+        t_range: Optional[list] = None,
+        var_lst: Optional[list] = None,
+        sources: Optional[dict] = None,
+        **kwargs: Any,
+    ) -> xr.Dataset:
         """
         Reads time series data as an xarray Dataset with standardized variable names.
 
@@ -1125,10 +1131,12 @@ class Caravan(HydroDataset):
     def streamflow_unit(self):
         return "mm/d"
 
-    def read_area(self, gage_id_lst=None):
+    def read_area(self, gage_id_lst: Optional[list] = None) -> xr.Dataset:
         return self.read_attr_xrdataset(gage_id_lst, ["area"])
 
-    def read_mean_prcp(self, gage_id_lst=None, unit="mm/d"):
+    def read_mean_prcp(
+        self, gage_id_lst: Optional[list] = None, unit: str = "mm/d"
+    ) -> xr.Dataset:
         return self.read_attr_xrdataset(gage_id_lst, ["p_mean"])
 
 

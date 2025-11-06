@@ -220,7 +220,7 @@ conda remove hydrodataset
 After installation:
 1. ✅ Create `hydro_setting.yml` configuration file
 2. 📖 Read the [Usage Guide](usage.md)
-3. 🚀 Try the [Quick Start](../README.md#quick-start) examples
+3. 🚀 Try the [Quick Start](index.md#quick-start) examples
 4. 📚 Browse the [API Documentation](api/hydrodataset.md)
 
 If you encounter issues, check the [FAQ](faq.md) or open an issue on [GitHub](https://github.com/OuyangWenyu/hydrodataset/issues).
