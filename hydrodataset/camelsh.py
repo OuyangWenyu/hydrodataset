@@ -5,7 +5,22 @@ from typing import Optional
 
 from tqdm import tqdm
 from hydrodataset import HydroDataset, StandardVariable
-from aqua_fetch import CAMELSH
+from aqua_fetch import CAMELSH as _CAMELSH_Original
+
+
+# Create a fixed version of CAMELSH with corrected directory paths
+class CAMELSH(_CAMELSH_Original):
+    """CAMELSH with corrected directory structure."""
+
+    @property
+    def attr_path(self) -> os.PathLike:
+        """Override attr_path to add an extra 'attributes' subdirectory."""
+        return os.path.join(self.path, "attributes", "attributes")
+
+    @property
+    def sf_path(self) -> os.PathLike:
+        """Override sf_path to add an extra 'shapefiles' subdirectory."""
+        return os.path.join(self.path, "shapefiles", "shapefiles")
 
 
 class Camelsh(HydroDataset):
@@ -33,6 +48,8 @@ class Camelsh(HydroDataset):
         super().__init__(data_path)
         self.region = region
         self.download = download
+
+        # Use the fixed CAMELSH class with corrected directory paths
         self.aqua_fetch = CAMELSH(data_path)
 
     @property
@@ -53,7 +70,7 @@ class Camelsh(HydroDataset):
         "p_mean": {"specific_name": "p_mean", "unit": "mm/day"},
         "p_seasonality": {"specific_name": "p_seasonality", "unit": "none"},
         "frac_snow": {"specific_name": "frac_snow", "unit": "none"},
-        "aridity": {"specific_name": "aridity_index", "unit": "none"}
+        "aridity": {"specific_name": "aridity_index", "unit": "none"},
     }
     _dynamic_variable_mapping = {
         # unit in aquafetch is m^3/s.in paper is kg/m^2
