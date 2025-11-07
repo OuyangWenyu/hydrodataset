@@ -197,9 +197,7 @@ hydrodataset currently provides unified access to **27 hydrological datasets** a
 | LamaH-CE | [Paper](https://doi.org/10.5194/essd-13-4529-2021) | Daily/Hourly | [Version 1.0](https://zenodo.org/records/5153305) | Central Europe | 859 | 1981-01-01 to 2019-12-31 | 2021-08-02 | 16.3G |
 | LamaH-Ice | [Paper](https://essd.copernicus.org/articles/16/2741/2024/) | Daily/Hourly | [Version 1.5](https://www.hydroshare.org/resource/705d69c0f77c48538d83cf383f8c63d6/) / [old version](https://www.hydroshare.org/resource/86117a5f36cc4b7c90a5d54e18161c91/) | Iceland | 111 | 1950-01-01 to 2021-12-31 | 2025-08-12 | 9.6G |
 | Simbi | [Paper](https://essd.copernicus.org/articles/16/2073/2024/) | Daily/Monthly | [Version 6.0](https://dataverse.ird.fr/dataset.xhtml?persistentId=doi:10.23708/02POK6) | Haiti | 24 | 1920-01-01 to 2005-12-31 | 2024-07-02 | 125M |
-
-> **Note**: The hyperlinks marked with `#` are placeholders. Please refer to the original dataset publications and repositories for official links.
-
+>
 
 ## Key Features
 
