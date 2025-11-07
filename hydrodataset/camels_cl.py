@@ -8,6 +8,8 @@ FilePath: \hydrodataset\hydrodataset\camels_cl.py
 Copyright (c) 2021-2026 Wenyu Ouyang. All rights reserved.
 """
 
+from typing import Optional
+
 import numpy as np
 import xarray as xr
 
@@ -27,7 +29,9 @@ class CamelsCl(HydroDataset):
         ds_description: Dictionary containing dataset file paths
     """
 
-    def __init__(self, data_path, region=None, download=False):
+    def __init__(
+        self, data_path: str, region: Optional[str] = None, download: bool = False
+    ) -> None:
         """Initialize CAMELS_CL dataset.
 
         Args:

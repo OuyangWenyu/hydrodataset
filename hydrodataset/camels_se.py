@@ -1,3 +1,5 @@
+from typing import Optional
+
 from hydrodataset import HydroDataset, StandardVariable
 from aqua_fetch import CAMELS_SE
 
@@ -14,7 +16,9 @@ class CamelsSe(HydroDataset):
         ds_description: Dictionary containing dataset file paths
     """
 
-    def __init__(self, data_path, region=None, download=False):
+    def __init__(
+        self, data_path: str, region: Optional[str] = None, download: bool = False
+    ) -> None:
         """Initialize CAMELS_SE dataset.
 
         Args:

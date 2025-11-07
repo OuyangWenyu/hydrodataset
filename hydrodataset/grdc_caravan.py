@@ -1,4 +1,6 @@
 import os
+from typing import Optional
+
 from aqua_fetch import GRDCCaravan as _AquaFetchGRDCCaravan
 from hydrodataset import HydroDataset, StandardVariable
 
@@ -135,7 +137,13 @@ class GrdcCaravan(HydroDataset):
         download: Whether to download data automatically
     """
 
-    def __init__(self, data_path, region=None, download=False, cache_path=None):
+    def __init__(
+        self,
+        data_path: str,
+        region: Optional[str] = None,
+        download: bool = False,
+        cache_path: Optional[str] = None,
+    ) -> None:
         """Initialize GRDC-Caravan dataset.
 
         Args:

@@ -1,7 +1,7 @@
 """
 Author: Wenyu Ouyang
 Date: 2022-09-05 23:20:24
-LastEditTime: 2025-10-30 11:13:29
+LastEditTime: 2025-11-06 15:37:45
 LastEditors: Wenyu Ouyang
 Description: set file dir
 FilePath: \hydrodataset\hydrodataset\__init__.py
@@ -11,7 +11,6 @@ Copyright (c) 2021-2022 Wenyu Ouyang. All rights reserved.
 import os
 import yaml
 from pathlib import Path
-from hydroutils import hydro_file
 
 __author__ = """Wenyu Ouyang"""
 __email__ = "wenyuouyang@outlook.com"
@@ -97,8 +96,6 @@ LAMAH_REGIONS = ["CE"]
 MOPEX_REGIONS = ["CA"]
 REGIONS = CAMELS_REGIONS + LAMAH_REGIONS + MOPEX_REGIONS
 from .hydro_dataset import *
-from .camels import *
 from .camelsh_kr import *
-from .multi_datasets import *
 from .lamah_ce import *
 from .camels_us import *

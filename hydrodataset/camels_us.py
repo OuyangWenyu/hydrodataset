@@ -1,4 +1,6 @@
 import os
+from typing import Optional
+
 import numpy as np
 import pandas as pd
 import xarray as xr
@@ -16,7 +18,9 @@ class CamelsUs(HydroDataset):
     It also includes custom logic to read the PET variable from model output files.
     """
 
-    def __init__(self, data_path, region=None, download=False):
+    def __init__(
+        self, data_path: str, region: Optional[str] = None, download: bool = False
+    ) -> None:
         """Initialize CAMELS_US dataset.
 
         Args:

@@ -1,6 +1,8 @@
 import os
 import pandas as pd
 import numpy as np
+from typing import Optional
+
 from aqua_fetch import CAMELS_CH
 from hydrodataset import HydroDataset, StandardVariable
 from tqdm import tqdm
@@ -17,7 +19,13 @@ class CamelsCh(HydroDataset):
     URL to the latest Zenodo record.
     """
 
-    def __init__(self, data_path, region=None, download=False, version="v0.9"):
+    def __init__(
+        self,
+        data_path: str,
+        region: Optional[str] = None,
+        download: bool = False,
+        version: str = "v0.9",
+    ) -> None:
         """Initialize CAMELS-CH dataset with custom URL and CSV reading methods.
 
         Args:

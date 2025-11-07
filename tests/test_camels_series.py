@@ -21,9 +21,15 @@ from hydrodataset.camels_ch import CamelsCh  # 从 camels_ch_aqua.py 导入
 
 data_path = SETTING["local_data_path"]["datasets-origin"]
 
+# Define a skip condition based on the presence of a CI environment variable
+skip_if_ci = pytest.mark.skipif(
+    bool(os.getenv("CI")),
+    reason="Requires large dataset download, not suitable for CI",
+)
+
 
 # "Test whether read_attr_xrdataset() from camelsh correctly reads .nc files and returns a list of watershed ID strings."
-@pytest.mark.skip(reason="Requires large dataset download, not suitable for CI")
+@skip_if_ci
 def test_read_attr_xrdataset():
     ds = Camelsh(data_path)
     result_1 = ds.read_attr_xrdataset(gage_id_lst="01011000", var_lst=["p_mean"])[
@@ -41,7 +47,7 @@ def test_read_attr_xrdataset():
 
 
 # "Test whether read_ts_xrdataset() from camelsh correctly reads .nc files and returns a list of watershed ID strings."
-@pytest.mark.skip(reason="Requires large dataset download, not suitable for CI")
+@skip_if_ci
 def test_read_timeseries_xrdataset():
     ds = Camelsh(data_path)
     ts_data = ds.read_ts_xrdataset(
@@ -68,7 +74,7 @@ def test_read_timeseries_xrdataset():
 
 
 # "Test whether read_attr_xrdataset() from camels_aus correctly reads .nc files and returns a list of watershed ID strings."
-@pytest.mark.skip(reason="Requires large dataset download, not suitable for CI")
+@skip_if_ci
 def test_read_camels_aus_attr_xrdataset():
     ds = CamelsAus(data_path)
     result_1 = ds.read_attr_xrdataset(gage_id_lst="912105A", var_lst=["anngro_mega"])[
@@ -87,7 +93,7 @@ def test_read_camels_aus_attr_xrdataset():
 
 
 # "Test whether read_ts_xrdataset() from camels_aus correctly reads .nc files and returns a list of watershed ID strings."
-@pytest.mark.skip(reason="Requires large dataset download, not suitable for CI")
+@skip_if_ci
 def test_read_camels_aus_timeseries_xrdataset():
     ds = CamelsAus(data_path)
     ts_data = ds.read_ts_xrdataset(
@@ -114,7 +120,7 @@ def test_read_camels_aus_timeseries_xrdataset():
 
 
 # "Test whether read_attr_xrdataset() from camels_cl correctly reads .nc files and returns a list of watershed ID strings."
-@pytest.mark.skip(reason="Requires large dataset download, not suitable for CI")
+@skip_if_ci
 def test_read_camels_cl_attr_xrdataset():
     ds = CamelsCl(data_path)
     result_1 = ds.read_attr_xrdataset(gage_id_lst="1021001", var_lst=["elev_mean"])[
@@ -136,7 +142,7 @@ def test_read_camels_cl_attr_xrdataset():
 
 
 # "Test whether read_ts_xrdataset() from camels_cl correctly reads .nc files and returns a list of watershed ID strings."
-@pytest.mark.skip(reason="Requires large dataset download, not suitable for CI")
+@skip_if_ci
 def test_read_camels_cl_timeseries_xrdataset():
     ds = CamelsCl(data_path)
     ts_data = ds.read_ts_xrdataset(
@@ -162,7 +168,7 @@ def test_read_camels_cl_timeseries_xrdataset():
 
 
 # "Test whether read_attr_xrdataset() from camels_dk correctly reads .nc files and returns a list of watershed ID strings."
-@pytest.mark.skip(reason="Requires large dataset download, not suitable for CI")
+@skip_if_ci
 def test_read_camels_dk_attr_xrdataset():
     ds = CamelsDk(data_path)
     result_1 = ds.read_attr_xrdataset(gage_id_lst="12431077", var_lst=["p_mean"])[
@@ -179,7 +185,7 @@ def test_read_camels_dk_attr_xrdataset():
 
 
 # "Test whether read_ts_xrdataset() from camels_dk correctly reads .nc files and returns a list of watershed ID strings."
-@pytest.mark.skip(reason="Requires large dataset download, not suitable for CI")
+@skip_if_ci
 def test_read_camels_dk_timeseries_xrdataset():
     ds = CamelsDk(data_path)
     ts_data = ds.read_ts_xrdataset(
@@ -202,7 +208,7 @@ def test_read_camels_dk_timeseries_xrdataset():
 
 
 # "Test whether read_attr_xrdataset() from camels_col correctly reads .nc files and returns a list of watershed ID strings."
-@pytest.mark.skip(reason="Requires large dataset download, not suitable for CI")
+@skip_if_ci
 def test_read_camels_col_attr_xrdataset():
     ds = CamelsCol(data_path)
     result_1 = ds.read_attr_xrdataset(gage_id_lst="11027030", var_lst=["q_mean"])[
@@ -219,7 +225,7 @@ def test_read_camels_col_attr_xrdataset():
 
 
 # "Test whether read_ts_xrdataset() from camels_col correctly reads .nc files and returns a list of watershed ID strings."
-@pytest.mark.skip(reason="Requires large dataset download, not suitable for CI")
+@skip_if_ci
 def test_read_camels_col_timeseries_xrdataset():
     ds = CamelsCol(data_path)
     ts_data = ds.read_ts_xrdataset(
@@ -246,7 +252,7 @@ def test_read_camels_col_timeseries_xrdataset():
 
 
 # "Test whether read_attr_xrdataset() from camels_se correctly reads .nc files and returns a list of watershed ID strings."
-@pytest.mark.skip(reason="Requires large dataset download, not suitable for CI")
+@skip_if_ci
 def test_read_camels_se_attr_xrdataset():
     ds = CamelsSe(data_path)
     result_1 = ds.read_attr_xrdataset(gage_id_lst="200", var_lst=["Urban_percentage"])[
@@ -265,7 +271,7 @@ def test_read_camels_se_attr_xrdataset():
 
 
 # "Test whether read_ts_xrdataset() from camels_se correctly reads .nc files and returns a list of watershed ID strings."
-@pytest.mark.skip(reason="Requires large dataset download, not suitable for CI")
+@skip_if_ci
 def test_read_camels_se_timeseries_xrdataset():
     ds = CamelsSe(data_path)
     ts_data = ds.read_ts_xrdataset(
@@ -290,7 +296,7 @@ def test_read_camels_se_timeseries_xrdataset():
 
 
 # "Test whether read_attr_xrdataset() from camels_sk correctly reads .nc files and returns a list of watershed ID strings."
-@pytest.mark.skip(reason="Requires large dataset download, not suitable for CI")
+@skip_if_ci
 def test_read_camelsh_kr_attr_xrdataset():
     ds = CamelshKr(data_path)
     result_1 = ds.read_attr_xrdataset(gage_id_lst="1001655", var_lst=["p_mean"])[
@@ -307,7 +313,7 @@ def test_read_camelsh_kr_attr_xrdataset():
 
 
 # "Test whether read_ts_xrdataset() from camels_sk correctly reads .nc files and returns a list of watershed ID strings."
-@pytest.mark.skip(reason="Requires large dataset download, not suitable for CI")
+@skip_if_ci
 def test_read_camelsh_kr_timeseries_xrdataset():
     ds = CamelshKr(data_path)
     ts_data = ds.read_ts_xrdataset(
@@ -332,7 +338,7 @@ def test_read_camelsh_kr_timeseries_xrdataset():
 
 
 # "Test whether read_attr_xrdataset() from camels_gb correctly reads .nc files and returns a list of watershed ID strings."
-@pytest.mark.skip(reason="Requires large dataset download, not suitable for CI")
+@skip_if_ci
 def test_read_camels_gb_attr_xrdataset():
     ds = CamelsGb(data_path)
     result_1 = ds.read_attr_xrdataset(gage_id_lst="102001", var_lst=["p_mean"])[
@@ -352,7 +358,7 @@ def test_read_camels_gb_attr_xrdataset():
 
 
 # "Test whether read_ts_xrdataset() from camels_gb correctly reads .nc files and returns a list of watershed ID strings."
-@pytest.mark.skip(reason="Requires large dataset download, not suitable for CI")
+@skip_if_ci
 def test_read_camels_gb_timeseries_xrdataset():
     ds = CamelsGb(data_path)
     ts_data = ds.read_ts_xrdataset(
@@ -377,7 +383,7 @@ def test_read_camels_gb_timeseries_xrdataset():
 
 
 # "Test whether read_attr_xrdataset() from camels_fi correctly reads .nc files and returns a list of watershed ID strings."
-@pytest.mark.skip(reason="Requires large dataset download, not suitable for CI")
+@skip_if_ci
 def test_read_camels_fi_attr_xrdataset():
     ds = CamelsFi(data_path)
     result_1 = ds.read_attr_xrdataset(gage_id_lst="1012", var_lst=["p_mean"])[
@@ -398,7 +404,7 @@ def test_read_camels_fi_attr_xrdataset():
 
 
 # "Test whether read_ts_xrdataset() from camels_fi correctly reads .nc files and returns a list of watershed ID strings."
-@pytest.mark.skip(reason="Requires large dataset download, not suitable for CI")
+@skip_if_ci
 def test_read_camels_fi_timeseries_xrdataset():
     ds = CamelsFi(data_path)
     ts_data = ds.read_ts_xrdataset(
@@ -423,7 +429,7 @@ def test_read_camels_fi_timeseries_xrdataset():
 
 
 # "Test whether read_attr_xrdataset() from camels_lux correctly reads .nc files and returns a list of watershed ID strings."
-@pytest.mark.skip(reason="Requires large dataset download, not suitable for CI")
+@skip_if_ci
 def test_read_camels_lux_attr_xrdataset():
     ds = CamelsLux(data_path)
     result_1 = ds.read_attr_xrdataset(gage_id_lst="ID_05", var_lst=["Qspec_sum"])[
@@ -441,7 +447,7 @@ def test_read_camels_lux_attr_xrdataset():
 
 
 # "Test whether read_ts_xrdataset() from camels_lux correctly reads .nc files and returns a list of watershed ID strings."
-@pytest.mark.skip(reason="Requires large dataset download, not suitable for CI")
+@skip_if_ci
 def test_read_camels_lux_timeseries_xrdataset():
     ds = CamelsLux(data_path)
     ts_data = ds.read_ts_xrdataset(
@@ -465,7 +471,7 @@ def test_read_camels_lux_timeseries_xrdataset():
 
 
 # "Test whether read_attr_xrdataset() from camels_nz correctly reads .nc files and returns a list of watershed ID strings."
-@pytest.mark.skip(reason="Requires large dataset download, not suitable for CI")
+@skip_if_ci
 def test_read_camels_nz_attr_xrdataset():
     ds = CamelsNz(data_path)
     result_1 = ds.read_attr_xrdataset(gage_id_lst="3819", var_lst=["area_km2"])[
@@ -484,7 +490,7 @@ def test_read_camels_nz_attr_xrdataset():
 
 
 # "Test whether read_ts_xrdataset() from camels_nz correctly reads .nc files and returns a list of watershed ID strings."
-@pytest.mark.skip(reason="Requires large dataset download, not suitable for CI")
+@skip_if_ci
 def test_read_camels_nz_timeseries_xrdataset():
     ds = CamelsNz(data_path)
     ts_data = ds.read_ts_xrdataset(
@@ -506,7 +512,7 @@ def test_read_camels_nz_timeseries_xrdataset():
 
 
 # "Test whether read_attr_xrdataset() from camels_de correctly reads .nc files and returns a list of watershed ID strings."
-@pytest.mark.skip(reason="Requires large dataset download, not suitable for CI")
+@skip_if_ci
 def test_read_camels_de_attr_xrdataset():
     ds = CamelsDe(data_path)
     result_1 = ds.read_attr_xrdataset(gage_id_lst="DE110010", var_lst=["p_mean"])[
@@ -524,7 +530,7 @@ def test_read_camels_de_attr_xrdataset():
 
 
 # "Test whether read_ts_xrdataset() from camels_de correctly reads .nc files and returns a list of watershed ID strings."
-@pytest.mark.skip(reason="Requires large dataset download, not suitable for CI")
+@skip_if_ci
 def test_read_camels_de_timeseries_xrdataset():
     ds = CamelsDe(data_path)
     ts_data = ds.read_ts_xrdataset(
@@ -547,7 +553,7 @@ def test_read_camels_de_timeseries_xrdataset():
 
 
 # "Test whether read_attr_xrdataset() from camels_fr correctly reads .nc files and returns a list of watershed ID strings."
-@pytest.mark.skip(reason="Requires large dataset download, not suitable for CI")
+@skip_if_ci
 def test_read_camels_fr_attr_xrdataset():
     ds = CamelsFr(data_path)
     result_1 = ds.read_attr_xrdataset(
@@ -568,7 +574,7 @@ def test_read_camels_fr_attr_xrdataset():
 
 
 # "Test whether read_ts_xrdataset() from camels_fr correctly reads .nc files and returns a list of watershed ID strings."
-@pytest.mark.skip(reason="Requires large dataset download, not suitable for CI")
+@skip_if_ci
 def test_read_camels_fr_timeseries_xrdataset():
     ds = CamelsFr(data_path)
     ts_data = ds.read_ts_xrdataset(
@@ -592,7 +598,7 @@ def test_read_camels_fr_timeseries_xrdataset():
 
 
 # "Test whether read_attr_xrdataset() from camels_ch correctly reads .nc files and returns a list of watershed ID strings."
-@pytest.mark.skip(reason="Requires large dataset download, not suitable for CI")
+@skip_if_ci
 def test_read_camels_ch_attr_xrdataset():
     ds = CamelsCh(data_path)
     result_1 = ds.read_attr_xrdataset(gage_id_lst="2109", var_lst=["p_mean"])[
@@ -613,7 +619,7 @@ def test_read_camels_ch_attr_xrdataset():
 
 
 # "Test whether read_ts_xrdataset() from camels_ch correctly reads .nc files and returns a list of watershed ID strings."
-@pytest.mark.skip(reason="Requires large dataset download, not suitable for CI")
+@skip_if_ci
 def test_read_camels_ch_timeseries_xrdataset():
     ds = CamelsCh(data_path)
     ts_data = ds.read_ts_xrdataset(
