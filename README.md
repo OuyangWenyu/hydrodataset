@@ -144,7 +144,7 @@ ts_data = ds.read_ts_xrdataset(
     t_range=["1990-01-01", "1995-12-31"],
     var_lst=["streamflow", "precipitation"]
 )
-print("\nTime-series data:")
+print("Time-series data:")
 print(ts_data)
 ```
 
