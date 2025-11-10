@@ -6,8 +6,30 @@ import pandas as pd
 import xarray as xr
 from tqdm import tqdm
 
-from aqua_fetch import CAMELS_US
+from aqua_fetch import CAMELS_US as _AquaFetchCAMELS_US
 from hydrodataset import HydroDataset, StandardVariable
+
+
+# Define custom CAMELS_US class at module level to avoid pickle issues
+# Named CAMELS_US to maintain compatibility with file naming conventions
+class CAMELS_US(_AquaFetchCAMELS_US):
+    """Custom CAMELS_US class with Zenodo mirror URLs for multiprocessing compatibility."""
+
+    # Override URLs to use Zenodo mirror
+    url = {
+        'camels_attributes_v2.0.pdf': 'https://zenodo.org/records/15529996/files/camels_attributes_v2.0.pdf?download=1',
+        'camels_attributes_v2.0.xlsx': 'https://zenodo.org/records/15529996/files/camels_attributes_v2.0.xlsx?download=1',
+        'camels_clim.txt': 'https://zenodo.org/records/15529996/files/camels_clim.txt?download=1',
+        'camels_geol.txt': 'https://zenodo.org/records/15529996/files/camels_geol.txt?download=1',
+        'camels_hydro.txt': 'https://zenodo.org/records/15529996/files/camels_hydro.txt?download=1',
+        'camels_name.txt': 'https://zenodo.org/records/15529996/files/camels_name.txt?download=1',
+        'camels_soil.txt': 'https://zenodo.org/records/15529996/files/camels_soil.txt?download=1',
+        'camels_topo.txt': 'https://zenodo.org/records/15529996/files/camels_topo.txt?download=1',
+        'camels_vege.txt': 'https://zenodo.org/records/15529996/files/camels_vege.txt?download=1',
+        'readme.txt': 'https://zenodo.org/records/15529996/files/readme.txt?download=1',
+        'basin_timeseries_v1p2_metForcing_obsFlow.zip': 'https://zenodo.org/records/15529996/files/basin_timeseries_v1p2_metForcing_obsFlow.zip?download=1',
+        'basin_set_full_res.zip': 'https://zenodo.org/records/15529996/files/basin_set_full_res.zip?download=1',
+    }
 
 
 class CamelsUs(HydroDataset):
@@ -30,6 +52,8 @@ class CamelsUs(HydroDataset):
         """
         super().__init__(data_path)
         self.region = "US" if region is None else region
+
+        # Instantiate the custom class defined at module level
         self.aqua_fetch = CAMELS_US(data_path)
 
     @property
