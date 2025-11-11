@@ -8,7 +8,7 @@
 
 **A Python package for accessing hydrological datasets with a unified API, optimized for deep learning workflows.**
 
-- 🌊 **Unified Interface**: Consistent API across 50+ hydrological datasets
+- 🌊 **Unified Interface**: Consistent API across 20+ hydrological datasets
 - ⚡ **Fast Access**: NetCDF caching for instant data loading
 - 🎯 **Standardized Variables**: Common naming across all datasets
 - 🔗 **Built on AquaFetch**: Powered by the comprehensive [AquaFetch](https://github.com/hyex-research/AquaFetch) backend
