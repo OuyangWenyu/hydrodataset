@@ -401,7 +401,7 @@ class HydroDataset(ABC):
         Args:
             gage_id_lst: A list of basin identifiers.
             var_lst: A list of **standard** attribute names to retrieve.
-                If None, all available static features will be returned.
+                If None, nothing will be returned.
             to_numeric: If True, converts all non-numeric variables to numeric codes
                 and stores the original labels in the variable's attributes.
                 Defaults to True.
@@ -410,8 +410,8 @@ class HydroDataset(ABC):
             An xarray Dataset containing the attribute data for the requested basins,
             with variables named using the standard names.
         """
-        if var_lst is None:
-            var_lst = self.get_available_static_features()
+        if not var_lst:
+            return None
 
         # 1. Translate standard names to dataset-specific names
         target_vars_to_fetch = []
