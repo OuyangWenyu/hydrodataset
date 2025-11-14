@@ -99,3 +99,4 @@ from .hydro_dataset import *
 from .camelsh_kr import *
 from .lamah_ce import *
 from .camels_us import *
+from .camels import *
