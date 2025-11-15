@@ -127,7 +127,7 @@ def main():
     ts_data = ds.read_ts_xrdataset(
         gage_id_lst=gage_ids[:2],
         t_range=[ds.default_t_range[0], ds.default_t_range[0]],
-        var_lst=["prcp", "streamflow"],
+        var_lst=["precipitation", "streamflow"],
     )
     print(ts_data)
     print("--------------------------------")
@@ -135,7 +135,7 @@ def main():
     print("Reading attribute data...")
     attr_data = ds.read_attr_xrdataset(
         gage_id_lst=gage_ids[:2],
-        var_lst=["p_mean","area_gages2"],
+        var_lst=["p_mean","area"],
     )
     print(attr_data)
 
