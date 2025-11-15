@@ -30,7 +30,7 @@ from urllib.request import urlopen
 from tqdm import tqdm
 import xarray as xr
 from hydroutils import hydro_time, hydro_file
-from hydrodataset import CACHE_DIR, HydroDataset, CAMELS_REGIONS
+from hydrodataset import CACHE_DIR, HydroDataset, CAMELS_REGIONS, StandardVariable
 
 CAMELS_NO_DATASET_ERROR_LOG = (
     "We cannot read this dataset now. Please check if you choose correctly:\n"
@@ -162,8 +162,7 @@ class Camels(HydroDataset):
             "gauge_lon": "degree",
             "elev_mean": "m",
             "slope_mean": "m/km",
-            "area_gages2": "km^2",
-            "area_geospa_fabric": "km^2",
+            "area": "km^2",
             "geol_1st_class": "dimensionless",
             "glim_1st_class_frac": "dimensionless",
             "geol_2nd_class": "dimensionless",
@@ -220,7 +219,8 @@ class Camels(HydroDataset):
         }
 
     def _get_timeseries_units(self):
-        return ["s", "mm/day", "W/m^2", "mm", "°C", "°C", "Pa", "mm/day"]
+        # Order matches get_relevant_cols(): dayl, pcp_mm, solrad_wm2, swe_mm, airtemp_c_max, airtemp_c_min, vp_hpa, PET
+        return ["s", "mm/day", "W/m^2", "mm/day", "°C", "°C", "hPa", "mm/day"]
 
     def get_name(self):
         return "CAMELS_" + self.region
@@ -370,7 +370,7 @@ class Camels(HydroDataset):
             forcing types
         """
         # PET is from model_output file in CAMELS-US
-        return np.array(["dayl", "prcp", "srad", "swe", "tmax", "tmin", "vp", "PET"])
+        return np.array(["dayl", "pcp_mm", "solrad_wm2", "swe_mm", "airtemp_c_max", "airtemp_c_min", "vp_hpa", "PET"])
 
     def get_target_cols(self) -> np.ndarray:
         """
@@ -381,7 +381,7 @@ class Camels(HydroDataset):
         np.array
             streamflow types
         """
-        return np.array(["usgsFlow", "ET"])
+        return np.array(["q_cms_obs", "ET"])
 
     def read_object_ids(self, **kwargs) -> np.ndarray:
         """
@@ -414,6 +414,7 @@ class Camels(HydroDataset):
         -------
         np.array
             streamflow data of one station for a given time range
+            Unit: m^3/s (converted from original foot^3/s)
         """
         logging.debug("reading %s streamflow data before 2015", usgs_id)
         gage_id_df = self.sites
@@ -426,6 +427,11 @@ class Camels(HydroDataset):
         data_temp = pd.read_csv(usgs_file, sep=r"\s+", header=None)
         obs = data_temp[4].values
         obs[obs < 0] = np.nan
+
+        # Convert from foot^3/s to m^3/s
+        # Conversion factor: 1 foot^3/s = 0.0283168 m^3/s
+        obs = obs * 0.0283168
+
         t_lst = hydro_time.t_range_days(t_range)
         nt = t_lst.shape[0]
         return (
@@ -460,6 +466,7 @@ class Camels(HydroDataset):
         -------
         np.array
             streamflow data of one station for a given time range
+            Unit: m^3/s (converted from original foot^3/s)
         """
         logging.debug("reading %s streamflow data after 2015", usgs_id)
         gage_id_df = self.sites
@@ -472,6 +479,11 @@ class Camels(HydroDataset):
         data_temp = pd.read_csv(usgs_file, sep=",", header=None, skiprows=1)
         obs = data_temp[4].values
         obs[obs < 0] = np.nan
+
+        # Convert from foot^3/s to m^3/s
+        # Conversion factor: 1 foot^3/s = 0.0283168 m^3/s
+        obs = obs * 0.0283168
+
         t_lst = hydro_time.t_range_days(t_range)
         nt = t_lst.shape[0]
         return (
@@ -647,6 +659,8 @@ class Camels(HydroDataset):
             f"{usgs_id}_lump_{temp_s}_forcing_leap.txt",
         )
         data_temp = pd.read_csv(data_file, sep=r"\s+", header=None, skiprows=4)
+
+        # File column names (actual names in the forcing file)
         forcing_lst = [
             "Year",
             "Mnth",
@@ -660,6 +674,18 @@ class Camels(HydroDataset):
             "tmin",
             "vp",
         ]
+
+        # Map new standardized variable names to old file column names
+        var_name_mapping = {
+            "dayl": "dayl",
+            "pcp_mm": "prcp",
+            "solrad_wm2": "srad",
+            "swe_mm": "swe",
+            "airtemp_c_max": "tmax",
+            "airtemp_c_min": "tmin",
+            "vp_hpa": "vp",
+        }
+
         df_date = data_temp[[0, 1, 2]]
         df_date.columns = ["year", "month", "day"]
         date = pd.to_datetime(df_date).values.astype("datetime64[D]")
@@ -670,7 +696,9 @@ class Camels(HydroDataset):
         out = np.full([nt, nf], np.nan)
 
         for k in range(nf):
-            ind = forcing_lst.index(var_lst[k])
+            # Convert new variable name to old file column name
+            old_var_name = var_name_mapping.get(var_lst[k], var_lst[k])
+            ind = forcing_lst.index(old_var_name)
             out[ind2, k] = data_temp[ind].values[ind1]
         return out
 
@@ -831,7 +859,7 @@ class Camels(HydroDataset):
         return (out, var_dict, f_dict) if is_return_dict else out
 
     def read_area(self, gage_id_lst) -> np.ndarray:
-        return self.read_attr_xrdataset(gage_id_lst, ["area_gages2"])
+        return self.read_attr_xrdataset(gage_id_lst, ["area"])
 
     def read_mean_prcp(self, gage_id_lst, unit="mm/d") -> xr.Dataset:
         """Read mean precipitation data
@@ -986,13 +1014,24 @@ class Camels(HydroDataset):
         attrs_df.index.name = "basin"
         # We use xarray dataset to cache all data
         ds_from_df = attrs_df.to_xarray()
+
+        # Rename variables to match standardized names
+        var_name_mapping = {
+            "area_gages2": "area",
+            "area_geospa_fabric": "area_geospa_fabric",  # Keep this one as is
+        }
+        ds_from_df = ds_from_df.rename({
+            old_name: new_name
+            for old_name, new_name in var_name_mapping.items()
+            if old_name in ds_from_df.data_vars
+        })
+
         units_dict = {
             "gauge_lat": "degree",
             "gauge_lon": "degree",
             "elev_mean": "m",
             "slope_mean": "m/km",
-            "area_gages2": "km^2",
-            "area_geospa_fabric": "km^2",
+            "area": "km^2",
             "geol_1st_class": "dimensionless",
             "glim_1st_class_frac": "dimensionless",
             "geol_2nd_class": "dimensionless",
@@ -1087,7 +1126,7 @@ class Camels(HydroDataset):
         )
         return xr.Dataset(
             {
-                "streamflow": (
+                "q_cms_obs": (
                     ["basin", "time"],
                     streamflow[:, :, 0],
                     {"units": self.streamflow_unit},
@@ -1127,7 +1166,8 @@ class Camels(HydroDataset):
         variables = daymet_forcing_dict["variable"]
         # All units' names are from Pint https://github.com/hgrecco/pint/blob/master/pint/default_en.txt
         # final is PET's unit. PET comes from the model output of CAMELS-US
-        units = ["s", "mm/day", "W/m^2", "mm", "°C", "°C", "Pa", "mm/day"]
+        # Order matches get_relevant_cols(): dayl, pcp_mm, solrad_wm2, swe_mm, airtemp_c_max, airtemp_c_min, vp_hpa, PET
+        units = ["s", "mm/day", "W/m^2", "mm/day", "°C", "°C", "hPa", "mm/day"]
         return xr.Dataset(
             data_vars={
                 **{
@@ -1148,7 +1188,7 @@ class Camels(HydroDataset):
 
     @property
     def streamflow_unit(self):
-        return "foot^3/s"
+        return "m^3/s"
     
     def read_ts_xrdataset(
         self,
@@ -1164,9 +1204,37 @@ class Camels(HydroDataset):
             self.cache_xrdataset()
         ts = xr.open_dataset(camels_tsnc)
         all_vars = ts.data_vars
-        if any(var not in ts.variables for var in var_lst):
+
+        # Build variable name mapping from _dynamic_variable_mapping
+        # This supports both StandardVariable enums and string names
+        var_name_mapping = {}
+
+        # Add mappings from StandardVariable to specific_name
+        if hasattr(self, "_dynamic_variable_mapping"):
+            for std_var, mapping_info in self._dynamic_variable_mapping.items():
+                default_source = mapping_info["default_source"]
+                specific_name = mapping_info["sources"][default_source]["specific_name"]
+                var_name_mapping[std_var] = specific_name
+                var_name_mapping[std_var.value if hasattr(std_var, 'value') else str(std_var)] = specific_name
+
+        # Add backward compatibility for old variable names
+        old_to_new = {
+            "prcp": "pcp_mm",
+            "srad": "solrad_wm2",
+            "swe": "swe_mm",
+            "tmax": "airtemp_c_max",
+            "tmin": "airtemp_c_min",
+            "vp": "vp_hpa",
+            "streamflow": "q_cms_obs",
+        }
+        var_name_mapping.update(old_to_new)
+
+        # Convert variable names using the mapping
+        mapped_var_lst = [var_name_mapping.get(var, var) for var in var_lst]
+
+        if any(var not in ts.variables for var in mapped_var_lst):
             raise ValueError(f"var_lst must all be in {all_vars}")
-        return ts[var_lst].sel(basin=gage_id_lst, time=slice(t_range[0], t_range[1]))
+        return ts[mapped_var_lst].sel(basin=gage_id_lst, time=slice(t_range[0], t_range[1]))
 
     def cache_xrdataset(self):
         """Save all data in a netcdf file in the cache directory"""
@@ -1185,8 +1253,111 @@ class Camels(HydroDataset):
         except FileNotFoundError:
             attr = self.cache_attributes_xrdataset()
             attr.to_netcdf(self.cache_dir.joinpath("camelsus_attributes.nc"))
+
+        # Build variable name mapping from _subclass_static_definitions
+        var_name_mapping = {}
+
+        # Add mappings from standard names to specific_name
+        if hasattr(self, "_subclass_static_definitions"):
+            for std_name, definition in self._subclass_static_definitions.items():
+                specific_name = definition["specific_name"]
+                var_name_mapping[std_name] = specific_name
+
+        # Add backward compatibility for old attribute names
+        old_to_new = {
+            "area_gages2": "area",
+            "area_geospa_fabric": "area",  # Both map to area
+        }
+        var_name_mapping.update(old_to_new)
+
+        # Convert variable names using the mapping
+        mapped_var_lst = [var_name_mapping.get(var, var) for var in var_lst]
+
         if "all_number" in list(kwargs.keys()) and kwargs["all_number"]:
             attr_num = map_string_vars(attr)
-            return attr_num[var_lst].sel(basin=gage_id_lst)
-        print(var_lst)
-        return attr[var_lst].sel(basin=gage_id_lst)
+            return attr_num[mapped_var_lst].sel(basin=gage_id_lst)
+        print(mapped_var_lst)
+        return attr[mapped_var_lst].sel(basin=gage_id_lst)
+
+    _subclass_static_definitions = {
+        "huc_02": {"specific_name": "huc_02", "unit": "dimensionless"},
+        "gauge_lat": {"specific_name": "gauge_lat", "unit": "degree"},
+        "gauge_lon": {"specific_name": "gauge_lon", "unit": "degree"},
+        "elev_mean": {"specific_name": "elev_mean", "unit": "m"},
+        "slope_mean": {"specific_name": "slope_mean", "unit": "m/km"},
+        "area": {"specific_name": "area", "unit": "km^2"},
+        "geol_1st_class": {"specific_name": "geol_1st_class", "unit": "dimensionless"},
+        "geol_2nd_class": {"specific_name": "geol_2nd_class", "unit": "dimensionless"},
+        "geol_porostiy": {"specific_name": "geol_porostiy", "unit": "dimensionless"},
+        "geol_permeability": {"specific_name": "geol_permeability", "unit": "m^2"},
+        "frac_forest": {"specific_name": "frac_forest", "unit": "dimensionless"},
+        "lai_max": {"specific_name": "lai_max", "unit": "dimensionless"},
+        "lai_diff": {"specific_name": "lai_diff", "unit": "dimensionless"},
+        "dom_land_cover_frac": {"specific_name": "dom_land_cover_frac", "unit": "dimensionless"},
+        "dom_land_cover": {"specific_name": "dom_land_cover", "unit": "dimensionless"},
+        "root_depth_50": {"specific_name": "root_depth_50", "unit": "m"},
+        "root_depth_99": {"specific_name": "root_depth_99", "unit": "m"},
+        "soil_depth_statsgo": {"specific_name": "soil_depth_statsgo", "unit": "m"},
+        "soil_porosity": {"specific_name": "soil_porosity", "unit": "dimensionless"},
+        "soil_conductivity": {"specific_name": "soil_conductivity", "unit": "cm/hr"},
+        "max_water_content": {"specific_name": "max_water_content", "unit": "m"},
+        "pet_mean": {"specific_name": "pet_mean", "unit": "mm/day"},
+        "p_mean": {"specific_name": "p_mean", "unit": "mm/day"},
+    }
+
+    _dynamic_variable_mapping = {
+        StandardVariable.STREAMFLOW: {
+            "default_source": "usgs",
+            "sources": {"usgs": {"specific_name": "q_cms_obs", "unit": "m^3/s"}},
+        },
+        StandardVariable.PRECIPITATION: {
+            "default_source": "daymet",
+            "sources": {
+                "daymet": {"specific_name": "pcp_mm", "unit": "mm/day"},
+            },
+        },
+        StandardVariable.TEMPERATURE_MAX: {
+            "default_source": "daymet",
+            "sources": {
+                "daymet": {"specific_name": "airtemp_c_max", "unit": "°C"},
+            },
+        },
+        StandardVariable.TEMPERATURE_MIN: {
+            "default_source": "daymet",
+            "sources": {
+                "daymet": {"specific_name": "airtemp_c_min", "unit": "°C"},
+            },
+        },
+        StandardVariable.DAYLIGHT_DURATION: {
+            "default_source": "daymet",
+            "sources": {
+                "daymet": {"specific_name": "dayl", "unit": "s"},
+            },
+        },
+        StandardVariable.SOLAR_RADIATION: {
+            "default_source": "daymet",
+            "sources": {
+                "daymet": {"specific_name": "solrad_wm2", "unit": "W/m^2"},
+            },
+        },
+        StandardVariable.SNOW_WATER_EQUIVALENT: {
+            "default_source": "daymet",
+            "sources": {
+                "daymet": {"specific_name": "swe_mm", "unit": "mm/day"},
+            },
+        },
+        StandardVariable.VAPOR_PRESSURE: {
+            "default_source": "daymet",
+            "sources": {
+                "daymet": {"specific_name": "vp_hpa", "unit": "hPa"},
+            },
+        },
+        StandardVariable.POTENTIAL_EVAPOTRANSPIRATION: {
+            "default_source": "sac-sma",
+            "sources": {"sac-sma": {"specific_name": "PET", "unit": "mm/day"}},
+        },
+        StandardVariable.EVAPOTRANSPIRATION: {
+            "default_source": "sac-sma",
+            "sources": {"sac-sma": {"specific_name": "ET", "unit": "mm/day"}},
+        },
+    }
