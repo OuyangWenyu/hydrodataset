@@ -10,7 +10,7 @@ from hydrodataset import SETTING, StandardVariable
 
 # Dataset mapping
 DATASET_MAPPING = {
-    "camels": ("hydrodataset.camels", "Camels"),
+    "bull": ("hydrodataset.bull", "BULL"),
     "camels_aus": ("hydrodataset.camels_aus", "CamelsAus"),
     "camels_br": ("hydrodataset.camels_br", "CamelsBr"),
     "camels_ch": ("hydrodataset.camels_ch", "CamelsCh"),
@@ -28,22 +28,12 @@ DATASET_MAPPING = {
     "camels_us": ("hydrodataset.camels_us", "CamelsUs"),
     "camelsh_kr": ("hydrodataset.camelsh_kr", "CamelshKr"),
     "camelsh": ("hydrodataset.camelsh", "Camelsh"),
-    "caravan": ("hydrodataset.caravan", "Caravan"),
+    "caravan_dk": ("hydrodataset.caravan_dk", "CaravanDK"),
     "grdc_caravan": ("hydrodataset.grdc_caravan", "GrdcCaravan"),
     "hysets": ("hydrodataset.hysets", "Hysets"),
     "lamah_ce": ("hydrodataset.lamah_ce", "LamahCe"),
     "lamah_ice": ("hydrodataset.lamah_ice", "LamahIce"),
-    "mopex": ("hydrodataset.mopex", "Mopex"),
-    "bull": ("hydrodataset.bull", "BULL"),
-    "caravan_dk": ("hydrodataset.caravan_dk", "CaravanDK"),
-    "estreams": ("hydrodataset.estreams", "Estreams"),
-    "hype": ("hydrodataset.hype", "Hype"),
-    "jialing": ("hydrodataset.jialingriverchina", "jialingriverchina"),
     "simbi": ("hydrodataset.simbi", "simbi"),
-    "waterbenchiowa": ("hydrodataset.waterbenchiowa", "waterbenchiowa"),
-    "camels_es": ("hydrodataset.camels_es", "CamelsEs"),
-    "hyd_responses": ("hydrodataset.hyd_responses", "HydResponses"),
-    "camels_deby": ("hydrodataset.camels_deby", "CamelsDeby"),
 }
 
 

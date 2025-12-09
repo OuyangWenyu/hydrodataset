@@ -11,19 +11,19 @@ from hydrodataset.multi_dataset_reader import MultiDatasetReader, DATASET_MAPPIN
 def main():
     """Main function for reading specified datasets."""
     # Option 1: Specify the datasets to use (currently active)
-    DATASETS = [
-        "camels_us",
-        "camels_cl",
-        "camels_col",
-        "camels_dk",
-        "camels_fi",
-        "camels_gb",
-        "camels_lux",
-    ]
+    # DATASETS = [
+    #     "camels_us",
+    #     "camels_cl",
+    #     "camels_col",
+    #     "camels_dk",
+    #     "camels_fi",
+    #     "camels_gb",
+    #     "camels_lux",
+    # ]
 
     # Option 2: Use ALL datasets from DATASET_MAPPING (47 datasets)
     # Uncomment the line below to read all available datasets
-    # DATASETS = list(DATASET_MAPPING.keys())
+    DATASETS = list(DATASET_MAPPING.keys())
 
     print("=" * 80)
     print("Multi-Dataset Reader")
@@ -172,18 +172,36 @@ def main():
     print("Step 4: Reading Sample Data (Non-duplicate IDs)")
     print("=" * 80)
 
-    # Get first 3 stations from first non-empty dataset
-    ids_to_read = None
-    source_dataset = None
-    for dataset_name in DATASETS:
-        if id_mapping.get(dataset_name):
-            ids_to_read = id_mapping[dataset_name][:3]
-            source_dataset = dataset_name
-            break
+    # ========== Configuration: Specify station IDs to read ==========
+    # Option 1: Set to None to automatically select first N stations
+    # Option 2: Set to a list of IDs to manually specify stations
+    ids_to_read = [
+        "01013500",  # St. John River at Ninemile Bridge, Maine
+        "01022500",  # Narraguagus River at Cherryfield, Maine
+        "01030500",  # Mattawamkeag River near Mattawamkeag, Maine
+    ]
+    # To use automatic selection, uncomment the line below:
+    # ids_to_read = None
+    # ================================================================
 
-    if not ids_to_read:
-        print("No IDs available to read data")
-        return
+    # Determine station IDs based on configuration
+    if ids_to_read is None:
+        # Automatic mode: select first 3 stations from first available dataset
+        source_dataset = None
+        for dataset_name in DATASETS:
+            if id_mapping.get(dataset_name):
+                ids_to_read = id_mapping[dataset_name][:3]  # Change number to select more/fewer
+                source_dataset = dataset_name
+                break
+
+        if not ids_to_read:
+            print("No IDs available to read data")
+            return
+        print(f"Auto-selected {len(ids_to_read)} stations from {source_dataset}")
+    else:
+        # Manual mode: use specified IDs
+        source_dataset = "Manually specified"
+        print(f"Using {len(ids_to_read)} manually specified stations")
 
     print(f"Reading data for {len(ids_to_read)} stations from {source_dataset}")
     print(f"Station IDs: {ids_to_read}")
