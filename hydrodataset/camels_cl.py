@@ -149,19 +149,19 @@ class CamelsCl(HydroDataset):
         StandardVariable.TEMPERATURE_MIN: {
             "default_source": "observations",
             "sources": {
-                "observations": {"specific_name": "airtemp_C_min", "unit": "°C"}
+                "observations": {"specific_name": "airtemp_c_min", "unit": "°C"}
             },
         },
         StandardVariable.TEMPERATURE_MAX: {
             "default_source": "observations",
             "sources": {
-                "observations": {"specific_name": "airtemp_C_max", "unit": "°C"}
+                "observations": {"specific_name": "airtemp_c_max", "unit": "°C"}
             },
         },
         StandardVariable.TEMPERATURE_MEAN: {
             "default_source": "observations",
             "sources": {
-                "observations": {"specific_name": "airtemp_C_mean", "unit": "°C"}
+                "observations": {"specific_name": "airtemp_c_mean", "unit": "°C"}
             },
         },
         StandardVariable.POTENTIAL_EVAPOTRANSPIRATION: {

@@ -73,10 +73,9 @@ class Camelsh(HydroDataset):
         "aridity": {"specific_name": "aridity_index", "unit": "none"},
     }
     _dynamic_variable_mapping = {
-        # unit in aquafetch is m^3/s.in paper is kg/m^2
         StandardVariable.STREAMFLOW: {
             "default_source": "nldas",
-            "sources": {"nldas": {"specific_name": "q_cms_obs", "unit": "kg/m^2"}},
+            "sources": {"nldas": {"specific_name": "q_cms_obs", "unit": "m^3/s"}},
         },
         StandardVariable.PRECIPITATION: {
             "default_source": "nldas",
