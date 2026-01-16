@@ -1,65 +1,47 @@
 import netCDF4 as nc
-import numpy as np
 import sys
+import numpy as np
+import xarray as xr
 
 # 设置输出编码为UTF-8
-sys.stdout.reconfigure(encoding='utf-8')
 
-# File path
-file_path = "D:/netcdf/camels_us_timeseries.nc"
+file_path1 = r"D:\data\stations (2)\songliaorrevent_basin_station_mapping.nc"
+file_path2 = r"D:\data\stations (2)\songliaorrevent_stations_3h_batch_11047818_11049588.nc"
+file_path3 = r"D:\data\stations (2)\songliaorrevent_stations_3h_batch_11101600_11120011.nc"
 
-# Open NetCDF file
-try:
-    dataset = nc.Dataset(file_path, 'r')
-except FileNotFoundError:
-    print(f"错误: 文件未找到 {file_path}")
-    sys.exit(1)
+print(f"正在打开文件")
+dataset1 = xr.open_dataset(file_path1)
 
-print("=" * 80)
-print(f"NetCDF 文件属性信息: {file_path}")
-print("=" * 80)
+dataset2 = xr.open_dataset(file_path2)
 
-# 1. Global Attributes (全局属性)
-print("\n" + "=" * 80)
-print("全局属性 (Global Attributes):")
-print("=" * 80)
-if dataset.ncattrs():
-    for attr_name in dataset.ncattrs():
-        attr_value = getattr(dataset, attr_name)
-        print(f"  {attr_name}: {attr_value}")
-else:
-    print("  无全局属性")
+dataset3 = xr.open_dataset(file_path3)
+        # 打印完整结构
+print(dataset1)
+print("======================================")
+print(dataset2)
+print("======================================")
+print(dataset3)
+# 查看前10个样本
+print("=" * 60)
+print("数据集前10个样本值")
+print("=" * 60)
 
-# 2. Dimensions (维度)
-print("\n" + "=" * 80)
-print("维度 (Dimensions):")
-print("=" * 80)
-for dim_name, dim in dataset.dimensions.items():
-    unlimited = "(UNLIMITED)" if dim.isunlimited() else ""
-    print(f"  {dim_name}: {len(dim)} {unlimited}")
+# 方法1: 直接查看前10行
+sample_data = dataset1.isel(mapping_id=slice(0, 20))
+print(sample_data)
 
-# 3. Variables (变量及其属性)
-print("\n" + "=" * 80)
-print("变量及其属性 (Variables and Attributes):")
-print("=" * 80)
-for var_name in dataset.variables.keys():
-    var = dataset.variables[var_name]
-    print(f"\n变量: {var_name}")
-    print(f"  维度: {var.dimensions}")
-    print(f"  形状: {var.shape}")
-    print(f"  数据类型: {var.dtype}")
+# 方法2: 转换为DataFrame查看（更直观）
+import pandas as pd
+df_sample = sample_data.to_dataframe()
+print("\n📊 表格形式显示:")
+print(df_sample)
 
-    # Variable attributes
-    if var.ncattrs():
-        print(f"  属性:")
-        for attr_name in var.ncattrs():
-            attr_value = getattr(var, attr_name)
-            print(f"    {attr_name}: {attr_value}")
-    else:
-        print(f"  属性: 无")
+# 查看前5个时间步的所有站点数据
+print("=" * 60)
+print("前5个时间步的样本值")
+print("=" * 60)
 
-print("\n" + "=" * 80)
-
-# Close file
-dataset.close()
-print("\n文件已关闭")
+sample_data2 = dataset2.isel(time=slice(0, 5))
+df_sample2 = sample_data2.to_dataframe()
+print("\n📊 表格形式显示:")
+print(df_sample2)
