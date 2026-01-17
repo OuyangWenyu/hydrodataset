@@ -150,12 +150,12 @@ def main():
     print(mean_prcp)
     print("--------------------------------")
 
-    stations=ds.read_stations_xrdataset(
-      station_id_lst=["3", "4"],
-    )
-    print(stations)
-    print("--------------------------------")
-    print(stations.dist_hdn.values)
+    # stations=ds.read_stations_xrdataset(
+    #   station_id_lst=["3", "4"],
+    # )
+    # print(stations)
+    # print("--------------------------------")
+    # print(stations.NEXTDOWNID.values)
 
 
 if __name__ == "__main__":
