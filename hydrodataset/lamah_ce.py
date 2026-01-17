@@ -323,29 +323,24 @@ class LamahCe(HydroDataset):
         return "lamahce_stations.nc"
 
     def cache_stations_xrdataset(self):
-        """Read Gauge_hierarchy.csv and convert to NetCDF format for station mapping.
+        """Read Stream_dist.csv and convert to NetCDF format for station stream data.
 
-        This function reads the gauge hierarchy CSV file which contains station
-        relationships (upstream/downstream connections) and creates a NetCDF file
-        that maps each station to its final outlet basin.
+        This function reads the stream distance CSV file which contains station
+        stream attributes and creates a NetCDF file.
 
         The CSV file has columns:
         - ID: Station ID
-        - HIERARCHY: Hierarchy level
-        - NEXTUPID: Upstream station ID
-        - NEXTDOWNID: Downstream station ID (0 means this is an outlet)
+        - NEXTDOWNID: Downstream station ID
+        - dist_hdn: Distance to downstream node
+        - elev_diff: Elevation difference
+        - strm_slope: Stream slope
 
         The output NetCDF contains:
-        - mapping_id: Coordinate dimension
-        - station_id: The station ID from CSV
-        - basin_id: The final outlet basin ID (follows NEXTDOWNID chain until 0)
-        - data_type: Either "1h" or "daily"
-        - file_path: Path to the timeseries data file
-
-        Each station_id will have two entries (one for 1h, one for daily),
-        and entries are grouped by basin_id.
+        - Dimensions: ID
+        - Coordinates: ID (string type)
+        - Data variables: NEXTDOWNID, dist_hdn, elev_diff, strm_slope
         """
-        # Try to find the Gauge_hierarchy.csv file
+        # Try to find the Stream_dist.csv file
         # Based on the LamaH-CE dataset structure, try multiple possible paths
         possible_paths = [
             os.path.join(
@@ -354,7 +349,7 @@ class LamahCe(HydroDataset):
                 "2_LamaH-CE_daily",
                 "B_basins_intermediate_all",
                 "1_attributes",
-                "Gauge_hierarchy.csv",
+                "Stream_dist.csv",
             ),
             os.path.join(
                 self.data_source_dir,
@@ -362,7 +357,7 @@ class LamahCe(HydroDataset):
                 "1_LamaH-CE_daily_hourly",
                 "B_basins_intermediate_all",
                 "1_attributes",
-                "Gauge_hierarchy.csv",
+                "Stream_dist.csv",
             ),
         ]
 
@@ -374,115 +369,58 @@ class LamahCe(HydroDataset):
 
         if csv_path is None:
             raise FileNotFoundError(
-                f"Could not find Gauge_hierarchy.csv in any of the expected locations: "
+                f"Could not find Stream_dist.csv in any of the expected locations: "
                 f"{possible_paths}"
             )
 
         # Read the CSV file
         df = pd.read_csv(csv_path, sep=";")
 
-        # Build a mapping from station ID to its downstream station ID
-        id_to_next_down = dict(zip(df["ID"], df["NEXTDOWNID"]))
+        # Convert ID to string and set as index
+        df["ID"] = df["ID"].astype(str)
+        df = df.set_index("ID")
 
-        def find_basin_id(station_id: int) -> int:
-            """Find the final basin ID by following NEXTDOWNID chain until 0."""
-            current_id = station_id
-            visited = set()
-            while current_id in id_to_next_down and id_to_next_down[current_id] != 0:
-                if current_id in visited:
-                    # Circular reference, return current
-                    break
-                visited.add(current_id)
-                current_id = id_to_next_down[current_id]
-            return current_id
+        # Select only the required columns
+        columns_to_keep = ["NEXTDOWNID", "dist_hdn", "elev_diff", "strm_slope"]
+        df = df[columns_to_keep]
 
-        # Calculate basin_id for each station
-        station_ids = df["ID"].tolist()
-        basin_ids = [find_basin_id(sid) for sid in station_ids]
+        # Convert all columns to string type
+        for col in df.columns:
+            df[col] = df[col].astype(str)
 
-        # Create records for both data types (1h and daily)
-        records = []
-        for station_id, basin_id in zip(station_ids, basin_ids):
-            # 1h data type
-            records.append(
-                {
-                    "station_id": str(station_id),
-                    "basin_id": str(basin_id),
-                    "data_type": "1h",
-                    "file_path": f"1_LamaH-CE_daily_hourly/A_basins_total_upstrm/2_timeseries/hourly/ID_{station_id}.csv",
-                }
-            )
-            # daily data type
-            records.append(
-                {
-                    "station_id": str(station_id),
-                    "basin_id": str(basin_id),
-                    "data_type": "daily",
-                    "file_path": f"1_LamaH-CE_daily_hourly/A_basins_total_upstrm/2_timeseries/daily/ID_{station_id}.csv",
-                }
-            )
-
-        # Create DataFrame and sort by basin_id to group them together
-        df_records = pd.DataFrame(records)
-        df_records = df_records.sort_values(
-            by=["basin_id", "station_id", "data_type"]
-        ).reset_index(drop=True)
-
-        # Create xarray Dataset
-        n_records = len(df_records)
-        ds = xr.Dataset(
-            {
-                "station_id": (["mapping_id"], df_records["station_id"].values),
-                "basin_id": (["mapping_id"], df_records["basin_id"].values),
-                "data_type": (["mapping_id"], df_records["data_type"].values),
-                "file_path": (["mapping_id"], df_records["file_path"].values),
-            },
-            coords={"mapping_id": np.arange(n_records)},
-        )
+        # Convert to xarray Dataset
+        ds = df.to_xarray()
 
         # Save to NetCDF file in the same location as cache_attributes_xrdataset
         output_path = self.cache_dir.joinpath(self._stations_cache_filename)
         ds.to_netcdf(output_path)
-        print(f"Stations mapping saved to: {output_path}")
+        print(f"Stations stream data saved to: {output_path}")
 
     def read_stations_xrdataset(
         self,
         station_id_lst: Union[str, List[str]] = None,
-        data_type: str = None,
     ) -> xr.Dataset:
-        """Read station mapping data from cached NetCDF file.
+        """Read station stream data from cached NetCDF file.
 
-        This function reads the station mapping NetCDF file and returns the
-        corresponding basin_id and file_path for the given station IDs and data type.
+        This function reads the station stream NetCDF file and returns the
+        corresponding stream attributes for the given station IDs.
         If the cache file does not exist, it will be generated first.
 
         Args:
             station_id_lst: A single station ID or a list of station IDs to query.
                 If None, returns all stations.
-            data_type: The data type to filter by, either "1h" or "daily".
-                If None, returns both data types.
 
         Returns:
-            An xarray Dataset containing the filtered station mapping data with
-            variables: station_id, basin_id, data_type, file_path.
-
-        Raises:
-            ValueError: If an invalid data_type is provided.
+            An xarray Dataset containing the station stream data with
+            variables: NEXTDOWNID, dist_hdn, elev_diff, strm_slope.
+            The dimension and coordinate is ID (station ID as string).
 
         Examples:
             >>> ds = lamah_ce.read_stations_xrdataset(
-            ...     station_id_lst=["114", "200"],
-            ...     data_type="daily"
+            ...     station_id_lst=["114", "200"]
             ... )
             >>> print(ds)
         """
-        # Validate data_type if provided
-        valid_data_types = ["1h", "daily"]
-        if data_type is not None and data_type not in valid_data_types:
-            raise ValueError(
-                f"Invalid data_type '{data_type}'. Must be one of {valid_data_types}."
-            )
-
         # Load the cache file, generate if not exists
         cache_file = self.cache_dir.joinpath(self._stations_cache_filename)
         if not os.path.isfile(cache_file):
@@ -490,35 +428,15 @@ class LamahCe(HydroDataset):
 
         ds = xr.open_dataset(cache_file)
 
-        # Convert station_id_lst to list of strings if provided
+        # Filter by station_id if provided
         if station_id_lst is not None:
+            # Convert station_id_lst to list of strings
             if isinstance(station_id_lst, (str, int)):
                 station_id_lst = [str(station_id_lst)]
             else:
                 station_id_lst = [str(sid) for sid in station_id_lst]
 
-        # Create boolean mask for filtering
-        mask = np.ones(ds.sizes["mapping_id"], dtype=bool)
+            # Select stations using ID coordinate
+            ds = ds.sel(ID=station_id_lst)
 
-        # Filter by station_id if provided
-        if station_id_lst is not None:
-            station_mask = np.isin(ds["station_id"].values, station_id_lst)
-            mask = mask & station_mask
-
-        # Filter by data_type if provided
-        if data_type is not None:
-            type_mask = ds["data_type"].values == data_type
-            mask = mask & type_mask
-
-        # Apply the mask to get filtered indices
-        filtered_indices = np.where(mask)[0]
-
-        # Select the filtered data
-        ds_filtered = ds.isel(mapping_id=filtered_indices)
-
-        # Reset mapping_id to be continuous
-        ds_filtered = ds_filtered.assign_coords(
-            mapping_id=np.arange(len(filtered_indices))
-        )
-
-        return ds_filtered
+        return ds
