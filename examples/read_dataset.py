@@ -152,11 +152,10 @@ def main():
 
     stations=ds.read_stations_xrdataset(
       station_id_lst=["3", "4"],
-      data_type="daily"
     )
     print(stations)
     print("--------------------------------")
-    print(stations.basin_id.values)
+    print(stations.dist_hdn.values)
 
 
 if __name__ == "__main__":
