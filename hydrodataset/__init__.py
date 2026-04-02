@@ -73,7 +73,8 @@ try:
     # set some constants for hydrodataset
     ROOT_DIR = SETTING["local_data_path"]["datasets-origin"]
     # As hydrodataset has a lot of datasets, maybe disk C of user is not enough, so we set the cache directory here.
-    CACHE_DIR = SETTING["local_data_path"]["cache"]
+    # cache is optional, use default if not provided
+    CACHE_DIR = SETTING["local_data_path"].get("cache", os.path.join(Path.home(), "hydrodataset_data", "cache"))
 except ValueError as e:
     print(f"Warning: {e}")
     # Set default values for CI/testing environments
@@ -96,6 +97,6 @@ LAMAH_REGIONS = ["CE"]
 MOPEX_REGIONS = ["CA"]
 REGIONS = CAMELS_REGIONS + LAMAH_REGIONS + MOPEX_REGIONS
 from .hydro_dataset import *
-from .camelsh_kr import *
-from .lamah_ce import *
-from .camels_us import *
+# from .camelsh_kr import *  # 依赖 aqua_fetch.CAMELS_SK，暂时注释
+# from .lamah_ce import *     # 依赖 aqua_fetch.LamaHCE，暂时注释
+# from .camels_us import *    # 依赖 aqua_fetch.CAMELS_US，暂时注释
