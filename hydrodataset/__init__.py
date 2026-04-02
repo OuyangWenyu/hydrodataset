@@ -97,6 +97,7 @@ LAMAH_REGIONS = ["CE"]
 MOPEX_REGIONS = ["CA"]
 REGIONS = CAMELS_REGIONS + LAMAH_REGIONS + MOPEX_REGIONS
 from .hydro_dataset import *
-# from .camelsh_kr import *  # 依赖 aqua_fetch.CAMELS_SK，暂时注释
-# from .lamah_ce import *     # 依赖 aqua_fetch.LamaHCE，暂时注释
-# from .camels_us import *    # 依赖 aqua_fetch.CAMELS_US，暂时注释
+#from .camelsh_kr import *
+#from .lamah_ce import *
+#from .camels_us import *
+#from .camels import *

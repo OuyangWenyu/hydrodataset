@@ -9,11 +9,18 @@ from tqdm import tqdm
 from aqua_fetch import CAMELS_US as _AquaFetchCAMELS_US
 from hydrodataset import HydroDataset, StandardVariable
 
+# Import SEP constant for file path separators
+try:
+    from aqua_fetch._backend import SEP
+except ImportError:
+    import os
+    SEP = os.sep
+
 
 # Define custom CAMELS_US class at module level to avoid pickle issues
 # Named CAMELS_US to maintain compatibility with file naming conventions
 class CAMELS_US(_AquaFetchCAMELS_US):
-    """Custom CAMELS_US class with Zenodo mirror URLs for multiprocessing compatibility."""
+    """Custom CAMELS_US class with Zenodo mirror URLs and -999 missing value handling."""
 
     # Override URLs to use Zenodo mirror
     # Note: URLs should NOT include the filename as AquaFetch will append it
@@ -34,6 +41,73 @@ class CAMELS_US(_AquaFetchCAMELS_US):
         'basin_timeseries_v1p2_modelOutput_maurer.zip': 'https://zenodo.org/records/15529996/files/',
         'basin_timeseries_v1p2_modelOutput_nldas.zip': 'https://zenodo.org/records/15529996/files/',
     }
+
+    def _read_stn_dyn(self, stn: str):
+        """
+        Override parent method to handle -999 missing values in streamflow data.
+
+        According to readme_streamflow.txt:
+        "Streamflow data that are missing are given the streamflow value -999.0"
+
+        This method reads dynamic features (forcing + streamflow) and replaces -999
+        values with NaN for proper data handling.
+        """
+        assert isinstance(stn, str)
+        df = None
+        dir_name = self.folders[self.data_source]
+
+        # Read forcing data
+        for cat in os.listdir(os.path.join(self.dataset_dir, dir_name)):
+            cat_dirs = os.listdir(os.path.join(self.dataset_dir, f'{dir_name}{SEP}{cat}'))
+            stn_file = f'{stn}_lump_cida_forcing_leap.txt'
+            if stn_file in cat_dirs:
+                df = pd.read_csv(
+                    os.path.join(self.dataset_dir, f'{dir_name}{SEP}{cat}{SEP}{stn_file}'),
+                    sep=r"\s+|;|:",
+                    skiprows=4,
+                    engine='python',
+                    names=['Year', 'Mnth', 'Day', 'Hr', 'dayl(s)', 'prcp(mm/day)',
+                           'srad(W/m2)', 'swe(mm)', 'tmax(C)', 'tmin(C)', 'vp(Pa)'],
+                )
+                df.index = pd.to_datetime(
+                    df['Year'].map(str) + '-' + df['Mnth'].map(str) + '-' + df['Day'].map(str)
+                )
+
+        # Read streamflow data
+        flow_dir = os.path.join(self.dataset_dir, 'usgs_streamflow')
+        for cat in os.listdir(flow_dir):
+            cat_dirs = os.listdir(os.path.join(flow_dir, cat))
+            stn_file = f'{stn}_streamflow_qc.txt'
+            if stn_file in cat_dirs:
+                fpath = os.path.join(flow_dir, f'{cat}{SEP}{stn_file}')
+                q_df = pd.read_csv(
+                    fpath,
+                    sep=r"\s+",
+                    names=['station', 'Year', 'Month', 'Day', 'Flow', 'Flag'],
+                    engine='python'
+                )
+                q_df.index = pd.to_datetime(
+                    q_df['Year'].map(str) + '-' + q_df['Month'].map(str) + '-' + q_df['Day'].map(str)
+                )
+
+                # Replace -999 missing values with NaN
+                q_df['Flow'] = q_df['Flow'].replace(-999.0, np.nan)
+
+        # Concatenate forcing and streamflow data
+        stn_df = pd.concat([
+            df[['dayl(s)', 'prcp(mm/day)', 'srad(W/m2)', 'swe(mm)', 'tmax(C)', 'tmin(C)', 'vp(Pa)']],
+            q_df['Flow']
+        ], axis=1)
+
+        # Rename columns according to standard names
+        stn_df.rename(columns=self.dyn_map, inplace=True)
+
+        # Apply unit conversion factors
+        for col, fact in self.dyn_factors.items():
+            if col in stn_df.columns:
+                stn_df[col] *= fact
+
+        return stn_df
 
 
 class CamelsUs(HydroDataset):

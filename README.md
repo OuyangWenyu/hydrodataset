@@ -235,6 +235,24 @@ All data returned as `xarray.Dataset` objects:
 - Easy slicing, selection, and computation
 - Compatible with Dask for large datasets
 
+### 🌐 Station Network Connectivity (LamaH-CE)
+
+LamaH-CE dataset supports querying stream network topology between gauging stations:
+
+```python
+from hydrodataset.lamah_ce import LamahCe
+from hydrodataset import SETTING
+
+ds = LamahCe(SETTING["local_data_path"]["datasets-origin"])
+
+# Read station connectivity data
+stations = ds.read_stations_xrdataset(station_id_lst=["3", "4"])
+print(stations)
+# Returns: NEXTDOWNID, dist_hdn, elev_diff, strm_slope
+```
+
+See [LamaH-CE API documentation](docs/api/lamah_ce.md#station-connectivity-data) for detailed variable descriptions and usage examples.
+
 
 ## Project Status & Future Work
 

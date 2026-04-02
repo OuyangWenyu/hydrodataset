@@ -316,3 +316,127 @@ class LamahCe(HydroDataset):
             },
         },
     }
+
+    @property
+    def _stations_cache_filename(self):
+        """Cache filename for stations mapping."""
+        return "lamahce_stations.nc"
+
+    def cache_stations_xrdataset(self):
+        """Read Stream_dist.csv and convert to NetCDF format for station stream data.
+
+        This function reads the stream distance CSV file which contains station
+        stream attributes and creates a NetCDF file.
+
+        The CSV file has columns:
+        - ID: Station ID
+        - NEXTDOWNID: Downstream station ID
+        - dist_hdn: Distance to downstream node
+        - elev_diff: Elevation difference
+        - strm_slope: Stream slope
+
+        The output NetCDF contains:
+        - Dimensions: ID
+        - Coordinates: ID (string type)
+        - Data variables: NEXTDOWNID, dist_hdn, elev_diff, strm_slope
+        """
+        # Try to find the Stream_dist.csv file
+        # Based on the LamaH-CE dataset structure, try multiple possible paths
+        possible_paths = [
+            os.path.join(
+                self.data_source_dir,
+                "lamahce",
+                "2_LamaH-CE_daily",
+                "B_basins_intermediate_all",
+                "1_attributes",
+                "Stream_dist.csv",
+            ),
+            os.path.join(
+                self.data_source_dir,
+                "lamahce",
+                "1_LamaH-CE_daily_hourly",
+                "B_basins_intermediate_all",
+                "1_attributes",
+                "Stream_dist.csv",
+            ),
+        ]
+
+        csv_path = None
+        for path in possible_paths:
+            if os.path.exists(path):
+                csv_path = path
+                break
+
+        if csv_path is None:
+            raise FileNotFoundError(
+                f"Could not find Stream_dist.csv in any of the expected locations: "
+                f"{possible_paths}"
+            )
+
+        # Read the CSV file
+        df = pd.read_csv(csv_path, sep=";")
+
+        # Convert ID to string and set as index
+        df["ID"] = df["ID"].astype(str)
+        df = df.set_index("ID")
+
+        # Select only the required columns
+        columns_to_keep = ["NEXTDOWNID", "dist_hdn", "elev_diff", "strm_slope"]
+        df = df[columns_to_keep]
+
+        # Convert all columns to string type
+        for col in df.columns:
+            df[col] = df[col].astype(str)
+
+        # Convert to xarray Dataset
+        ds = df.to_xarray()
+
+        # Save to NetCDF file in the same location as cache_attributes_xrdataset
+        output_path = self.cache_dir.joinpath(self._stations_cache_filename)
+        ds.to_netcdf(output_path)
+        print(f"Stations stream data saved to: {output_path}")
+
+    def read_stations_xrdataset(
+        self,
+        station_id_lst: Union[str, List[str]] = None,
+    ) -> xr.Dataset:
+        """Read station stream data from cached NetCDF file.
+
+        This function reads the station stream NetCDF file and returns the
+        corresponding stream attributes for the given station IDs.
+        If the cache file does not exist, it will be generated first.
+
+        Args:
+            station_id_lst: A single station ID or a list of station IDs to query.
+                If None, returns all stations.
+
+        Returns:
+            An xarray Dataset containing the station stream data with
+            variables: NEXTDOWNID, dist_hdn, elev_diff, strm_slope.
+            The dimension and coordinate is ID (station ID as string).
+
+        Examples:
+            >>> ds = lamah_ce.read_stations_xrdataset(
+            ...     station_id_lst=["114", "200"]
+            ... )
+            >>> print(ds)
+        """
+        # Load the cache file, generate if not exists
+        cache_file = self.cache_dir.joinpath(self._stations_cache_filename)
+        if not os.path.isfile(cache_file):
+            self.cache_stations_xrdataset()
+
+        ds = xr.open_dataset(cache_file)
+
+        # Filter by station_id if provided
+        if station_id_lst is not None:
+            # Convert station_id_lst to list of strings
+            if isinstance(station_id_lst, (str, int)):
+                station_id_lst = [str(station_id_lst)]
+            else:
+                station_id_lst = [str(sid) for sid in station_id_lst]
+
+            # Select stations using ID coordinate
+            ds = ds.sel(ID=station_id_lst)
+
+        return ds

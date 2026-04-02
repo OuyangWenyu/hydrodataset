@@ -14,6 +14,7 @@ import importlib
 from hydrodataset import SETTING
 
 DATASET_MAPPING = {
+    "camels":("hydrodataset.camels", "Camels"),
     "camels_aus": ("hydrodataset.camels_aus", "CamelsAus"),
     "camels_br": ("hydrodataset.camels_br", "CamelsBr"),
     "camels_ch": ("hydrodataset.camels_ch", "CamelsCh"),
@@ -79,9 +80,9 @@ def main():
         # default="estreams",
         # default="lamah_ice",
         # default="simbi",
-        # default="lamah_ce",
+        default="lamah_ce",
         # default="grdc_caravan",
-        default="caravan",
+        # default="camels",
         help="Name of the dataset to read.",
         choices=DATASET_MAPPING.keys(),
     )
@@ -106,6 +107,7 @@ def main():
     gage_ids = ds.read_object_ids()
     print("Gage IDs:")
     print(gage_ids)
+    print(f"Number of gages: {len(gage_ids)}")
     print("--------------------------------")
 
     t_range = ds.default_t_range
@@ -124,7 +126,7 @@ def main():
 
     print("Reading timeseries data...")
     ts_data = ds.read_ts_xrdataset(
-        gage_id_lst=gage_ids[:2],
+        gage_id_lst=gage_ids[-1:],
         t_range=[ds.default_t_range[0], ds.default_t_range[0]],
         var_lst=["precipitation", "streamflow"],
     )
@@ -134,7 +136,7 @@ def main():
     print("Reading attribute data...")
     attr_data = ds.read_attr_xrdataset(
         gage_id_lst=gage_ids[:2],
-        var_lst=["p_mean", "area"],
+        var_lst=["area"],
     )
     print(attr_data)
 
@@ -147,6 +149,13 @@ def main():
     mean_prcp = ds.read_mean_prcp(gage_id_lst=gage_ids[:2])
     print(mean_prcp)
     print("--------------------------------")
+
+    # stations=ds.read_stations_xrdataset(
+    #   station_id_lst=["3", "4"],
+    # )
+    # print(stations)
+    # print("--------------------------------")
+    # print(stations.NEXTDOWNID.values)
 
 
 if __name__ == "__main__":
