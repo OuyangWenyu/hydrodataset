@@ -44,7 +44,7 @@ dependencies = [
     "xlrd>=2.0.2",
     "requests>=2.32.4",
     "py7zr>=1.0.0",
-    "aqua-fetch[all]",
+    "aqua-fetch[all]>=1.0.1",
 ]
 
 [project.optional-dependencies]
@@ -184,4 +184,5 @@ allow-direct-references = true
 # Override dependencies from aqua-fetch to use more flexible versions
 override-dependencies = [
     "pandas>=2.2.0",           # Override aqua-fetch's pandas==2.1.4
+    "numpy>=2.0",              # numpy 1.x has no Python 3.13 wheel; 2.x does
 ]

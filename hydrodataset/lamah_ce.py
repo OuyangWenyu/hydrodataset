@@ -7,7 +7,7 @@ from tqdm import tqdm
 import numpy as np
 import pandas as pd
 from aqua_fetch import LamaHCE as _AquaFetchLamaHCE
-from aqua_fetch.utils import check_attributes
+from aqua_fetch.utils import validate_attributes
 
 
 # Define custom LamaHCE class at module level to avoid pickle issues
@@ -147,10 +147,10 @@ class LamaHCE(_AquaFetchLamaHCE):
 
         df = self.static_data()
 
-        static_features = check_attributes(
+        static_features = validate_attributes(
             static_features, self.static_features, "static features"
         )
-        stations = check_attributes(stations, self.stations(), "stations")
+        stations = validate_attributes(stations, self.stations(), "stations")
 
         df = df[static_features]
 

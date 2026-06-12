@@ -8,7 +8,7 @@ import numpy as np
 import pandas as pd
 from datetime import datetime
 from aqua_fetch import LamaHIce as _AquaFetchLamaHIce
-from aqua_fetch.utils import check_attributes
+from aqua_fetch.utils import validate_attributes
 
 
 # Define custom LamaHIce class at module level to avoid pickle issues
@@ -132,10 +132,10 @@ class LamaHIce(_AquaFetchLamaHIce):
         df = self.static_data()
         df.index = df.index.astype(str)
 
-        static_features = check_attributes(
+        static_features = validate_attributes(
             static_features, self.static_features, "static_features"
         )
-        stations = check_attributes(stations, self.stations(), "stations")
+        stations = validate_attributes(stations, self.stations(), "stations")
 
         df = df.loc[stations, static_features]
         return df
