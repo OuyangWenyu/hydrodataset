@@ -1,5 +1,10 @@
 import xarray as xr
-from hydrodataset import CACHE_DIR, SETTING
+from hydrodataset import (
+    load_settings,
+    get_local_root,
+    resolve_data_path,
+    DatasetResolutionError,
+)
 import numpy as np
 import pandas as pd
 import os
@@ -19,12 +24,30 @@ from hydrodataset.camels_de import CamelsDe  # 从 camels_de_aqua.py 导入
 from hydrodataset.camels_fr import CamelsFr  # 从 camels_fr_aqua.py 导入
 from hydrodataset.camels_ch import CamelsCh  # 从 camels_ch_aqua.py 导入
 
-data_path = SETTING["local_data_path"]["datasets-origin"]
+data_path = get_local_root()
+if data_path is None:
+    raise RuntimeError(
+        "local_root is not configured in settings; "
+        "please set storage.local_root in your hydrodataset config file."
+    )
+
+# Resolve individual dataset paths via the ADR 0001 resolver chain
+# (settings + registry -> absolute URI). Gracefully skip if not configured.
+try:
+    CAMELS_AUS_PATH = resolve_data_path("camels_aus")
+except DatasetResolutionError:
+    CAMELS_AUS_PATH = None
 
 # Define a skip condition based on the presence of a CI environment variable
 skip_if_ci = pytest.mark.skipif(
     bool(os.getenv("CI")),
     reason="Requires large dataset download, not suitable for CI",
+)
+
+# Marker for tests that need the new resolver path
+needs_camels_aus = pytest.mark.skipif(
+    CAMELS_AUS_PATH is None,
+    reason="camels_aus data not available -- configure storage.local.root in ~/hydro_setting.yml",
 )
 
 
@@ -74,12 +97,16 @@ def test_read_timeseries_xrdataset():
 
 
 # "Test whether read_attr_xrdataset() from camels_aus correctly reads .nc files and returns a list of watershed ID strings."
+@needs_camels_aus
 @skip_if_ci
 def test_read_camels_aus_attr_xrdataset():
-    ds = CamelsAus(data_path)
-    result_1 = ds.read_attr_xrdataset(gage_id_lst="912105A", var_lst=["anngro_mega"])[
+    # Use resolver chain: settings + registry -> absolute URI
+    ds = CamelsAus(CAMELS_AUS_PATH)
+    # Use standard variable name registered in _subclass_static_definitions
+    result_1 = ds.read_attr_xrdataset(gage_id_lst=["912105A"], var_lst=["anngro_mega"])[
         "anngro_mega"
     ].values
+    # Ground-truth comparison from raw CSV
     csv_path = os.path.join(
         data_path,
         "CAMELS_AUS",
@@ -93,16 +120,21 @@ def test_read_camels_aus_attr_xrdataset():
 
 
 # "Test whether read_ts_xrdataset() from camels_aus correctly reads .nc files and returns a list of watershed ID strings."
+# Uses standard variable name + sources parameter (new ADR 0001 pattern).
+@needs_camels_aus
 @skip_if_ci
 def test_read_camels_aus_timeseries_xrdataset():
-    ds = CamelsAus(data_path)
+    ds = CamelsAus(CAMELS_AUS_PATH)
     ts_data = ds.read_ts_xrdataset(
         gage_id_lst=["912105A"],
-        var_lst=["airtemp_C_silo_min"],
+        var_lst=["temperature_min"],  # standard name
         t_range=["1980-01-04", "1980-01-04"],
+        sources={"temperature_min": ["silo"]},  # select SILO source
     )
-    station_data = ts_data["airtemp_C_silo_min"]
-    result_1 = station_data.values.flatten()
+    # Access data via standard name (not raw specific_name)
+    station_data = ts_data["temperature_min"]
+    result_1 = station_data.values.flatten()[0]
+    # Ground-truth comparison from raw CSV
     file_path = os.path.join(
         data_path,
         "CAMELS_AUS",
@@ -112,11 +144,14 @@ def test_read_camels_aus_timeseries_xrdataset():
         "SILO",
         "tmin_SILO.csv",
     )
-    ds = pd.read_csv(file_path)
-    result_2 = ds.loc[
-        (ds["year"] == 1980) & (ds["month"] == 1) & (ds["day"] == 4), "912105A"
+    csv_df = pd.read_csv(file_path)
+    result_2 = csv_df.loc[
+        (csv_df["year"] == 1980) & (csv_df["month"] == 1) & (csv_df["day"] == 4),
+        "912105A",
     ].values[0]
-    assert result_1 == result_2
+    assert np.isclose(
+        result_1, result_2, rtol=1e-6
+    ), f"Expected {result_2}, got {result_1}"
 
 
 # "Test whether read_attr_xrdataset() from camels_cl correctly reads .nc files and returns a list of watershed ID strings."

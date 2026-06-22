@@ -52,7 +52,13 @@ class CamelsAus(HydroDataset):
 
     _subclass_static_definitions = {
         "p_mean": {"specific_name": "p_mean", "unit": "mm"},
+        "pet_mean": {"specific_name": "pet_mean", "unit": "mm/day"},
         "area": {"specific_name": "area_km2", "unit": "km^2"},
+        "gauge_lat": {"specific_name": "lat", "unit": "degree"},
+        "gauge_lon": {"specific_name": "long", "unit": "degree"},
+        "elev_mean": {"specific_name": "elev_mean", "unit": "m"},
+        "slope_mean": {"specific_name": "slope_mean", "unit": "m/km"},
+        "anngro_mega": {"specific_name": "anngro_mega", "unit": "ML/year"},
     }
     _dynamic_variable_mapping = {
         StandardVariable.STREAMFLOW: {

@@ -16,7 +16,8 @@ import xarray as xr
 import pandas as pd
 import numpy as np
 
-from hydrodataset import ROOT_DIR, CACHE_DIR
+# ROOT_DIR and CACHE_DIR globals removed — data_path must be absolute.
+# Use hydrodataset.configs.data_resolver.resolve_data_path() to resolve dataset ids.
 
 
 class StandardVariable:
@@ -126,11 +127,27 @@ class HydroDataset(ABC):
     _dynamic_variable_mapping = {}
 
     def __init__(self, data_path, cache_path=None):
-        self.data_source_dir = Path(ROOT_DIR, data_path)
+        from pathlib import PurePosixPath
+
+        data_path = Path(data_path)
+        # Accept both POSIX (/data/hydro) and Windows (C:\data\hydro) absolute forms
+        if not (
+            PurePosixPath(str(data_path)).is_absolute()
+            or data_path.is_absolute()
+        ):
+            raise ValueError(
+                f"data_path must be an absolute path. "
+                f"Use hydrodataset.configs.data_resolver.resolve_data_path() "
+                f"to resolve from a dataset id. "
+                f"Got: {data_path}"
+            )
+        self.data_source_dir = data_path
         if not self.data_source_dir.is_dir():
             self.data_source_dir.mkdir(parents=True)
         if cache_path is None:
-            self.cache_dir = Path(CACHE_DIR)
+            from hydrodataset.configs.settings import get_cache_dir
+
+            self.cache_dir = get_cache_dir()
         else:
             self.cache_dir = Path(cache_path)
         if not self.cache_dir.is_dir():

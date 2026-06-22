@@ -13,7 +13,7 @@ import pandas as pd
 import numpy as np
 from tzfpy import get_tz
 from hydroutils import hydro_file
-from hydrodataset import CACHE_DIR, HydroDataset
+from hydrodataset import HydroDataset
 from hydrodataset.hydro_dataset import StandardVariable
 
 
@@ -31,8 +31,8 @@ class Caravan(HydroDataset):
         region
             the region can be US, AUS, BR, CL, GB, CE, NA (North America, meaning HYSETS)
         """
-        self.data_path = os.path.join(data_path, "CARAVAN")
-        super().__init__(self.data_path)
+        # data_path is now an absolute URI from the resolver; use it directly.
+        super().__init__(data_path)
         self.region = "Global" if region is None else region
         region_name_dict = self.region_name_dict
         if self.region == "Global":

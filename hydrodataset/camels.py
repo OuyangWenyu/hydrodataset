@@ -30,7 +30,7 @@ from urllib.request import urlopen
 from tqdm import tqdm
 import xarray as xr
 from hydroutils import hydro_time, hydro_file
-from hydrodataset import CACHE_DIR, HydroDataset, CAMELS_REGIONS, StandardVariable
+from hydrodataset import HydroDataset, CAMELS_REGIONS, StandardVariable
 
 CAMELS_NO_DATASET_ERROR_LOG = (
     "We cannot read this dataset now. Please check if you choose correctly:\n"
@@ -95,22 +95,14 @@ class Camels(HydroDataset):
         download=False,
         region: str = "US",
     ):
-        print("Initializing Camels class...")
-        """
-        Initialization for CAMELS series dataset
+        """Initialization for CAMELS series dataset.
 
-        Parameters
-        ----------
-        data_path
-            where we put the dataset.
-            we already set the ROOT directory for hydrodataset,
-            so here just set it as a relative path,
-            by default "camels/camels_us"
-        download
-            if true, download, by defaulf False
-        region
-            the default is CAMELS(-US), since it's the first CAMELS dataset.
-            All are included in CAMELS_REGIONS
+        Args:
+            data_path: Root storage directory. CAMELS_US data is expected
+                in the CAMELS_US sub-directory under this root.
+            download: If true, download data automatically. Defaults to False.
+            region: Geographic region. Defaults to 'US'.
+                All supported regions are listed in CAMELS_REGIONS.
         """
         self.data_path = os.path.join(data_path, "CAMELS_US")
         super().__init__(self.data_path)
@@ -370,7 +362,18 @@ class Camels(HydroDataset):
             forcing types
         """
         # PET is from model_output file in CAMELS-US
-        return np.array(["dayl", "pcp_mm", "solrad_wm2", "swe_mm", "airtemp_c_max", "airtemp_c_min", "vp_hpa", "PET"])
+        return np.array(
+            [
+                "dayl",
+                "pcp_mm",
+                "solrad_wm2",
+                "swe_mm",
+                "airtemp_c_max",
+                "airtemp_c_min",
+                "vp_hpa",
+                "PET",
+            ]
+        )
 
     def get_target_cols(self) -> np.ndarray:
         """
@@ -1020,11 +1023,13 @@ class Camels(HydroDataset):
             "area_gages2": "area",
             "area_geospa_fabric": "area_geospa_fabric",  # Keep this one as is
         }
-        ds_from_df = ds_from_df.rename({
-            old_name: new_name
-            for old_name, new_name in var_name_mapping.items()
-            if old_name in ds_from_df.data_vars
-        })
+        ds_from_df = ds_from_df.rename(
+            {
+                old_name: new_name
+                for old_name, new_name in var_name_mapping.items()
+                if old_name in ds_from_df.data_vars
+            }
+        )
 
         units_dict = {
             "gauge_lat": "degree",
@@ -1189,7 +1194,7 @@ class Camels(HydroDataset):
     @property
     def streamflow_unit(self):
         return "m^3/s"
-    
+
     def read_ts_xrdataset(
         self,
         gage_id_lst: list = None,
@@ -1215,7 +1220,9 @@ class Camels(HydroDataset):
                 default_source = mapping_info["default_source"]
                 specific_name = mapping_info["sources"][default_source]["specific_name"]
                 var_name_mapping[std_var] = specific_name
-                var_name_mapping[std_var.value if hasattr(std_var, 'value') else str(std_var)] = specific_name
+                var_name_mapping[
+                    std_var.value if hasattr(std_var, "value") else str(std_var)
+                ] = specific_name
 
         # Add backward compatibility for old variable names
         old_to_new = {
@@ -1234,7 +1241,9 @@ class Camels(HydroDataset):
 
         if any(var not in ts.variables for var in mapped_var_lst):
             raise ValueError(f"var_lst must all be in {all_vars}")
-        return ts[mapped_var_lst].sel(basin=gage_id_lst, time=slice(t_range[0], t_range[1]))
+        return ts[mapped_var_lst].sel(
+            basin=gage_id_lst, time=slice(t_range[0], t_range[1])
+        )
 
     def cache_xrdataset(self):
         """Save all data in a netcdf file in the cache directory"""
@@ -1244,7 +1253,7 @@ class Camels(HydroDataset):
         ds_forcing = self._cache_forcing_xrdataset()
         ds = xr.merge([ds_streamflow, ds_forcing])
         ds.to_netcdf(self.cache_dir.joinpath("camelsus_timeseries.nc"))
-        
+
     def read_attr_xrdataset(self, gage_id_lst=None, var_lst=None, **kwargs):
         if var_lst is None or len(var_lst) == 0:
             return None
@@ -1293,7 +1302,10 @@ class Camels(HydroDataset):
         "frac_forest": {"specific_name": "frac_forest", "unit": "dimensionless"},
         "lai_max": {"specific_name": "lai_max", "unit": "dimensionless"},
         "lai_diff": {"specific_name": "lai_diff", "unit": "dimensionless"},
-        "dom_land_cover_frac": {"specific_name": "dom_land_cover_frac", "unit": "dimensionless"},
+        "dom_land_cover_frac": {
+            "specific_name": "dom_land_cover_frac",
+            "unit": "dimensionless",
+        },
         "dom_land_cover": {"specific_name": "dom_land_cover", "unit": "dimensionless"},
         "root_depth_50": {"specific_name": "root_depth_50", "unit": "m"},
         "root_depth_99": {"specific_name": "root_depth_99", "unit": "m"},
