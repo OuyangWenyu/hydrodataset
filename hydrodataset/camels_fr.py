@@ -148,6 +148,7 @@ class CamelsFr(HydroDataset):
         "gauge_lon": {"specific_name": "long", "unit": "degree"},
         "elev_mean": {"specific_name": "elev_mean", "unit": "m"},
         "pet_mean": {"specific_name": "pet_mean", "unit": "mm/day"},
+        "hgl_krs_not_karstic": {"specific_name": "hgl_krs_not_karstic", "unit": "-"},
     }
 
     _dynamic_variable_mapping = {

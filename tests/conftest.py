@@ -1,0 +1,20 @@
+"""Shared pytest fixtures and markers for the hydrodataset test suite."""
+
+import os
+import pytest
+
+
+def pytest_configure(config):
+    """Register custom markers."""
+    config.addinivalue_line(
+        "markers",
+        "skip_if_ci: skip test that requires large dataset download (not suitable for CI)",
+    )
+
+
+# ── Shared marker ──────────────────────────────────────────────────────
+
+skip_if_ci = pytest.mark.skipif(
+    bool(os.getenv("CI")),
+    reason="Requires large dataset download, not suitable for CI",
+)

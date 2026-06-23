@@ -21,72 +21,72 @@ datasets:
 
   camels_br:
     reader: camels_br
-    path: camels_br
+    path: .
 
   camels_ch:
     reader: camels_ch
-    path: camels_ch
+    path: .
 
   camels_cl:
     reader: camels_cl
-    path: camels_cl
+    path: .
 
   camels_col:
     reader: camels_col
-    path: camels_col
+    path: .
 
   camels_de:
     reader: camels_de
-    path: camels_de
+    path: .
 
   camels_deby:
     reader: camels_deby
-    path: camels_deby
+    path: .
 
   camels_dk:
     reader: camels_dk
-    path: camels_dk
+    path: .
 
   camels_es:
     reader: camels_es
-    path: camels_es
+    path: .
 
   camels_fi:
     reader: camels_fi
-    path: camels_fi
+    path: .
 
   camels_fr:
     reader: camels_fr
-    path: camels_fr
+    path: .
 
   camels_gb:
     reader: camels_gb
-    path: camels_gb
+    path: .
 
   camels_ind:
     reader: camels_ind
-    path: camels_ind
+    path: .
 
   camels_lux:
     reader: camels_lux
-    path: camels_lux
+    path: .
 
   camels_nz:
     reader: camels_nz
-    path: camels_nz
+    path: .
 
   camels_se:
     reader: camels_se
-    path: camels_se
+    path: .
 
   # === CAMELSH Series (2 datasets) ===
   camelsh:
     reader: camelsh
-    path: camelsh
+    path: .
 
   camelsh_kr:
     reader: camelsh_kr
-    path: camelsh_kr
+    path: .
 
   # === CARAVAN Series (3 datasets) ===
   caravan:

@@ -128,6 +128,9 @@ class CamelsCl(HydroDataset):
     _subclass_static_definitions = {
         "p_mean": {"specific_name": "p_mean", "unit": "mm/day"},
         "area": {"specific_name": "area_km2", "unit": "km^2"},
+        "elev_mean": {"specific_name": "elev_mean", "unit": "m"},
+        "gauge_lat": {"specific_name": "lat", "unit": "degrees"},
+        "gauge_lon": {"specific_name": "long", "unit": "degrees"},
     }
     _dynamic_variable_mapping = {
         StandardVariable.STREAMFLOW: {

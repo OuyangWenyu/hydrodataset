@@ -127,6 +127,7 @@ class CamelsCol(HydroDataset):
     _subclass_static_definitions = {
         "p_mean": {"specific_name": "p_mean", "unit": "mm/day"},
         "area": {"specific_name": "area_km2", "unit": "km^2"},
+        "q_mean": {"specific_name": "q_mean", "unit": "m^3/s"},
     }
     _dynamic_variable_mapping = {
         StandardVariable.STREAMFLOW: {

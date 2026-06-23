@@ -47,6 +47,7 @@ class CamelsSe(HydroDataset):
     _subclass_static_definitions = {
         "p_mean": {"specific_name": "pmean_mm_year", "unit": "mm/year"},
         "area": {"specific_name": "area_km2", "unit": "km^2"},
+        "urban_percentage": {"specific_name": "urban_percentage", "unit": "%"},
     }
 
     _dynamic_variable_mapping = {
