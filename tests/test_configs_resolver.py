@@ -5,7 +5,9 @@ import pytest
 from hydrodataset.configs.data_resolver import (
     READER_ALIASES,
     DatasetResolutionError,
+    _DEFAULT_REGISTRY,
     _validate_relative_path,
+    resolve_data_path,
 )
 
 
@@ -51,3 +53,72 @@ class TestValidateRelativePath:
     def test_non_string_raises(self):
         with pytest.raises(DatasetResolutionError):
             _validate_relative_path(123, "test")
+
+
+class TestDefaultRegistry:
+    """Verify _DEFAULT_REGISTRY is consistent with READER_ALIASES."""
+
+    def test_count_matches_reader_aliases(self):
+        """Every reader alias should have a corresponding registry entry."""
+        assert len(_DEFAULT_REGISTRY) == len(READER_ALIASES), (
+            f"_DEFAULT_REGISTRY has {len(_DEFAULT_REGISTRY)} entries, "
+            f"but READER_ALIASES has {len(READER_ALIASES)}"
+        )
+
+    def test_every_entry_has_reader_and_path(self):
+        for name, spec in _DEFAULT_REGISTRY.items():
+            assert "reader" in spec, f"{name}: missing 'reader'"
+            assert "path" in spec, f"{name}: missing 'path'"
+
+    def test_every_reader_in_aliases(self):
+        """Every reader referenced in the registry must exist in READER_ALIASES."""
+        for name, spec in _DEFAULT_REGISTRY.items():
+            assert spec["reader"] in READER_ALIASES, (
+                f"{name}: reader '{spec['reader']}' not in READER_ALIASES"
+            )
+
+
+class TestExtraRegistryDicts:
+    """Verify resolve_data_path handles extra_registry_dicts correctly."""
+
+    def test_extra_dicts_override_default(self, tmp_path, monkeypatch):
+        """Injected dict overrides the default registry entry for same dataset_id."""
+        data_dir = tmp_path / "data"
+        data_dir.mkdir()
+        (data_dir / "custom_path").mkdir()
+
+        monkeypatch.setattr(
+            "hydrodataset.configs.data_resolver.get_local_root",
+            lambda: data_dir,
+        )
+
+        result = resolve_data_path(
+            "camels_us",
+            source="local",
+            project_root=str(tmp_path),
+            extra_registry_dicts=[
+                {"camels_us": {"reader": "camels_us", "path": "custom_path"}}
+            ],
+        )
+        assert result == data_dir / "custom_path"
+
+    def test_extra_dicts_add_new_dataset(self, tmp_path, monkeypatch):
+        """Injected dict adds a new dataset not in the default registry."""
+        data_dir = tmp_path / "data"
+        data_dir.mkdir()
+        (data_dir / "new_dataset").mkdir()
+
+        monkeypatch.setattr(
+            "hydrodataset.configs.data_resolver.get_local_root",
+            lambda: data_dir,
+        )
+
+        result = resolve_data_path(
+            "new_dataset",
+            source="local",
+            project_root=str(tmp_path),
+            extra_registry_dicts=[
+                {"new_dataset": {"reader": "camels_us", "path": "new_dataset"}}
+            ],
+        )
+        assert result == data_dir / "new_dataset"

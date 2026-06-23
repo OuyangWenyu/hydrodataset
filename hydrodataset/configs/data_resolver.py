@@ -14,14 +14,13 @@ Usage:
 from __future__ import annotations
 
 from pathlib import PurePosixPath, PureWindowsPath, Path
-from typing import Any, Dict, Optional
+from typing import Any, Dict, List, Optional
 
 import yaml
 
 from hydrodataset.configs.settings import (
     get_local_root,
     get_storage_config,
-    load_settings,
 )
 
 
@@ -208,6 +207,53 @@ READER_ALIASES: Dict[str, Dict[str, str]] = {
 
 FORBIDDEN_PATH_PATTERNS = {"://", ".."}
 
+# Default dataset registry (33 entries).
+# Maps dataset_id -> {"reader": <reader_alias>, "path": <relative_path>}.
+# This is the authoritative registry for hydrodataset-served datasets.
+# Other packages (e.g. hydrodatasource) inject additional entries via
+# resolve_data_path(extra_registry_dicts=...).
+# Users can override entries by placing a configs/datasets.yml in their project.
+_DEFAULT_REGISTRY: Dict[str, Dict[str, str]] = {
+    # CAMELS Series (17)
+    "camels_us": {"reader": "camels_us", "path": "."},
+    "camels_aus": {"reader": "camels_aus", "path": "."},
+    "camels_br": {"reader": "camels_br", "path": "."},
+    "camels_ch": {"reader": "camels_ch", "path": "."},
+    "camels_cl": {"reader": "camels_cl", "path": "."},
+    "camels_col": {"reader": "camels_col", "path": "."},
+    "camels_de": {"reader": "camels_de", "path": "."},
+    "camels_deby": {"reader": "camels_deby", "path": "."},
+    "camels_dk": {"reader": "camels_dk", "path": "."},
+    "camels_es": {"reader": "camels_es", "path": "."},
+    "camels_fi": {"reader": "camels_fi", "path": "."},
+    "camels_fr": {"reader": "camels_fr", "path": "."},
+    "camels_gb": {"reader": "camels_gb", "path": "."},
+    "camels_ind": {"reader": "camels_ind", "path": "."},
+    "camels_lux": {"reader": "camels_lux", "path": "."},
+    "camels_nz": {"reader": "camels_nz", "path": "."},
+    "camels_se": {"reader": "camels_se", "path": "."},
+    # CAMELSH Series (2)
+    "camelsh": {"reader": "camelsh", "path": "."},
+    "camelsh_kr": {"reader": "camelsh_kr", "path": "."},
+    # CARAVAN Series (3)
+    "caravan": {"reader": "caravan", "path": "CARAVAN/Caravan/Caravan"},
+    "caravan_dk": {"reader": "caravan_dk", "path": "caravan_dk"},
+    "grdc_caravan": {"reader": "grdc_caravan", "path": "grdc_caravan"},
+    # LamaH Series (2)
+    "lamah_ce": {"reader": "lamah_ce", "path": "LamaH_CE"},
+    "lamah_ice": {"reader": "lamah_ice", "path": "LamaH_ICE"},
+    # Other Public Datasets (9)
+    "hysets": {"reader": "hysets", "path": "HYSETS"},
+    "mopex": {"reader": "mopex", "path": "MOPEX"},
+    "bull": {"reader": "bull", "path": "BULL"},
+    "estreams": {"reader": "estreams", "path": "estreams"},
+    "hype": {"reader": "hype", "path": "HYPE"},
+    "simbi": {"reader": "simbi", "path": "SIMBI"},
+    "waterbenchiowa": {"reader": "waterbenchiowa", "path": "waterbenchiowa"},
+    "hyd_responses": {"reader": "hyd_responses", "path": "hyd_responses"},
+    "jialing": {"reader": "jialing", "path": "jialing"},
+}
+
 
 def _load_yaml(path: Path) -> Dict[str, Any]:
     if not path.exists():
@@ -219,54 +265,52 @@ def _load_yaml(path: Path) -> Dict[str, Any]:
 
 def _load_registry(
     project_root: Path,
+    extra_dicts: Optional[List[Dict[str, Dict[str, str]]]] = None,
 ) -> Dict[str, Dict[str, Any]]:
-    """Load dataset registry from configs/datasets.yml.
+    """Build dataset registry with three-layer override.
 
-    Looks in two locations:
-    1. {project_root}/configs/datasets.yml (project-level, takes precedence)
-    2. hydrodataset/configs/datasets.yml (package fallback)
+    Cascade order (higher overrides lower):
+    1. _DEFAULT_REGISTRY (built-in Python dict, 33 entries)
+    2. extra_dicts (injected by callers, e.g. hydrodatasource)
+    3. {project_root}/configs/datasets.yml (user project override, YAML)
 
     Parameters
     ----------
     project_root : Path
-        Root of the calling project.
+        Root of the calling project (for user YAML lookup).
+    extra_dicts : list of dict, optional
+        Additional registry dicts injected between the default and user
+        YAML.  Each dict maps dataset_id -> {'reader': ..., 'path': ...}.
 
     Returns
     -------
     dict
-        Dataset registry mapping dataset_id -> {'reader': ..., 'path': ...}
+        Merged dataset registry.
 
     Raises
     ------
     DatasetResolutionError
-        If no registry file is found.
+        If the merged registry is empty.
     """
-    # Project-level config (takes precedence)
-    project_registry = project_root / "configs" / "datasets.yml"
-    # Package-internal fallback
-    package_registry = Path(__file__).resolve().parent / "datasets.yml"
+    registry = dict(_DEFAULT_REGISTRY)
 
-    registry_path = None
-    if project_registry.exists():
-        registry_path = project_registry
-    elif package_registry.exists():
-        registry_path = package_registry
+    # Layer 2: caller-injected registry dicts
+    if extra_dicts:
+        for d in extra_dicts:
+            registry.update(d)
 
-    if registry_path is None:
+    # Layer 3: user project YAML (highest priority)
+    project_yml = project_root / "configs" / "datasets.yml"
+    if project_yml.exists():
+        data = _load_yaml(project_yml)
+        if data:
+            registry.update(data.get("datasets", {}))
+
+    if not registry:
         raise DatasetResolutionError(
-            f"Dataset registry not found. Tried:\n"
-            f"  - {project_registry}\n"
-            f"  - {package_registry}\n"
-            "Create configs/datasets.yml in your project."
+            "No datasets registered. Create configs/datasets.yml in your project."
         )
-
-    data = _load_yaml(registry_path)
-    datasets = data.get("datasets")
-    if not isinstance(datasets, dict):
-        raise DatasetResolutionError(
-            f"Dataset registry in {registry_path} must have a 'datasets' mapping."
-        )
-    return datasets
+    return registry
 
 
 def _validate_relative_path(path_value: str, dataset_id: str) -> None:
@@ -296,6 +340,9 @@ def resolve_data_path(
     source: str = "local",
     project_root: Optional[str] = None,
     local_root: Optional[Path] = None,
+    registry: Optional[Dict[str, Dict[str, Any]]] = None,
+    extra_registry_dicts: Optional[List[Dict[str, Dict[str, str]]]] = None,
+    extra_reader_aliases: Optional[Dict[str, Dict[str, str]]] = None,
 ) -> Path:
     """Resolve a dataset id to an absolute data path.
 
@@ -310,12 +357,23 @@ def resolve_data_path(
     source : str
         Storage backend: 'local' or 'cloud'.
     project_root : str, optional
-        Root of the hydrodataset project (for finding configs/datasets.yml).
+        Root of the calling project (for finding configs/datasets.yml).
         Defaults to current working directory.
     local_root : Path, optional
         Override for the local storage root. When provided, skips reading
         storage settings and uses this path directly. Only applies when
         source is 'local'.
+    registry : dict, optional
+        Pre-loaded dataset registry. When provided, skips _load_registry().
+    extra_registry_dicts : list of dict, optional
+        Additional dataset registry dicts to merge on top of the default
+        registry. Each dict maps dataset_id -> {'reader': ..., 'path': ...}.
+        Allows other packages (e.g. hydrodatasource) to register their own
+        datasets without touching hydrodataset internals.
+    extra_reader_aliases : dict, optional
+        Additional reader aliases to merge with READER_ALIASES during
+        validation. Allows callers that have their own reader classes
+        (e.g. hydrodatasource's 11 readers) to pass validation.
 
     Returns
     -------
@@ -332,20 +390,25 @@ def resolve_data_path(
             f"source must be 'local' or 'cloud', got '{source}'"
         )
 
-    root = Path(project_root) if project_root else Path.cwd()
-    registry = _load_registry(root)
+    if registry is None:
+        root = Path(project_root) if project_root else Path.cwd()
+        registry = _load_registry(root, extra_dicts=extra_registry_dicts)
 
     if dataset_id not in registry:
         known = ", ".join(sorted(registry))
         raise DatasetResolutionError(
-            f"Unknown dataset id '{dataset_id}'. " f"Known datasets: {known}"
+            f"Unknown dataset id '{dataset_id}'. Known datasets: {known}"
         )
 
     dataset_spec = registry[dataset_id]
     reader = dataset_spec.get("reader")
     if not reader:
         raise DatasetResolutionError(f"Dataset '{dataset_id}' must define 'reader'")
-    if reader not in READER_ALIASES:
+
+    effective_aliases = dict(READER_ALIASES)
+    if extra_reader_aliases:
+        effective_aliases.update(extra_reader_aliases)
+    if reader not in effective_aliases:
         raise DatasetResolutionError(
             f"Unknown reader alias '{reader}' for dataset '{dataset_id}'"
         )
@@ -359,7 +422,7 @@ def resolve_data_path(
         root_dir = local_root if local_root is not None else get_local_root()
         if root_dir is None:
             raise DatasetResolutionError(
-                "storage.local.root is not configured. " "Set it in ~/hydro_setting.yml"
+                "storage.local.root is not configured. Set it in ~/hydro_setting.yml"
             )
         if not root_dir.exists():
             raise DatasetResolutionError(
