@@ -28,14 +28,14 @@ class CustomCAMELS_IND(CAMELS_IND):
 
     url = "https://zenodo.org/records/14999580"
 
-    def __init__(self, data_path):
+    def __init__(self, uri):
         """Custom initialization that uses the new file structure and names."""
         import pandas as pd
 
         # Don't call parent __init__ to avoid reading old file names
         # Manually set necessary attributes required by RainfallRunoff
-        self.path = data_path
-        self._actual_data_path = data_path
+        self.path = uri
+        self._actual_data_path = uri
         self.name = "CAMELS_IND"
         self.timestep = "D"  # Daily timestep
         self.processes = None  # Use default multiprocessing
@@ -43,13 +43,13 @@ class CustomCAMELS_IND(CAMELS_IND):
         self.to_netcdf = False  # Don't auto-convert to netCDF
 
         # Determine the CAMELS_IND directory path for reading files
-        if os.path.basename(data_path).upper() == "CAMELS_IND":
-            camels_ind_dir = data_path
+        if os.path.basename(uri).upper() == "CAMELS_IND":
+            camels_ind_dir = uri
         else:
-            # data_path is the parent directory, try both uppercase and lowercase
+            # uri is the parent directory, try both uppercase and lowercase
             possible_paths = [
-                os.path.join(data_path, "CAMELS_IND"),
-                os.path.join(data_path, "camels_ind"),
+                os.path.join(uri, "CAMELS_IND"),
+                os.path.join(uri, "camels_ind"),
             ]
             camels_ind_dir = None
             for p in possible_paths:
@@ -58,7 +58,7 @@ class CustomCAMELS_IND(CAMELS_IND):
                     break
             if camels_ind_dir is None:
                 # Default to uppercase if directory doesn't exist yet
-                camels_ind_dir = os.path.join(data_path, "CAMELS_IND")
+                camels_ind_dir = os.path.join(uri, "CAMELS_IND")
 
         # Read station names from the updated file (using gauge_id)
         names_file = os.path.join(
@@ -186,22 +186,22 @@ class CamelsInd(HydroDataset):
     """
 
     def __init__(
-        self, data_path: str, region: Optional[str] = None, download: bool = False
+        self, uri: str, region: Optional[str] = None, download: bool = False
     ) -> None:
         """Initialize CAMELS_IND dataset.
 
         Args:
-            data_path: Path to the CAMELS_IND data directory
+            uri: Path to the data directory
             region: Geographic region identifier (optional)
             download: Whether to download data automatically (default: False)
         """
-        super().__init__(data_path)
+        super().__init__(uri)
         self.region = region
         self.download = download
 
         try:
             # Use custom class that supports the latest dataset version
-            self.aqua_fetch = CustomCAMELS_IND(data_path)
+            self.aqua_fetch = CustomCAMELS_IND(uri)
         except Exception as e:
             print(e)
             # If initialization fails, try to extract zip files
@@ -220,7 +220,7 @@ class CamelsInd(HydroDataset):
             if check_zip_extract:
                 hydro_file.zip_extract(self.data_source_dir.joinpath("CAMELS_IND"))
             # Retry initialization after extraction
-            self.aqua_fetch = CustomCAMELS_IND(data_path)
+            self.aqua_fetch = CustomCAMELS_IND(uri)
 
     @property
     def _attributes_cache_filename(self):

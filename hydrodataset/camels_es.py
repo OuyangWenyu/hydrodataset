@@ -14,19 +14,19 @@ class CamelsEs(HydroDataset):
         ds_description: Dictionary containing dataset file paths
     """
 
-    def __init__(self, data_path, region=None, download=False):
+    def __init__(self, uri, region=None, download=False):
         """Initialize CamelsEs dataset.
 
         Args:
-            data_path: Path to the CamelsEs data directory
+            uri: Path to the data directory
             region: Geographic region identifier (optional)
             download: Whether to download data automatically (default: False)
             cache_path: Path to the cache directory
         """
-        super().__init__(data_path)
+        super().__init__(uri)
         self.region = region
         self.download = download
-        self.aqua_fetch = CAMELS_ES(data_path)
+        self.aqua_fetch = CAMELS_ES(uri)
 
     @property
     def _attributes_cache_filename(self):

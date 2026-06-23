@@ -126,24 +126,29 @@ class HydroDataset(ABC):
     # variable name map for timeseries
     _dynamic_variable_mapping = {}
 
-    def __init__(self, data_path, cache_path=None):
+    def __init__(self, uri, cache_path=None):
         from pathlib import PurePosixPath
 
-        data_path = Path(data_path)
-        # Accept both POSIX (/data/hydro) and Windows (C:\data\hydro) absolute forms
-        if not (
-            PurePosixPath(str(data_path)).is_absolute()
-            or data_path.is_absolute()
-        ):
-            raise ValueError(
-                f"data_path must be an absolute path. "
-                f"Use hydrodataset.configs.data_resolver.resolve_data_path() "
-                f"to resolve from a dataset id. "
-                f"Got: {data_path}"
-            )
-        self.data_source_dir = data_path
-        if not self.data_source_dir.is_dir():
-            self.data_source_dir.mkdir(parents=True)
+        uri_str = str(uri)
+        if uri_str.startswith("s3://"):
+            # S3 URI — skip local path validation
+            self.data_source_dir = uri_str
+        else:
+            data_path = Path(uri_str)
+            # Accept both POSIX (/data/hydro) and Windows (C:\data\hydro) absolute forms
+            if not (
+                PurePosixPath(str(data_path)).is_absolute()
+                or data_path.is_absolute()
+            ):
+                raise ValueError(
+                    f"uri must be an absolute path. "
+                    f"Use hydrodataset.configs.data_resolver.resolve_data_path() "
+                    f"to resolve from a dataset id. "
+                    f"Got: {data_path}"
+                )
+            self.data_source_dir = data_path
+            if not self.data_source_dir.is_dir():
+                self.data_source_dir.mkdir(parents=True)
         if cache_path is None:
             from hydrodataset.configs.settings import get_cache_dir
 

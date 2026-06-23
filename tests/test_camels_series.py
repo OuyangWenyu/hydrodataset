@@ -843,8 +843,14 @@ class TestCamelsUsConstruction:
 
     def test_constructor_rejects_relative_path(self, mock_aqua_camels):
         """Constructor must reject relative paths with a helpful error message."""
-        with pytest.raises(ValueError, match="data_path must be an absolute path"):
+        with pytest.raises(ValueError, match="uri must be an absolute path"):
             CamelsUs("relative/path/to/data")
+
+    def test_constructor_accepts_s3_uri(self, mock_aqua_camels, tmp_path):
+        """Constructor must accept S3 URIs without Path validation."""
+        s3_uri = "s3://test-bucket/prefix/camels_us"
+        ds = CamelsUs(s3_uri)
+        assert ds.data_source_dir == s3_uri
 
     def test_constructor_creates_dir_if_missing(self, tmp_path, mock_aqua_camels):
         """Constructor should create data_source_dir if it does not exist."""

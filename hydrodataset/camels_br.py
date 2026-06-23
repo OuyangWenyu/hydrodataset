@@ -30,16 +30,16 @@ class CamelsBr(HydroDataset):
     """
 
     def __init__(
-        self, data_path: str, region: Optional[str] = None, download: bool = False
+        self, uri: str, region: Optional[str] = None, download: bool = False
     ) -> None:
         """Initialize CAMELS_BR dataset.
 
         Args:
-            data_path: Path to the CAMELS_BR data directory.
+            uri: Path to the data directory.
             region: Geographic region identifier (optional, defaults to BR).
             download: Whether to download data automatically (not used, handled by aqua_fetch).
         """
-        super().__init__(data_path)
+        super().__init__(uri)
         self.region = "BR" if region is None else region
 
         # Define the new URLs for the latest dataset version
@@ -77,7 +77,7 @@ class CamelsBr(HydroDataset):
 
         # Instantiate our custom class to handle downloads, but note that the reading
         # logic below is custom and does not rely on aquafetch's parsing.
-        self.aqua_fetch = CustomCamelsBr(data_path)
+        self.aqua_fetch = CustomCamelsBr(uri)
 
         self.data_source_description = self.set_data_source_describe()
 

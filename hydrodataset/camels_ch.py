@@ -21,7 +21,7 @@ class CamelsCh(HydroDataset):
 
     def __init__(
         self,
-        data_path: str,
+        uri: str,
         region: Optional[str] = None,
         download: bool = False,
         version: str = "v0.9",
@@ -29,12 +29,12 @@ class CamelsCh(HydroDataset):
         """Initialize CAMELS-CH dataset with custom URL and CSV reading methods.
 
         Args:
-            data_path: Path to the CAMELS_CH data directory.
+            uri: Path to the data directory.
             region: Geographic region identifier (optional).
             download: Whether to download data automatically.
             version: Dataset version (default: v0.9).
         """
-        super().__init__(data_path)
+        super().__init__(uri)
         self.region = region
         self.download = download
         self.version = version
@@ -270,7 +270,7 @@ class CamelsCh(HydroDataset):
         CustomCamelsCh = type("CAMELS_CH", (CAMELS_CH,), class_attrs)
 
         try:
-            self.aqua_fetch = CustomCamelsCh(data_path)
+            self.aqua_fetch = CustomCamelsCh(uri)
         except Exception as e:
             print(e)
             check_zip_extract = False
@@ -288,7 +288,7 @@ class CamelsCh(HydroDataset):
                 from hydroutils import hydro_file
 
                 hydro_file.zip_extract(self.data_source_dir.joinpath("CAMELS_CH"))
-            self.aqua_fetch = CustomCamelsCh(data_path)
+            self.aqua_fetch = CustomCamelsCh(uri)
 
     @property
     def _attributes_cache_filename(self):

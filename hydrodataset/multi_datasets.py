@@ -27,7 +27,7 @@ class MultiDatasets(HydroDataset):
 
     def __init__(
         self,
-        data_path: list,
+        uri: list,
         download=False,
         datasets: list = None,
         regions: list = None,
@@ -36,7 +36,7 @@ class MultiDatasets(HydroDataset):
 
         Parameters
         ----------
-        data_path:
+        uri:
             the paths of all necessary data
         download:
             if True, download the dataset

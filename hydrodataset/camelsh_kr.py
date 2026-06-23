@@ -22,7 +22,7 @@ class CamelshKr(HydroDataset):
 
     def __init__(
         self,
-        data_path: str,
+        uri: str,
         region: Optional[str] = None,
         download: bool = False,
         cache_path: Optional[str] = None,
@@ -30,16 +30,16 @@ class CamelshKr(HydroDataset):
         """Initialize CAMELSH_KR dataset.
 
         Args:
-            data_path: Path to the CAMELSH_KR data directory
+            uri: Path to the data directory
             region: Geographic region identifier (optional)
             download: Whether to download data automatically (default: False)
             cache_path: Path to the cache directory
         """
-        super().__init__(data_path, cache_path=cache_path)
+        super().__init__(uri, cache_path=cache_path)
         self.region = region
         self.download = download
         # In aqua_fetch, CAMELS_SK is the alias of CAMELSH_KR
-        self.aqua_fetch = CAMELS_SK(data_path)
+        self.aqua_fetch = CAMELS_SK(uri)
 
     @property
     def _attributes_cache_filename(self):

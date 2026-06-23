@@ -22,7 +22,7 @@ class CamelsFr(HydroDataset):
 
     def __init__(
         self,
-        data_path: str,
+        uri: str,
         region: Optional[str] = None,
         download: bool = False,
         cache_path: Optional[str] = None,
@@ -30,16 +30,16 @@ class CamelsFr(HydroDataset):
         """Initialize CAMELS_FR dataset.
 
         Args:
-            data_path: Path to the CAMELS_FR data directory
+            uri: Path to the data directory
             region: Geographic region identifier (optional)
             download: Whether to download data automatically (default: False)
             cache_path: Path to the cache directory
         """
-        super().__init__(data_path, cache_path=cache_path)
+        super().__init__(uri, cache_path=cache_path)
         self.region = region
         self.download = download
         try:
-            self.aqua_fetch = CAMELS_FR(data_path)
+            self.aqua_fetch = CAMELS_FR(uri)
         except Exception as e:
             print(e)
             check_zip_extract = False
@@ -60,7 +60,7 @@ class CamelsFr(HydroDataset):
                     break
             if check_zip_extract:
                 hydro_file.zip_extract(self.data_source_dir.joinpath("CAMELS_FR"))
-            self.aqua_fetch = CAMELS_FR(data_path)
+            self.aqua_fetch = CAMELS_FR(uri)
 
     @property
     def _attributes_cache_filename(self):

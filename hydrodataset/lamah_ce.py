@@ -176,7 +176,7 @@ class LamahCe(HydroDataset):
 
     def __init__(
         self,
-        data_path: str,
+        uri: str,
         region: Optional[str] = None,
         download: bool = False,
         cache_path: Optional[str] = None,
@@ -184,16 +184,16 @@ class LamahCe(HydroDataset):
         """Initialize LamaHCE dataset.
 
         Args:
-            data_path: Path to the LamaHCE data directory
+            uri: Path to the data directory
             region: Geographic region identifier (optional)
             download: Whether to download data automatically (default: False)
             cache_path: Path to the cache directory
         """
-        super().__init__(data_path, cache_path=cache_path)
+        super().__init__(uri, cache_path=cache_path)
         self.region = region
         self.download = download
         # Use the custom LamaHCE class defined at module level
-        self.aqua_fetch = LamaHCE(data_path)
+        self.aqua_fetch = LamaHCE(uri)
 
     @property
     def _attributes_cache_filename(self):

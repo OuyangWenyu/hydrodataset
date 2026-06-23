@@ -21,15 +21,15 @@ class CAMELS_NZ(_AquaFetchCAMELS_NZ):
     # Override the base URL for the new dataset version
     url = "https://figshare.canterbury.ac.nz/ndownloader/articles/28827644/versions/2"
 
-    def __init__(self, data_path, timestep="H", **kwargs):
+    def __init__(self, uri, timestep="H", **kwargs):
         """Initialize CustomCamelsNz.
 
         Args:
-            data_path: Path to the data directory
+            uri: Path to the data directory
             timestep: Time step for the data ('H' for hourly, 'D' for daily)
             **kwargs: Additional arguments passed to parent class
         """
-        super().__init__(data_path, **kwargs)
+        super().__init__(uri, **kwargs)
         self.timestep = timestep
 
     @property
@@ -163,7 +163,7 @@ class CamelsNz(HydroDataset):
 
     def __init__(
         self,
-        data_path: str,
+        uri: str,
         region: Optional[str] = None,
         download: bool = False,
         timestep: str = "H",
@@ -171,18 +171,18 @@ class CamelsNz(HydroDataset):
         """Initialize CAMELS_NZ dataset.
 
         Args:
-            data_path: Path to the CAMELS_NZ data directory
+            uri: Path to the data directory
             region: Geographic region identifier (optional)
             download: Whether to download data automatically (default: False)
             timestep: Time step for the data ('H' for hourly, 'D' for daily, default: 'H')
         """
-        super().__init__(data_path)
+        super().__init__(uri)
         self.region = "NZ" if region is None else region
         self.download = download
         self.timestep = timestep
 
         # Instantiate our custom CAMELS_NZ class with timestep support
-        self.aqua_fetch = CAMELS_NZ(data_path, timestep=timestep)
+        self.aqua_fetch = CAMELS_NZ(uri, timestep=timestep)
 
     @property
     def _attributes_cache_filename(self):

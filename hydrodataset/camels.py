@@ -91,20 +91,20 @@ def time_intersect_dynamic_data(obs: np.array, date: np.array, t_range: list):
 class Camels(HydroDataset):
     def __init__(
         self,
-        data_path,
+        uri,
         download=False,
         region: str = "US",
     ):
         """Initialization for CAMELS series dataset.
 
         Args:
-            data_path: Root storage directory. CAMELS_US data is expected
+            uri: Root storage directory. CAMELS_US data is expected
                 in the CAMELS_US sub-directory under this root.
             download: If true, download data automatically. Defaults to False.
             region: Geographic region. Defaults to 'US'.
                 All supported regions are listed in CAMELS_REGIONS.
         """
-        self.data_path = os.path.join(data_path, "CAMELS_US")
+        self.data_path = os.path.join(uri, "CAMELS_US")
         super().__init__(self.data_path)
         if region not in CAMELS_REGIONS:
             raise NotImplementedError(

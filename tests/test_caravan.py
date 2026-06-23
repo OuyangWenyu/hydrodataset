@@ -10,6 +10,7 @@ in test_camels_series.py:
 
 import os
 import glob
+from pathlib import Path
 from unittest.mock import patch, MagicMock
 
 import numpy as np
@@ -39,8 +40,8 @@ from tests.conftest import skip_if_ci
 def test_resolve_caravan_returns_absolute_path():
     """resolve_data_path('caravan') returns an absolute path that exists."""
     p = resolve_data_path("caravan")
-    assert p.is_absolute(), f"Expected absolute path, got {p}"
-    assert p.exists(), f"Path does not exist: {p}"
+    assert os.path.isabs(p), f"Expected absolute path, got {p}"
+    assert os.path.exists(p), f"Path does not exist: {p}"
 
 
 def test_resolve_caravan_dk_returns_absolute_path():
@@ -49,7 +50,7 @@ def test_resolve_caravan_dk_returns_absolute_path():
 
     try:
         p = resolve_data_path("caravan_dk")
-        assert p.is_absolute(), f"Expected absolute path, got {p}"
+        assert os.path.isabs(p), f"Expected absolute path, got {p}"
     except DatasetResolutionError:
         pytest.skip("caravan_dk data not available")
 
@@ -60,7 +61,7 @@ def test_resolve_grdc_caravan_returns_absolute_path():
 
     try:
         p = resolve_data_path("grdc_caravan")
-        assert p.is_absolute(), f"Expected absolute path, got {p}"
+        assert os.path.isabs(p), f"Expected absolute path, got {p}"
     except DatasetResolutionError:
         pytest.skip("grdc_caravan data not available")
 
@@ -226,7 +227,7 @@ class TestCaravanDKResolver:
         """resolve_data_path should return an absolute path."""
         try:
             p = resolve_data_path("caravan_dk")
-            assert p.is_absolute(), f"Expected absolute path, got {p}"
+            assert os.path.isabs(p), f"Expected absolute path, got {p}"
         except DatasetResolutionError:
             pytest.skip("caravan_dk data not available")
 
@@ -241,7 +242,7 @@ class TestCaravanDKConstruction:
 
     def test_constructor_rejects_relative_path(self):
         """Constructor must reject relative paths (checked before aqua_fetch)."""
-        with pytest.raises(ValueError, match="data_path must be an absolute path"):
+        with pytest.raises(ValueError, match="uri must be an absolute path"):
             CaravanDK("relative/path")
 
 
@@ -337,8 +338,8 @@ class TestGrdcCaravanResolver:
         """resolve_data_path returns an absolute path that exists."""
         _require_grdc_data()
         p = resolve_data_path("grdc_caravan")
-        assert p.is_absolute(), f"Expected absolute path, got {p}"
-        assert p.exists(), f"Path does not exist: {p}"
+        assert os.path.isabs(p), f"Expected absolute path, got {p}"
+        assert os.path.exists(p), f"Path does not exist: {p}"
 
 
 class TestGrdcCaravanConstruction:
@@ -353,7 +354,7 @@ class TestGrdcCaravanConstruction:
 
     def test_constructor_rejects_relative_path(self, mock_aqua_grdc_caravan):
         """Constructor must reject relative paths."""
-        with pytest.raises(ValueError, match="data_path must be an absolute path"):
+        with pytest.raises(ValueError, match="uri must be an absolute path"):
             GrdcCaravan("relative/path")
 
     def test_constructor_creates_dir_if_missing(
@@ -454,13 +455,14 @@ class TestGrdcCaravanRawData:
     @pytest.fixture(autouse=True)
     def setup(self):
         _require_grdc_data()
+        root = Path(GRDC_CARAVAN_PATH)
         # Data lives under GRDC-Caravan-extension-nc (or -csv) directory
         # The aqua_fetch class resolves this internally, but we read CSV directly
-        nc_dir = GRDC_CARAVAN_PATH / "GRDC-Caravan-extension-nc"
+        nc_dir = root / "GRDC-Caravan-extension-nc"
         if nc_dir.exists():
             self.attr_dir = nc_dir / "attributes" / "grdc"
         else:
-            csv_dir = GRDC_CARAVAN_PATH / "GRDC-Caravan-extension-csv"
+            csv_dir = root / "GRDC-Caravan-extension-csv"
             self.attr_dir = csv_dir / "attributes" / "grdc"
 
     def test_attributes_caravan_csv_exists(self):

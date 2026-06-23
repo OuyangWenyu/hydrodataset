@@ -21,7 +21,7 @@ from hydrodataset.hydro_dataset import HydroDataset
 
 
 class Mopex(HydroDataset):
-    def __init__(self, data_path, download=False, cache_path=None):
+    def __init__(self, uri, download=False, cache_path=None):
         """
         Initialization for dataset
 
@@ -34,7 +34,7 @@ class Mopex(HydroDataset):
         cache_path
             the path to cache the dataset
         """
-        super().__init__(data_path, cache_path=cache_path)
+        super().__init__(uri, cache_path=cache_path)
         self.data_source_description = self.set_data_source_describe()
         if download:
             self.download_data_source()

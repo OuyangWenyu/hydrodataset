@@ -119,20 +119,20 @@ class CamelsUs(HydroDataset):
     """
 
     def __init__(
-        self, data_path: str, region: Optional[str] = None, download: bool = False
+        self, uri: str, region: Optional[str] = None, download: bool = False
     ) -> None:
         """Initialize CAMELS_US dataset.
 
         Args:
-            data_path: Path to the CAMELS_US data directory. This is where the data will be stored.
+            uri: Path to the data directory. This is where the data will be stored.
             region: Geographic region identifier (optional, defaults to US).
             download: Whether to download data automatically (not used, handled by aqua_fetch).
         """
-        super().__init__(data_path)
+        super().__init__(uri)
         self.region = "US" if region is None else region
 
         # Instantiate the custom class defined at module level
-        self.aqua_fetch = CAMELS_US(data_path)
+        self.aqua_fetch = CAMELS_US(uri)
 
     @property
     def _attributes_cache_filename(self):

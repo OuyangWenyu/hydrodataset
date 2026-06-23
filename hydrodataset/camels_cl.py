@@ -30,19 +30,19 @@ class CamelsCl(HydroDataset):
     """
 
     def __init__(
-        self, data_path: str, region: Optional[str] = None, download: bool = False
+        self, uri: str, region: Optional[str] = None, download: bool = False
     ) -> None:
         """Initialize CAMELS_CL dataset.
 
         Args:
-            data_path: Path to the CAMELS_CL data directory
+            uri: Path to the data directory
             region: Geographic region identifier (optional)
             download: Whether to download data automatically (default: False)
         """
-        super().__init__(data_path)
+        super().__init__(uri)
         self.region = region
         self.download = download
-        self.aqua_fetch = CAMELS_CL(data_path)
+        self.aqua_fetch = CAMELS_CL(uri)
 
     @property
     def _attributes_cache_filename(self):

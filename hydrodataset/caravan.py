@@ -18,7 +18,7 @@ from hydrodataset.hydro_dataset import StandardVariable
 
 
 class Caravan(HydroDataset):
-    def __init__(self, data_path: str, region: Optional[str] = None) -> None:
+    def __init__(self, uri: str, region: Optional[str] = None) -> None:
         """
         Initialization for Caravan dataset
 
@@ -32,7 +32,7 @@ class Caravan(HydroDataset):
             the region can be US, AUS, BR, CL, GB, CE, NA (North America, meaning HYSETS)
         """
         # data_path is now an absolute URI from the resolver; use it directly.
-        super().__init__(data_path)
+        super().__init__(uri)
         self.region = "Global" if region is None else region
         region_name_dict = self.region_name_dict
         if self.region == "Global":

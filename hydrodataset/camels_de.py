@@ -11,13 +11,13 @@ class CamelsDe(HydroDataset):
     hydrological and meteorological data for various watersheds.
     """
 
-    def __init__(self, data_path, region=None, download=False, cache_path=None):
+    def __init__(self, uri, region=None, download=False, cache_path=None):
         """Initialize CAMELS-DE dataset."""
-        super().__init__(data_path, cache_path=cache_path)
+        super().__init__(uri, cache_path=cache_path)
         self.region = region
         self.download = download
         try:
-            self.aqua_fetch = CAMELS_DE(data_path)
+            self.aqua_fetch = CAMELS_DE(uri)
         except Exception:
             check_zip_extract = False
             zip_files = ["camels_de.zip"]
@@ -30,7 +30,7 @@ class CamelsDe(HydroDataset):
                     break
             if check_zip_extract:
                 hydro_file.zip_extract(self.data_source_dir.joinpath("CAMELS_DE"))
-            self.aqua_fetch = CAMELS_DE(data_path)
+            self.aqua_fetch = CAMELS_DE(uri)
 
     @property
     def _attributes_cache_filename(self):

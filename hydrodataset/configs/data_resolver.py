@@ -339,11 +339,11 @@ def resolve_data_path(
     *,
     source: str = "local",
     project_root: Optional[str] = None,
-    local_root: Optional[Path] = None,
+    local_root: Optional[str] = None,
     registry: Optional[Dict[str, Dict[str, Any]]] = None,
     extra_registry_dicts: Optional[List[Dict[str, Dict[str, str]]]] = None,
     extra_reader_aliases: Optional[Dict[str, Dict[str, str]]] = None,
-) -> Path:
+) -> str:
     """Resolve a dataset id to an absolute data path.
 
     Combines the dataset registry entry with storage configuration
@@ -359,7 +359,7 @@ def resolve_data_path(
     project_root : str, optional
         Root of the calling project (for finding configs/datasets.yml).
         Defaults to current working directory.
-    local_root : Path, optional
+    local_root : str, optional
         Override for the local storage root. When provided, skips reading
         storage settings and uses this path directly. Only applies when
         source is 'local'.
@@ -377,8 +377,9 @@ def resolve_data_path(
 
     Returns
     -------
-    Path
-        Absolute path pointing to the dataset's data directory.
+    str
+        Absolute path (local source) or S3 URI (cloud source) pointing
+        to the dataset's data directory.
 
     Raises
     ------
@@ -389,6 +390,9 @@ def resolve_data_path(
         raise DatasetResolutionError(
             f"source must be 'local' or 'cloud', got '{source}'"
         )
+
+    if local_root is not None:
+        local_root = Path(local_root)
 
     if registry is None:
         root = Path(project_root) if project_root else Path.cwd()
@@ -433,7 +437,7 @@ def resolve_data_path(
             raise DatasetResolutionError(
                 f"Resolved dataset path does not exist: {resolved}"
             )
-        return resolved
+        return str(resolved)
 
     # cloud source
     storage = get_storage_config()
