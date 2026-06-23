@@ -199,7 +199,10 @@ class Caravan(HydroDataset):
         )
 
     def _base_dir(self):
-        return os.path.join(self.data_source_dir, "Caravan", "Caravan")
+        # data_source_dir is the resolved absolute path from the resolver.
+        # datasets.yml must point directly to where the data lives
+        # (e.g. CARAVAN/Caravan/Caravan after Zenodo zip extraction).
+        return str(self.data_source_dir)
 
     def download_data_source(self) -> None:
         """
@@ -211,16 +214,22 @@ class Caravan(HydroDataset):
         """
         dataset_config = self.data_source_description
         self.data_source_dir.mkdir(exist_ok=True)
+        # Download the zip to the CARAVAN root (2 levels up from the data dir),
+        # not to the data directory itself.
+        # data_source_dir is e.g. {root}/CARAVAN/Caravan/Caravan,
+        # so parent.parent gives {root}/CARAVAN.
+        download_dir = self.data_source_dir.parent.parent
+        download_dir.mkdir(exist_ok=True)
         url = dataset_config["DOWNLOAD_URL"]
-        fzip = Path(self.data_source_dir, url.rsplit("/", 1)[1])
+        fzip = Path(download_dir, url.rsplit("/", 1)[1])
         if fzip.exists():
             with urlopen(url) as response:
                 if int(response.info()["Content-length"]) != fzip.stat().st_size:
                     fzip.unlink()
         to_dl = []
-        if not Path(self.data_source_dir, url.rsplit("/", 1)[1]).exists():
+        if not Path(download_dir, url.rsplit("/", 1)[1]).exists():
             to_dl.append(url)
-        hydro_file.download_zip_files(to_dl, self.data_source_dir)
+        hydro_file.download_zip_files(to_dl, download_dir)
         # It seems that there is sth. wrong with hysets_06444000.nc
         try:
             hydro_file.zip_extract(dataset_config["DATASET_DIR"])

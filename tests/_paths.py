@@ -79,3 +79,13 @@ needs_camels_de = _needs("camels_de", CAMELS_DE_PATH)
 needs_camels_fr = _needs("camels_fr", CAMELS_FR_PATH)
 needs_camels_ch = _needs("camels_ch", CAMELS_CH_PATH)
 needs_camels_us = _needs("camels_us", CAMELS_US_PATH)
+
+# ── CARAVAN datasets ──────────────────────────────────────────────────
+
+CARAVAN_PATH = _try_resolve("caravan")
+CARAVAN_DK_PATH = _try_resolve("caravan_dk")
+GRDC_CARAVAN_PATH = _try_resolve("grdc_caravan")
+
+needs_caravan = _needs("caravan", CARAVAN_PATH)
+needs_caravan_dk = _needs("caravan_dk", CARAVAN_DK_PATH)
+needs_grdc_caravan = _needs("grdc_caravan", GRDC_CARAVAN_PATH)

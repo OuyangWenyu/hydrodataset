@@ -91,7 +91,7 @@ datasets:
   # === CARAVAN Series (3 datasets) ===
   caravan:
     reader: caravan
-    path: CARAVAN
+    path: CARAVAN/Caravan/Caravan
 
   caravan_dk:
     reader: caravan_dk
