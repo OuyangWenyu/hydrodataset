@@ -23,6 +23,8 @@ from hydrodataset.camels_de import CamelsDe
 from hydrodataset.camels_fr import CamelsFr
 from hydrodataset.camels_ch import CamelsCh
 from hydrodataset.camels_us import CamelsUs
+from hydrodataset.camels_ind import CamelsInd
+from hydrodataset.camels_br import CamelsBr
 
 from tests._paths import (
     DATA_ROOT as data_path,
@@ -41,6 +43,8 @@ from tests._paths import (
     CAMELS_FR_PATH,
     CAMELS_CH_PATH,
     CAMELS_US_PATH,
+    CAMELS_IND_PATH,
+    CAMELS_BR_PATH,
     needs_camelsh,
     needs_camels_aus,
     needs_camels_cl,
@@ -56,6 +60,8 @@ from tests._paths import (
     needs_camels_fr,
     needs_camels_ch,
     needs_camels_us,
+    needs_camels_ind,
+    needs_camels_br,
 )
 from tests.conftest import skip_if_ci
 
@@ -615,7 +621,7 @@ def test_read_camels_nz_timeseries_xrdataset():
         data_path,
         "CAMELS_NZ",
         "camels_nz",
-        "CAMELS_NZ_hourly_Streamflow",
+        "CAMELS_NZ_Streamflow",
         "flow_station_id_3819.csv",
     )
     ds = pd.read_csv(file_path)
@@ -772,6 +778,110 @@ def test_read_camels_ch_timeseries_xrdataset():
     )
     ds_csv = pd.read_csv(file_path, sep=",", header=0)
     result_2 = ds_csv[ds_csv["date"] == "1981-01-04"]["precipitation(mm/d)"].values[0]
+    assert np.isclose(
+        result_1, result_2, rtol=1e-6
+    ), f"Expected {result_2}, got {result_1}"
+
+
+# "Test whether read_attr_xrdataset() from camels_ind correctly reads static attrs."
+@needs_camels_ind
+@skip_if_ci
+def test_read_camels_ind_attr_xrdataset():
+    ds = CamelsInd(CAMELS_IND_PATH)
+    result_1 = ds.read_attr_xrdataset(gage_id_lst=["10001"], var_lst=["p_mean"])[
+        "p_mean"
+    ].values
+    # Ground-truth comparison from raw CSV (semicolon-separated)
+    csv_path = os.path.join(
+        data_path,
+        "CAMELS_IND",
+        "CAMELS_IND_All_Catchments",
+        "attributes_txt",
+        "camels_ind_clim.txt",
+    )
+    df = pd.read_csv(csv_path, sep=";")
+    result_2 = df[df["gauge_id"].astype(str) == "10001"]["p_mean"].values[0]
+    assert np.isclose(
+        result_1, result_2, rtol=1e-6
+    ), f"Expected {result_2}, got {result_1}"
+
+
+# Uses standard variable name + sources parameter (new ADR 0001 pattern).
+@needs_camels_ind
+@skip_if_ci
+def test_read_camels_ind_timeseries_xrdataset():
+    ds = CamelsInd(CAMELS_IND_PATH)
+    ts_data = ds.read_ts_xrdataset(
+        gage_id_lst=["10001"],
+        var_lst=["precipitation"],  # standard name
+        t_range=["1990-06-01", "1990-06-01"],
+        sources={"precipitation": "imd"},  # IMD precipitation source (default)
+    )
+    result_1 = ts_data["precipitation"].values.flatten()[0]
+    # Ground-truth comparison from raw forcing CSV
+    file_path = os.path.join(
+        data_path,
+        "CAMELS_IND",
+        "CAMELS_IND_All_Catchments",
+        "catchment_mean_forcings",
+        "10001.csv",
+    )
+    df = pd.read_csv(file_path)
+    result_2 = df[(df["year"] == 1990) & (df["month"] == 6) & (df["day"] == 1)][
+        "prcp(mm/day)"
+    ].values[0]
+    assert np.isclose(
+        result_1, result_2, rtol=1e-6
+    ), f"Expected {result_2}, got {result_1}"
+
+
+# "Test whether read_attr_xrdataset() from camels_br correctly reads static attrs."
+@needs_camels_br
+@skip_if_ci
+def test_read_camels_br_attr_xrdataset():
+    ds = CamelsBr(CAMELS_BR_PATH)
+    result_1 = ds.read_attr_xrdataset(gage_id_lst=["10500000"], var_lst=["area"])[
+        "area"
+    ].values
+    # Ground-truth comparison from raw CSV (whitespace-separated)
+    csv_path = os.path.join(
+        data_path,
+        "CAMELS_BR",
+        "01_CAMELS_BR_attributes",
+        "01_CAMELS_BR_attributes",
+        "camels_br_topography.txt",
+    )
+    df = pd.read_csv(csv_path, sep=r"\s+")
+    result_2 = df[df["gauge_id"].astype(str) == "10500000"]["area"].values[0]
+    assert np.isclose(
+        result_1, result_2, rtol=1e-6
+    ), f"Expected {result_2}, got {result_1}"
+
+
+# Uses standard variable name + sources parameter (new ADR 0001 pattern).
+@needs_camels_br
+@skip_if_ci
+def test_read_camels_br_timeseries_xrdataset():
+    ds = CamelsBr(CAMELS_BR_PATH)
+    ts_data = ds.read_ts_xrdataset(
+        gage_id_lst=["10500000"],
+        var_lst=["streamflow"],  # standard name
+        t_range=["2000-06-01", "2000-06-01"],
+        sources={"streamflow": "m3s"},  # observed streamflow in m^3/s (default)
+    )
+    result_1 = ts_data["streamflow"].values.flatten()[0]
+    # Ground-truth comparison from raw streamflow file
+    file_path = os.path.join(
+        data_path,
+        "CAMELS_BR",
+        "03_CAMELS_BR_streamflow_selected_catchments",
+        "03_CAMELS_BR_streamflow_selected_catchments",
+        "10500000_streamflow.txt",
+    )
+    df = pd.read_csv(file_path, sep=r"\s+")
+    result_2 = df[(df["year"] == 2000) & (df["month"] == 6) & (df["day"] == 1)][
+        "streamflow_m3s"
+    ].values[0]
     assert np.isclose(
         result_1, result_2, rtol=1e-6
     ), f"Expected {result_2}, got {result_1}"

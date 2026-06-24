@@ -195,59 +195,75 @@ class LamahIce(HydroDataset):
     _dynamic_variable_mapping = {
         StandardVariable.STREAMFLOW: {
             "default_source": "lamah_ice",
-            "sources": {"lamah_ice": {"specific_name": "q_cms_obs", "unit": "m^3/s"}},
-            "sources": {"carra": {"specific_name": "runoff_carra", "unit": "mm"}},
+            "sources": {
+                "lamah_ice": {"specific_name": "q_cms_obs", "unit": "m^3/s"},
+                "carra": {"specific_name": "runoff_carra", "unit": "mm"},
+            },
         },
         StandardVariable.PRECIPITATION: {
             "default_source": "lamah_ice",
-            "sources": {"lamah_ice": {"specific_name": "pcp_mm", "unit": "mm"}},
-            "sources": {"carra": {"specific_name": "prec_carra", "unit": "mm"}},
-            "sources": {"rav": {"specific_name": "prec_rav", "unit": "mm"}},
+            "sources": {
+                "lamah_ice": {"specific_name": "pcp_mm", "unit": "mm"},
+                "carra": {"specific_name": "prec_carra", "unit": "mm"},
+                "rav": {"specific_name": "prec_rav", "unit": "mm"},
+            },
         },
         StandardVariable.TEMPERATURE_MIN: {
             "default_source": "lamah_ice",
             "sources": {
-                "lamah_ice": {"specific_name": "airtemp_c_2m_min", "unit": "°C"}
+                "lamah_ice": {"specific_name": "airtemp_c_2m_min", "unit": "°C"},
+                "dp": {"specific_name": "2m_dp_temp_min", "unit": "°C"},
+                "carra": {"specific_name": "2m_temp_min_carra", "unit": "°C"},
             },
-            "sources": {"dp": {"specific_name": "2m_dp_temp_min", "unit": "°C"}},
-            "sources": {"carra": {"specific_name": "2m_temp_min_carra", "unit": "°C"}},
         },
         StandardVariable.TEMPERATURE_MAX: {
             "default_source": "lamah_ice",
             "sources": {
-                "lamah_ice": {"specific_name": "airtemp_c_2m_max", "unit": "°C"}
+                "lamah_ice": {"specific_name": "airtemp_c_2m_max", "unit": "°C"},
+                "dp": {"specific_name": "2m_dp_temp_max", "unit": "°C"},
+                "carra": {"specific_name": "2m_temp_max_carra", "unit": "°C"},
             },
-            "sources": {"dp": {"specific_name": "2m_dp_temp_max", "unit": "°C"}},
-            "sources": {"carra": {"specific_name": "2m_temp_max_carra", "unit": "°C"}},
         },
         StandardVariable.TEMPERATURE_MEAN: {
             "default_source": "lamah_ice",
             "sources": {
-                "lamah_ice": {"specific_name": "airtemp_c_mean_2m", "unit": "°C"}
+                "lamah_ice": {"specific_name": "airtemp_c_mean_2m", "unit": "°C"},
+                "dp": {"specific_name": "2m_dp_temp_mean", "unit": "°C"},
+                "rav": {"specific_name": "2m_temp_rav", "unit": "°C"},
+                "carra": {"specific_name": "2m_temp_carra", "unit": "°C"},
             },
-            "sources": {"dp": {"specific_name": "2m_dp_temp_mean", "unit": "°C"}},
-            "sources": {"rav": {"specific_name": "2m_temp_rav", "unit": "°C"}},
-            "sources": {"carra": {"specific_name": "2m_temp_carra", "unit": "°C"}},
         },
         StandardVariable.POTENTIAL_EVAPOTRANSPIRATION: {
             "default_source": "lamah_ice",
-            "sources": {"lamah_ice": {"specific_name": "pet_mm", "unit": "mm/day"}},
+            "sources": {
+                "lamah_ice": {"specific_name": "pet_mm", "unit": "mm/day"},
+                "caravan": {
+                    "specific_name": "potential_evaporation_sum_fao_penman_monteith_from_caravan",
+                    "unit": "mm/day",
+                },
+            },
         },
         StandardVariable.EVAPOTRANSPIRATION: {
             "default_source": "rav",
-            "sources": {"ref": {"specific_name": "ref_et_mm", "unit": "mm/day"}},
-            "sources": {"rav": {"specific_name": "total_et_rav", "unit": "mm/day"}},
-            "sources": {"carra": {"specific_name": "total_et_carra", "unit": "mm/day"}},
+            "sources": {
+                "ref": {"specific_name": "ref_et_mm", "unit": "mm/day"},
+                "rav": {"specific_name": "total_et_rav", "unit": "mm/day"},
+                "carra": {"specific_name": "total_et_carra", "unit": "mm/day"},
+            },
         },
         StandardVariable.U_WIND_SPEED: {
             "default_source": "lamah_ice",
-            "sources": {"lamah_ice": {"specific_name": "10m_wind_u", "unit": "m/s"}},
-            "sources": {"rav": {"specific_name": "10m_wind_u_rav", "unit": "m/s"}},
+            "sources": {
+                "lamah_ice": {"specific_name": "10m_wind_u", "unit": "m/s"},
+                "rav": {"specific_name": "10m_wind_u_rav", "unit": "m/s"},
+            },
         },
         StandardVariable.V_WIND_SPEED: {
             "default_source": "lamah_ice",
-            "sources": {"lamah_ice": {"specific_name": "10m_wind_v", "unit": "m/s"}},
-            "sources": {"rav": {"specific_name": "10m_wind_v_rav", "unit": "m/s"}},
+            "sources": {
+                "lamah_ice": {"specific_name": "10m_wind_v", "unit": "m/s"},
+                "rav": {"specific_name": "10m_wind_v_rav", "unit": "m/s"},
+            },
         },
         StandardVariable.WIND_SPEED: {
             "default_source": "carra",
@@ -263,8 +279,10 @@ class LamahIce(HydroDataset):
         },
         StandardVariable.SNOW_WATER_EQUIVALENT: {
             "default_source": "lamah_ice",
-            "sources": {"lamah_ice": {"specific_name": "swe", "unit": "mm"}},
-            "sources": {"carra": {"specific_name": "swe_carra", "unit": "mm"}},
+            "sources": {
+                "lamah_ice": {"specific_name": "swe", "unit": "mm"},
+                "carra": {"specific_name": "swe_carra", "unit": "mm"},
+            },
         },
         StandardVariable.SOLAR_RADIATION: {
             "default_source": "lamah_ice",
@@ -272,19 +290,16 @@ class LamahIce(HydroDataset):
                 "lamah_ice": {
                     "specific_name": "surf_net_solar_rad_mean",
                     "unit": "W/m^2",
-                }
-            },
-            "sources": {
-                "rav": {"specific_name": "surf_dwn_solar_rad_rav", "unit": "W/m^2"}
-            },
-            "sources": {
-                "carra": {"specific_name": "surf_net_solar_rad_carra", "unit": "W/m^2"}
-            },
-            "sources": {
+                },
+                "rav": {"specific_name": "surf_dwn_solar_rad_rav", "unit": "W/m^2"},
+                "carra": {
+                    "specific_name": "surf_net_solar_rad_carra",
+                    "unit": "W/m^2",
+                },
                 "dwn_carra": {
                     "specific_name": "surf_dwn_solar_rad_carra",
                     "unit": "W/m^2",
-                }
+                },
             },
         },
         StandardVariable.SOLAR_RADIATION_MAX: {
@@ -302,22 +317,17 @@ class LamahIce(HydroDataset):
                 "lamah_ice": {
                     "specific_name": "surf_net_therm_rad_mean",
                     "unit": "W/m^2",
-                }
-            },
-            "sources": {
-                "outg": {"specific_name": "surf_outg_therm_rad_rav", "unit": "W/m^2"}
-            },
-            "sources": {
-                "dwn": {"specific_name": "surf_dwn_therm_rad_rav", "unit": "W/m^2"}
-            },
-            "sources": {
-                "carra": {"specific_name": "surf_net_therm_rad_carra", "unit": "W/m^2"}
-            },
-            "sources": {
+                },
+                "outg": {"specific_name": "surf_outg_therm_rad_rav", "unit": "W/m^2"},
+                "dwn": {"specific_name": "surf_dwn_therm_rad_rav", "unit": "W/m^2"},
+                "carra": {
+                    "specific_name": "surf_net_therm_rad_carra",
+                    "unit": "W/m^2",
+                },
                 "dwn_carra": {
                     "specific_name": "surf_dwn_therm_rad_carra",
                     "unit": "W/m^2",
-                }
+                },
             },
         },
         StandardVariable.THERMAL_RADIATION_MAX: {
@@ -331,17 +341,9 @@ class LamahIce(HydroDataset):
         },
         StandardVariable.SURFACE_PRESSURE: {
             "default_source": "lamah_ice",
-            "sources": {"lamah_ice": {"specific_name": "surf_press", "unit": "Pa"}},
-            "sources": {"rav": {"specific_name": "surf_press_rav", "unit": "Pa"}},
-        },
-        StandardVariable.POTENTIAL_EVAPOTRANSPIRATION: {
-            "default_source": "lamah_ice",
-            "sources": {"lamah_ice": {"specific_name": "pet_mm", "unit": "mm"}},
             "sources": {
-                "caravan": {
-                    "specific_name": "potential_evaporation_sum_fao_penman_monteith_from_caravan",
-                    "unit": "mm/day",
-                }
+                "lamah_ice": {"specific_name": "surf_press", "unit": "Pa"},
+                "rav": {"specific_name": "surf_press_rav", "unit": "Pa"},
             },
         },
         StandardVariable.VOLUMETRIC_SOIL_WATER_LAYER1: {
@@ -354,8 +356,10 @@ class LamahIce(HydroDataset):
         },
         StandardVariable.RELATIVE_HUMIDITY: {
             "default_source": "rav",
-            "sources": {"rav": {"specific_name": "2m_qv_rav", "unit": "m/s"}},
-            "sources": {"carra": {"specific_name": "2m_rel_hum_carra", "unit": "m/s"}},
+            "sources": {
+                "rav": {"specific_name": "2m_qv_rav", "unit": "m/s"},
+                "carra": {"specific_name": "2m_rel_hum_carra", "unit": "m/s"},
+            },
         },
         StandardVariable.SPECIFIC_HUMIDITY: {
             "default_source": "carra",
@@ -363,18 +367,16 @@ class LamahIce(HydroDataset):
         },
         StandardVariable.GROUND_HEAT_FLUX: {
             "default_source": "rav",
-            "sources": {"rav": {"specific_name": "grdflx_rav", "unit": "W/m^2"}},
             "sources": {
+                "rav": {"specific_name": "grdflx_rav", "unit": "W/m^2"},
                 "sens": {
                     "specific_name": "surf_dwn_sens_heat_flux_carra",
                     "unit": "W/m^2",
-                }
-            },
-            "sources": {
+                },
                 "lat": {
                     "specific_name": "surf_dwn_lat_heat_flux_carra",
                     "unit": "W/m^2",
-                }
+                },
             },
         },
         StandardVariable.SNOW_SUBLIMATION: {

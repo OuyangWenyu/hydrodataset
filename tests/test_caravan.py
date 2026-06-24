@@ -16,6 +16,7 @@ from unittest.mock import patch, MagicMock
 import numpy as np
 import pandas as pd
 import pytest
+import xarray as xr
 
 from hydrodataset import resolve_data_path, StandardVariable, DatasetResolutionError
 from hydrodataset.caravan import Caravan
@@ -291,6 +292,76 @@ class TestCaravanDKMetadata:
 
 
 # ═══════════════════════════════════════════════════════════════════════
+# CaravanDK — integration tests (read real data)
+# ═══════════════════════════════════════════════════════════════════════
+
+# read_object_ids() returns bare ids (e.g. "100006"); raw CSVs use the
+# region-prefixed form "camelsdk_100006".
+_CDK_GAUGE = "100006"
+_CDK_RAW_GAUGE = "camelsdk_100006"
+
+
+@needs_caravan_dk
+@skip_if_ci
+def test_read_caravan_dk_attr_xrdataset():
+    """read_attr_xrdataset values match the raw Caravan-DK attribute CSVs."""
+    ds = CaravanDK(CARAVAN_DK_PATH)
+    p_mean_1 = ds.read_attr_xrdataset(gage_id_lst=[_CDK_GAUGE], var_lst=["p_mean"])[
+        "p_mean"
+    ].values
+    area_1 = ds.read_attr_xrdataset(gage_id_lst=[_CDK_GAUGE], var_lst=["area"])[
+        "area"
+    ].values
+    # Ground-truth from raw CSVs (p_mean in caravan attrs, area in other attrs)
+    attr_dir = os.path.join(data_path, "Caravan_DK", "attributes", "camelsdk")
+    p_df = pd.read_csv(
+        os.path.join(attr_dir, "attributes_caravan_camelsdk.csv"),
+        dtype={"gauge_id": str},
+    )
+    a_df = pd.read_csv(
+        os.path.join(attr_dir, "attributes_other_camelsdk.csv"),
+        dtype={"gauge_id": str},
+    )
+    expected_p = p_df[p_df["gauge_id"] == _CDK_RAW_GAUGE]["p_mean"].values[0]
+    expected_a = a_df[a_df["gauge_id"] == _CDK_RAW_GAUGE]["area"].values[0]
+    assert np.isclose(p_mean_1, expected_p, rtol=1e-6), (
+        f"p_mean mismatch: {p_mean_1} vs {expected_p}"
+    )
+    assert np.isclose(area_1, expected_a, rtol=1e-6), (
+        f"area mismatch: {area_1} vs {expected_a}"
+    )
+
+
+# Uses standard variable name + sources parameter (new ADR 0001 pattern).
+@needs_caravan_dk
+@skip_if_ci
+def test_read_caravan_dk_timeseries_xrdataset():
+    """read_ts_xrdataset streamflow matches the raw Caravan-DK timeseries CSV."""
+    ds = CaravanDK(CARAVAN_DK_PATH)
+    ts_data = ds.read_ts_xrdataset(
+        gage_id_lst=[_CDK_GAUGE],
+        var_lst=["streamflow"],  # standard name
+        t_range=["1998-08-11", "1998-08-11"],
+        sources={"streamflow": "observations"},  # observed discharge (default)
+    )
+    result_1 = ts_data["streamflow"].values.flatten()[0]
+    # Ground-truth from raw per-gauge timeseries CSV (comma-separated, date column)
+    file_path = os.path.join(
+        data_path,
+        "Caravan_DK",
+        "timeseries",
+        "csv",
+        "camelsdk",
+        f"{_CDK_RAW_GAUGE}.csv",
+    )
+    df = pd.read_csv(file_path)
+    result_2 = df[df["date"] == "1998-08-11"]["streamflow"].values[0]
+    assert np.isclose(
+        result_1, result_2, rtol=1e-6
+    ), f"Expected {result_2}, got {result_1}"
+
+
+# ═══════════════════════════════════════════════════════════════════════
 # GrdcCaravan fixtures and helpers
 # ═══════════════════════════════════════════════════════════════════════
 
@@ -455,15 +526,17 @@ class TestGrdcCaravanRawData:
     @pytest.fixture(autouse=True)
     def setup(self):
         _require_grdc_data()
+        # aqua_fetch appends the class name "GRDCCaravan"; the netcdf extension
+        # data is double-nested under it (GRDC_Caravan_extension_nc x2).
         root = Path(GRDC_CARAVAN_PATH)
-        # Data lives under GRDC-Caravan-extension-nc (or -csv) directory
-        # The aqua_fetch class resolves this internally, but we read CSV directly
-        nc_dir = root / "GRDC-Caravan-extension-nc"
-        if nc_dir.exists():
-            self.attr_dir = nc_dir / "attributes" / "grdc"
-        else:
-            csv_dir = root / "GRDC-Caravan-extension-csv"
-            self.attr_dir = csv_dir / "attributes" / "grdc"
+        self.attr_dir = (
+            root
+            / "GRDCCaravan"
+            / "GRDC_Caravan_extension_nc"
+            / "GRDC_Caravan_extension_nc"
+            / "attributes"
+            / "grdc"
+        )
 
     def test_attributes_caravan_csv_exists(self):
         """The caravan attributes CSV should exist."""
@@ -503,3 +576,88 @@ class TestGrdcCaravanRawData:
         df = df.set_index("gauge_id")
         p_mean = df.loc[_GRDC_KNOWN_GAUGE, "p_mean"]
         assert p_mean > 0, f"Expected positive p_mean, got {p_mean}"
+
+
+# ═══════════════════════════════════════════════════════════════════════
+# GrdcCaravan — standardized read_attr / read_ts value-comparison tests
+# ═══════════════════════════════════════════════════════════════════════
+
+# Raw netcdf-extension attribute dir (aqua_fetch appends class name "GRDCCaravan";
+# the extension is double-nested under it).
+_GRDC_ATTR_DIR = os.path.join(
+    "GRDCCaravan",
+    "GRDC_Caravan_extension_nc",
+    "GRDC_Caravan_extension_nc",
+    "attributes",
+    "grdc",
+)
+
+
+@needs_grdc_caravan
+@skip_if_ci
+def test_read_grdc_caravan_attr_xrdataset():
+    """read_attr_xrdataset values match the raw Caravan-GRDC attribute CSVs."""
+    ds = GrdcCaravan(GRDC_CARAVAN_PATH)
+    p_mean_1 = ds.read_attr_xrdataset(
+        gage_id_lst=[_GRDC_KNOWN_GAUGE], var_lst=["p_mean"]
+    )["p_mean"].values
+    area_1 = ds.read_attr_xrdataset(
+        gage_id_lst=[_GRDC_KNOWN_GAUGE], var_lst=["area"]
+    )["area"].values
+    attr_dir = os.path.join(data_path, _GRDC_ATTR_DIR)
+    p_df = pd.read_csv(
+        os.path.join(attr_dir, "attributes_caravan_grdc.csv"),
+        dtype={"gauge_id": str},
+    )
+    a_df = pd.read_csv(
+        os.path.join(attr_dir, "attributes_other_grdc.csv"),
+        dtype={"gauge_id": str},
+    )
+    expected_p = p_df[p_df["gauge_id"] == _GRDC_KNOWN_GAUGE]["p_mean"].values[0]
+    expected_a = a_df[a_df["gauge_id"] == _GRDC_KNOWN_GAUGE]["area"].values[0]
+    assert np.isclose(p_mean_1, expected_p, rtol=1e-6), (
+        f"p_mean mismatch: {p_mean_1} vs {expected_p}"
+    )
+    assert np.isclose(area_1, expected_a, rtol=1e-6), (
+        f"area mismatch: {area_1} vs {expected_a}"
+    )
+
+
+# Raw netcdf timeseries dir for grdc (same nesting as attrs).
+_GRDC_TS_DIR = os.path.join(
+    "GRDCCaravan",
+    "GRDC_Caravan_extension_nc",
+    "GRDC_Caravan_extension_nc",
+    "timeseries",
+    "netcdf",
+    "grdc",
+)
+
+
+@needs_grdc_caravan
+@skip_if_ci
+def test_read_grdc_caravan_timeseries_xrdataset():
+    """read_ts_xrdataset streamflow matches the raw GRDC netcdf file."""
+    ds = GrdcCaravan(GRDC_CARAVAN_PATH)
+    ts_data = ds.read_ts_xrdataset(
+        gage_id_lst=[_GRDC_KNOWN_GAUGE],
+        var_lst=["streamflow"],
+        t_range=["1987-01-27", "1987-01-27"],
+        sources={"streamflow": "mm"},
+    )
+    result_1 = ts_data["streamflow"].values.flatten()[0]
+    # Ground-truth from raw per-gauge NetCDF
+    nc_path = os.path.join(
+        data_path, _GRDC_TS_DIR, f"{_GRDC_KNOWN_GAUGE}.nc"
+    )
+    raw_ds = xr.open_dataset(nc_path)
+    raw_vals = raw_ds["streamflow"].values.flatten()
+    raw_dates = pd.to_datetime(raw_ds["date"].values)
+    idx = raw_dates == pd.Timestamp("1987-01-27")
+    if not idx.any():
+        pytest.skip("1987-01-27 not in raw data for this station")
+    result_2 = raw_vals[idx][0]
+    raw_ds.close()
+    assert np.isclose(
+        result_1, result_2, rtol=1e-6
+    ), f"Expected {result_2}, got {result_1}"
