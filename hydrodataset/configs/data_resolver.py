@@ -327,6 +327,10 @@ def _load_registry(
         effective_aliases.update(extra_reader_aliases)
 
     for dataset_id, spec in registry.items():
+        if not isinstance(spec, dict):
+            raise DatasetResolutionError(
+                f"Dataset '{dataset_id}' entry must be a dict, got {type(spec)}"
+            )
         reader = spec.get("reader")
         if not reader:
             raise DatasetResolutionError(f"Dataset '{dataset_id}' must define 'reader'")
@@ -404,6 +408,13 @@ class ResolverContext:
 
     Pass an instance via the ``ctx`` parameter of ``resolve_data_path`` to
     control registry loading, storage configuration, and reader extension.
+
+    .. note::
+
+        ``frozen=True`` provides **shallow** immutability — field reassignment
+        is blocked, but the contained ``Dict``/``List`` fields remain mutable
+        in-place.  Do not mutate ``storage``, ``registry``, or ``extra_*``
+        fields after construction.
 
     Attributes:
         project_root: Root directory used to locate
@@ -576,6 +587,9 @@ def resolve_data_path(
         If any resolution step fails.
     """
     ctx = ctx or ResolverContext()
+    # Resolve storage: explicit ctx.storage wins; otherwise load from layered
+    # YAML files (~/hydro_setting.yml → {project_root}/.hydro_setting.yml).
+    storage = ctx.storage if ctx.storage is not None else _load_storage(ctx.project_root)
     reg = ctx.registry or _load_registry(
         ctx.project_root,
         extra_dicts=ctx.extra_registry_dicts,
@@ -583,7 +597,7 @@ def resolve_data_path(
     )
     relative_path = _lookup_relative_path(reg, dataset_id)
     if source == "local":
-        return _resolve_local(relative_path, ctx.storage)
+        return _resolve_local(relative_path, storage)
     if source == "cloud":
-        return _resolve_cloud(relative_path, ctx.storage)
+        return _resolve_cloud(relative_path, storage)
     raise DatasetResolutionError(f"source must be 'local' or 'cloud', got '{source!r}'")
