@@ -23,16 +23,6 @@ VAR_STATIC = "p_mean"
 T_RANGE = ["1990-01-01", "1990-12-31"]
 N_RUNS = 3
 
-# Cloud credentials — set via env vars, never hardcoded
-S3_STORAGE_OPTIONS = dict(
-    key=os.environ["OSS_ACCESS_KEY_ID"],
-    secret=os.environ["OSS_ACCESS_KEY_SECRET"],
-    client_kwargs={"region_name": os.environ.get("OSS_REGION", "cn-beijing")},
-    endpoint_url=os.environ.get(
-        "OSS_ENDPOINT", "https://oss-cn-beijing-internal.aliyuncs.com"
-    ),
-)
-
 # Cache paths — local reads from hydro_setting.yml, cloud from env or default
 try:
     from hydrodataset.configs.settings import get_cache_dir
@@ -49,10 +39,18 @@ CLOUD_CACHE = os.getenv("CLOUD_CACHE_PATH", "camels-us/cache")
 def open_nc(path):
     """Open a NetCDF file — local path or s3:// URI."""
     if str(path).startswith("s3://"):
-        import fsspec
-        fs = fsspec.filesystem("s3", **S3_STORAGE_OPTIONS)
-        with fs.open(path) as f:
-            return xr.open_dataset(f, engine="h5netcdf")
+        from io import BytesIO
+        import s3fs
+        fs = s3fs.S3FileSystem(
+            key=os.environ["OSS_ACCESS_KEY_ID"],
+            secret=os.environ["OSS_ACCESS_KEY_SECRET"],
+            client_kwargs={"region_name": os.environ.get("OSS_REGION", "cn-beijing")},
+            config_kwargs={"s3": {"addressing_style": "virtual"}},
+            endpoint_url=os.environ.get(
+                "OSS_ENDPOINT", "https://oss-cn-beijing-internal.aliyuncs.com"
+            ),
+        )
+        return xr.open_dataset(BytesIO(fs.cat_file(path)), engine="h5netcdf")
     return xr.open_dataset(path)
 
 
