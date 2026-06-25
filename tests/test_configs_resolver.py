@@ -28,8 +28,9 @@ class TestReaderAliases:
         assert READER_ALIASES["camels_us"]["class"] == "CamelsUs"
 
     def test_count_matches_registry(self):
-        # Should have 33 entries matching datasets.yml
-        assert len(READER_ALIASES) == 33
+        # 7 entries (camels_deby, camels_es, mopex, hype, waterbenchiowa,
+        # hyd_responses, jialing) are commented out pending reader migration.
+        assert len(READER_ALIASES) == 26
 
 
 class TestValidateRelativePath:
