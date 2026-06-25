@@ -52,14 +52,16 @@ def get_s3fs():
 
 def open_ds(path, fmt="nc"):
     """Open a dataset — nc or zarr, local or s3://."""
-    if fmt == "zarr" and str(path).startswith("s3://"):
-        return xr.open_dataset(path, engine="zarr", storage_options=dict(
-            key=os.environ["OSS_ACCESS_KEY_ID"],
-            secret=os.environ["OSS_ACCESS_KEY_SECRET"],
-            client_kwargs={"region_name": os.environ.get("OSS_REGION", "cn-beijing")},
-            config_kwargs={"s3": {"addressing_style": "virtual"}},
-            endpoint_url=os.environ.get("OSS_ENDPOINT", "https://oss-cn-beijing-internal.aliyuncs.com"),
-        ), chunks={})
+    if fmt == "zarr":
+        if str(path).startswith("s3://"):
+            return xr.open_dataset(path, engine="zarr", storage_options=dict(
+                key=os.environ["OSS_ACCESS_KEY_ID"],
+                secret=os.environ["OSS_ACCESS_KEY_SECRET"],
+                client_kwargs={"region_name": os.environ.get("OSS_REGION", "cn-beijing")},
+                config_kwargs={"s3": {"addressing_style": "virtual"}},
+                endpoint_url=os.environ.get("OSS_ENDPOINT", "https://oss-cn-beijing-internal.aliyuncs.com"),
+            ), consolidated=False, chunks={})
+        return xr.open_dataset(path, engine="zarr", consolidated=False, chunks={})
     if str(path).startswith("s3://"):
         from io import BytesIO
         fs = get_s3fs()
