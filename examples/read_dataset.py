@@ -11,7 +11,7 @@ Copyright (c) 2023-2026 Wenyu Ouyang. All rights reserved.
 import argparse
 import importlib
 
-from hydrodataset import SETTING
+from hydrodataset import resolve_data_path
 
 DATASET_MAPPING = {
     "camels":("hydrodataset.camels", "Camels"),
@@ -97,8 +97,8 @@ def main():
         print(f"Error: Could not import {class_name} from {module_name}.")
         return
 
-    # To unified the data path for all datasets, we use the datasets-origin path.
-    data_path = SETTING["local_data_path"]["datasets-origin"]
+    # Resolve the dataset's absolute path from hydro_setting.yml
+    data_path = resolve_data_path(args.dataset)
 
     ds = dataset_class(data_path)
 

@@ -261,7 +261,9 @@ def _load_yaml(path: Path) -> Dict[str, Any]:
         return {}
     with path.open("r", encoding="utf-8") as f:
         loaded = yaml.safe_load(f)
-    return loaded or {}
+    if not isinstance(loaded, dict):
+        return {}
+    return loaded
 
 
 def _load_registry(
@@ -454,6 +456,11 @@ def _lookup_relative_path(
     path_val = registry[dataset_id].get("path")
     if not path_val:
         raise DatasetResolutionError(f"Dataset '{dataset_id}' must define 'path'")
+    if not isinstance(path_val, str):
+        raise DatasetResolutionError(
+            f"Dataset '{dataset_id}' path must be a string, got {type(path_val)}"
+        )
+    _validate_relative_path(path_val, dataset_id)
     return path_val
 
 
@@ -484,6 +491,11 @@ def _resolve_local(
     else:
         root_dir = get_local_root()
     if root_dir is None:
+        if storage is not None:
+            raise DatasetResolutionError(
+                "storage.local.root is not configured. "
+                "Set 'local.root' in your ResolverContext.storage dict."
+            )
         raise DatasetResolutionError(
             "storage.local.root is not configured. Set it in ~/hydro_setting.yml"
         )
@@ -523,6 +535,9 @@ def _resolve_cloud(
     prefix = str(s3.get("prefix") or "").strip("/")
     # Normalise Windows back-slashes and strip leading slashes before joining.
     rel = relative_path.replace("\\", "/").strip("/")
+    # Treat "." as empty (bucket root) — avoids s3://bucket/.
+    if rel == ".":
+        rel = ""
     parts = [p for p in (prefix, rel) if p]
     key = str(PurePosixPath(*parts)) if parts else ""
     return f"s3://{bucket}/{key}"

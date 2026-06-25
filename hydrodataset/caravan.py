@@ -212,13 +212,20 @@ class Caravan(HydroDataset):
         -------
         None
         """
+        # download_data_source requires local filesystem operations.
+        # S3 URIs are not supported — skip with a clear message.
+        data_dir = self.data_source_dir
+        if isinstance(data_dir, str) and data_dir.startswith("s3://"):
+            print(f"download_data_source not supported for S3 URI: {data_dir}")
+            return
+        data_dir = Path(data_dir)
         dataset_config = self.data_source_description
-        self.data_source_dir.mkdir(exist_ok=True)
+        data_dir.mkdir(exist_ok=True)
         # Download the zip to the CARAVAN root (2 levels up from the data dir),
         # not to the data directory itself.
         # data_source_dir is e.g. {root}/CARAVAN/Caravan/Caravan,
         # so parent.parent gives {root}/CARAVAN.
-        download_dir = self.data_source_dir.parent.parent
+        download_dir = data_dir.parent.parent
         download_dir.mkdir(exist_ok=True)
         url = dataset_config["DOWNLOAD_URL"]
         fzip = Path(download_dir, url.rsplit("/", 1)[1])

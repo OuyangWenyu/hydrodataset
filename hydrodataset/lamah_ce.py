@@ -384,9 +384,10 @@ class LamahCe(HydroDataset):
         columns_to_keep = ["NEXTDOWNID", "dist_hdn", "elev_diff", "strm_slope"]
         df = df[columns_to_keep]
 
-        # Convert all columns to string type
-        for col in df.columns:
-            df[col] = df[col].astype(str)
+        # Cast NEXTDOWNID to string (identifier), keep numeric columns as float
+        df["NEXTDOWNID"] = df["NEXTDOWNID"].astype(str)
+        for col in ["dist_hdn", "elev_diff", "strm_slope"]:
+            df[col] = pd.to_numeric(df[col], errors="coerce")
 
         # Convert to xarray Dataset
         ds = df.to_xarray()

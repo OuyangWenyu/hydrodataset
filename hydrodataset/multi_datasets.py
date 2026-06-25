@@ -11,9 +11,8 @@ from hydrodataset import (
     HydroDataset,
     DATASETS,
     REGIONS,
-    Camels,
-    CAMELS_NO_DATASET_ERROR_LOG,
 )
+from hydrodataset.camels import Camels, CAMELS_NO_DATASET_ERROR_LOG
 from hydrodataset.lamah_ce import LamahCe
 
 DATASETS_DICT = {
@@ -49,17 +48,17 @@ class MultiDatasets(HydroDataset):
             regions = ["US"]
         if type(regions) != list:
             regions = [regions]
-        if type(data_path) != list:
-            data_path = [data_path]
+        if type(uri) != list:
+            uri = [uri]
         if not set(datasets).issubset(set(DATASETS)):
             raise NotImplementedError("We only support " + DATASETS + " now")
         if not set(regions).issubset(set(REGIONS)):
             raise NotImplementedError("We only support " + REGIONS + " now")
-        if len(data_path) != len(regions):
+        if len(uri) != len(regions):
             raise RuntimeError("Please choose directory for each region")
-        for one_path in data_path:
+        for one_path in uri:
             super().__init__(one_path)
-        self.data_path = data_path
+        self.data_path = uri
         self.datasets = datasets
         self.regions = regions
         self.data_source_description = self.set_data_source_describe()
