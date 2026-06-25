@@ -14,7 +14,6 @@ import time
 from pathlib import Path
 
 import numpy as np
-import s3fs
 import xarray as xr
 
 # ── Config ────────────────────────────────────────────────────────────
@@ -25,11 +24,10 @@ T_RANGE = ["1990-01-01", "1990-12-31"]
 N_RUNS = 3
 
 # Cloud credentials — set via env vars, never hardcoded
-S3_CONFIG = dict(
+S3_STORAGE_OPTIONS = dict(
     key=os.environ["OSS_ACCESS_KEY_ID"],
     secret=os.environ["OSS_ACCESS_KEY_SECRET"],
     client_kwargs={"region_name": os.environ.get("OSS_REGION", "cn-beijing")},
-    config_kwargs={"s3": {"addressing_style": "virtual"}},
     endpoint_url=os.environ.get(
         "OSS_ENDPOINT", "https://oss-cn-beijing-internal.aliyuncs.com"
     ),
@@ -48,16 +46,15 @@ CLOUD_CACHE = os.getenv("CLOUD_CACHE_PATH", "camels-us/cache")
 # ── Helpers ────────────────────────────────────────────────────────────
 
 
-def open_nc(path, engine=None):
+def open_nc(path):
     """Open a NetCDF file — local path or s3:// URI."""
-    kwargs = {}
-    if engine:
-        kwargs["engine"] = engine
     if str(path).startswith("s3://"):
-        fs = s3fs.S3FileSystem(**S3_CONFIG)
-        store = fs.get_mapper(path)
-        return xr.open_dataset(store, engine="h5netcdf")
-    return xr.open_dataset(path, **kwargs)
+        return xr.open_dataset(
+            path,
+            engine="h5netcdf",
+            storage_options=S3_STORAGE_OPTIONS,
+        )
+    return xr.open_dataset(path)
 
 
 def timed(label, fn, n=N_RUNS):
