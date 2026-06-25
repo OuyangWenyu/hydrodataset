@@ -49,11 +49,10 @@ CLOUD_CACHE = os.getenv("CLOUD_CACHE_PATH", "camels-us/cache")
 def open_nc(path):
     """Open a NetCDF file — local path or s3:// URI."""
     if str(path).startswith("s3://"):
-        return xr.open_dataset(
-            path,
-            engine="h5netcdf",
-            storage_options=S3_STORAGE_OPTIONS,
-        )
+        import fsspec
+        fs = fsspec.filesystem("s3", **S3_STORAGE_OPTIONS)
+        with fs.open(path) as f:
+            return xr.open_dataset(f, engine="h5netcdf")
     return xr.open_dataset(path)
 
 
