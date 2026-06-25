@@ -139,6 +139,10 @@ dmypy.json
 *~
 GEMINI.md
 
+# AI assistant local state (never belongs in version control)
+.claude/
+.codegraph/
+
 # OS
 .DS_Store
 Thumbs.db

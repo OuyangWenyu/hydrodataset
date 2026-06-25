@@ -13,6 +13,8 @@ Usage:
 
 from __future__ import annotations
 
+import dataclasses
+import importlib
 from dataclasses import dataclass, field
 from pathlib import Path, PurePosixPath, PureWindowsPath
 from typing import Any, Dict, List, Literal, Optional
@@ -208,6 +210,25 @@ READER_ALIASES: Dict[str, Dict[str, str]] = {
 
 FORBIDDEN_PATH_PATTERNS = {"://", ".."}
 
+
+def _effective_aliases(
+    extra: Optional[Dict[str, Dict[str, str]]] = None,
+) -> Dict[str, Dict[str, str]]:
+    """Return READER_ALIASES merged with any caller-injected extras.
+
+    Args:
+        extra: Additional reader aliases to merge on top of the built-in
+            READER_ALIASES.  Extra entries take precedence on key collision.
+
+    Returns:
+        Merged dict of all known reader aliases.
+    """
+    aliases: Dict[str, Dict[str, str]] = dict(READER_ALIASES)
+    if extra:
+        aliases.update(extra)
+    return aliases
+
+
 # Default dataset registry (33 entries).
 # Maps dataset_id -> {"reader": <reader_alias>, "path": <relative_path>}.
 # This is the authoritative registry for hydrodataset-served datasets.
@@ -322,9 +343,7 @@ def _load_registry(
             "No datasets registered. Create configs/datasets.yml in your project."
         )
 
-    effective_aliases = dict(READER_ALIASES)
-    if extra_reader_aliases:
-        effective_aliases.update(extra_reader_aliases)
+    effective_aliases = _effective_aliases(extra_reader_aliases)
 
     for dataset_id, spec in registry.items():
         if not isinstance(spec, dict):
@@ -589,7 +608,9 @@ def resolve_data_path(
     ctx = ctx or ResolverContext()
     # Resolve storage: explicit ctx.storage wins; otherwise load from layered
     # YAML files (~/hydro_setting.yml → {project_root}/.hydro_setting.yml).
-    storage = ctx.storage if ctx.storage is not None else _load_storage(ctx.project_root)
+    storage = (
+        ctx.storage if ctx.storage is not None else _load_storage(ctx.project_root)
+    )
     reg = ctx.registry or _load_registry(
         ctx.project_root,
         extra_dicts=ctx.extra_registry_dicts,
@@ -600,4 +621,85 @@ def resolve_data_path(
         return _resolve_local(relative_path, storage)
     if source == "cloud":
         return _resolve_cloud(relative_path, storage)
-    raise DatasetResolutionError(f"source must be 'local' or 'cloud', got '{source!r}'")
+    raise DatasetResolutionError(f"source must be 'local' or 'cloud', got {source!r}")
+
+
+def open_dataset(
+    dataset_id: str,
+    *,
+    source: Source = "local",
+    ctx: Optional[ResolverContext] = None,
+    **reader_kwargs: Any,
+):
+    """Resolve a dataset id and return an instantiated reader object.
+
+    Combines ``resolve_data_path`` with dynamic import of the reader class
+    registered in ``READER_ALIASES``.  The reader class is looked up via the
+    registry entry's ``"reader"`` field so that ``dataset_id`` and reader alias
+    need not be identical (e.g. ``songliao_event`` -> reader ``floodevent``).
+
+    Parameters
+    ----------
+    dataset_id : str
+        Dataset identifier from the registry (e.g. ``'camels_us'``,
+        ``'songliao_event'``).
+    source : 'local' | 'cloud'
+        Storage backend passed to ``resolve_data_path``.
+    ctx : ResolverContext, optional
+        Pre-built resolver context.  ``extra_reader_aliases`` in the context
+        is merged with the built-in ``READER_ALIASES`` before looking up the
+        reader class, so callers that inject additional aliases (e.g.
+        hydrodatasource) see their own readers automatically.
+    **reader_kwargs
+        Extra keyword arguments forwarded verbatim to the reader constructor
+        (e.g. ``time_unit=["1D"]`` for ``SelfMadeHydroDataset``).
+
+    Returns
+    -------
+    object
+        An instance of the reader class registered for *dataset_id*.
+
+    Raises
+    ------
+    DatasetResolutionError
+        If the dataset id is unknown, the reader alias is unrecognised, or
+        path resolution fails.
+
+    Examples
+    --------
+    >>> ds = open_dataset("camels_us")
+    >>> ds = open_dataset("songliao_event", source="cloud")
+    >>> ds = open_dataset("selfmade_basin", time_unit=["1D"])
+    """
+    ctx = ctx or ResolverContext()
+    reg = ctx.registry or _load_registry(
+        ctx.project_root,
+        extra_dicts=ctx.extra_registry_dicts,
+        extra_reader_aliases=ctx.extra_reader_aliases,
+    )
+    if dataset_id not in reg:
+        known = ", ".join(sorted(reg))
+        raise DatasetResolutionError(
+            f"Unknown dataset id '{dataset_id}'. Known datasets: {known}"
+        )
+    reader_alias = reg[dataset_id].get("reader")
+    aliases = _effective_aliases(ctx.extra_reader_aliases)
+    if not reader_alias or reader_alias not in aliases:
+        raise DatasetResolutionError(
+            f"Unknown reader alias '{reader_alias}' for dataset '{dataset_id}'"
+        )
+    spec = aliases[reader_alias]
+    try:
+        module = importlib.import_module(spec["module"])
+        cls = getattr(module, spec["class"])
+    except (ImportError, AttributeError) as e:
+        raise DatasetResolutionError(
+            f"Failed to load reader '{reader_alias}' "
+            f"({spec['module']}.{spec['class']}) for dataset '{dataset_id}': {e}"
+        ) from e
+    # Pass the already-built registry to avoid a second _load_registry call.
+    resolve_ctx = (
+        ctx if ctx.registry is not None else dataclasses.replace(ctx, registry=reg)
+    )
+    uri = resolve_data_path(dataset_id, source=source, ctx=resolve_ctx)
+    return cls(uri=uri, **reader_kwargs)

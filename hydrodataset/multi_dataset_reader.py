@@ -1,13 +1,12 @@
 """Read timeseries from multiple datasets via unified station-ID lookup.
 
-Uses the ADR 0001 resolver (``resolve_data_path``) and the built-in
-``READER_ALIASES`` / ``_DEFAULT_REGISTRY`` instead of the removed
+Uses the ADR 0001 resolver (``open_dataset`` / ``resolve_data_path``) and the
+built-in ``READER_ALIASES`` / ``_DEFAULT_REGISTRY`` instead of the removed
 ``SETTING`` global and custom ``DATASET_MAPPING``.
 """
 
 from __future__ import annotations
 
-import importlib
 import json
 from pathlib import Path
 from typing import Dict, List, Optional
@@ -16,8 +15,8 @@ import numpy as np
 import pandas as pd
 
 from hydrodataset import StandardVariable
-from hydrodataset.configs.data_resolver import READER_ALIASES
-from hydrodataset.configs.data_resolver import resolve_data_path
+from hydrodataset.configs.data_resolver import READER_ALIASES, open_dataset
+from hydrodataset.configs.data_resolver import _load_registry
 from hydrodataset.configs.settings import get_cache_dir
 
 
@@ -49,13 +48,15 @@ class MultiDatasetReader:
         self.cache_dir = Path(cache_dir if cache_dir is not None else get_cache_dir())
         self.cache_dir.mkdir(parents=True, exist_ok=True)
 
-        # Build the list of usable dataset ids from the built-in registry
-        from hydrodataset.configs.data_resolver import _load_registry  # noqa: F811
-
+        # Build the list of usable dataset ids from the built-in registry.
+        # A dataset is available when its registered reader alias exists in
+        # READER_ALIASES — not when the dataset_id itself is an alias key.
         _reg = _load_registry(Path.cwd())
 
         available = sorted(
-            k for k in _reg if k in READER_ALIASES
+            k
+            for k, spec in _reg.items()
+            if isinstance(spec, dict) and spec.get("reader") in READER_ALIASES
         )
 
         if datasets is None:
@@ -64,8 +65,7 @@ class MultiDatasetReader:
             invalid = [d for d in datasets if d not in available]
             if invalid:
                 raise ValueError(
-                    f"Unknown dataset ids: {invalid}. "
-                    f"Available: {available}"
+                    f"Unknown dataset ids: {invalid}. " f"Available: {available}"
                 )
             self.datasets = datasets
 
@@ -102,9 +102,7 @@ class MultiDatasetReader:
         print(f"\nSaved to: {self._id_cache_file}")
         return id_mapping
 
-    def get_global_unique_ids(
-        self, id_mapping: Optional[Dict[str, List[str]]] = None
-    ):
+    def get_global_unique_ids(self, id_mapping: Optional[Dict[str, List[str]]] = None):
         """Map every station ID to the first dataset it belongs to.
 
         Returns
@@ -131,9 +129,7 @@ class MultiDatasetReader:
                     unique_ids[sid] = dataset_name
 
         if duplicates:
-            print(
-                f"\nFound {len(duplicates)} duplicate IDs across datasets"
-            )
+            print(f"\nFound {len(duplicates)} duplicate IDs across datasets")
             for sid, dss in list(duplicates.items())[:5]:
                 print(f"  ID '{sid}' appears in: {', '.join(dss)}")
             if len(duplicates) > 5:
@@ -179,10 +175,7 @@ class MultiDatasetReader:
 
         results: Dict[str, pd.DataFrame] = {}
         for dataset_id, ids in dataset_ids.items():
-            print(
-                f"\nReading data from {dataset_id} "
-                f"for {len(ids)} stations..."
-            )
+            print(f"\nReading data from {dataset_id} " f"for {len(ids)} stations...")
             try:
                 ds = self._get_dataset(dataset_id)
                 ts_data = ds.read_ts_xrdataset(
@@ -205,8 +198,10 @@ class MultiDatasetReader:
     # ------------------------------------------------------------------
 
     def _get_dataset(self, dataset_id: str):
-        """Construct a dataset instance for *dataset_id* via the resolver."""
-        spec = READER_ALIASES[dataset_id]
-        module = importlib.import_module(spec["module"])
-        cls = getattr(module, spec["class"])
-        return cls(uri=resolve_data_path(dataset_id, source=self.source))
+        """Construct a dataset instance for *dataset_id* via the resolver.
+
+        Uses ``open_dataset`` so that the reader class is looked up through
+        the registry entry's ``"reader"`` field rather than assuming
+        ``dataset_id == reader_alias``.
+        """
+        return open_dataset(dataset_id, source=self.source)

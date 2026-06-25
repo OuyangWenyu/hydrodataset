@@ -31,6 +31,7 @@ from hydrodataset.configs.data_resolver import (
     DatasetResolutionError,
     ResolverContext,
     resolve_data_path,
+    open_dataset,
 )
 
 # set some constants for datasets

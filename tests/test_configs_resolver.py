@@ -11,6 +11,7 @@ from hydrodataset.configs.data_resolver import (
     ResolverContext,
     _DEFAULT_REGISTRY,
     _validate_relative_path,
+    open_dataset,
     resolve_data_path,
 )
 
@@ -328,3 +329,167 @@ class TestResolverContext:
         )
         with pytest.raises(DatasetResolutionError, match="source"):
             resolve_data_path("camels_us", source="ftp", ctx=ctx)
+
+
+class TestOpenDataset:
+    """Tests for the open_dataset factory function."""
+
+    @pytest.fixture
+    def fake_reader_ctx(self, tmp_path):
+        """Build a ResolverContext with an in-memory fake reader and registry.
+
+        Injects a dummy reader alias and a matching dataset entry so tests
+        do not touch the filesystem or any real dataset classes.
+        """
+
+        class FakeDataset:
+            def __init__(self, uri, **kwargs):
+                self.uri = uri
+                self.extra = kwargs
+
+        dataset_dir = tmp_path / "fake_data"
+        dataset_dir.mkdir()
+
+        ctx = ResolverContext(
+            storage={"local": {"root": str(tmp_path)}},
+            extra_registry_dicts=[
+                {"fake_ds": {"reader": "fake_reader", "path": "fake_data"}}
+            ],
+            extra_reader_aliases={
+                "fake_reader": {
+                    "module": "tests.test_configs_resolver",
+                    "class": "_FakeDataset",
+                    "category": "test",
+                }
+            },
+        )
+        return ctx, FakeDataset, dataset_dir
+
+    def test_open_dataset_uses_registry_reader_not_id(self, tmp_path):
+        """open_dataset resolves reader via registry, not dataset_id key.
+
+        Verifies the fix for the bug where dataset_id was used directly as
+        the READER_ALIASES key (fails when id != alias, e.g. songliao_event).
+        """
+        # Build a fake reader whose alias differs from the dataset_id.
+        dataset_dir = tmp_path / "my_data"
+        dataset_dir.mkdir()
+
+        constructed = {}
+
+        class FakeReader:
+            def __init__(self, uri, **kwargs):
+                constructed["uri"] = uri
+                constructed["kwargs"] = kwargs
+
+        import sys
+        import types
+
+        fake_mod = types.ModuleType("_fake_open_dataset_mod")
+        fake_mod.FakeReader = FakeReader
+        sys.modules["_fake_open_dataset_mod"] = fake_mod
+
+        ctx = ResolverContext(
+            storage={"local": {"root": str(tmp_path)}},
+            # dataset_id is "different_id", reader alias is "fake_alias"
+            extra_registry_dicts=[
+                {"different_id": {"reader": "fake_alias", "path": "my_data"}}
+            ],
+            extra_reader_aliases={
+                "fake_alias": {
+                    "module": "_fake_open_dataset_mod",
+                    "class": "FakeReader",
+                    "category": "test",
+                }
+            },
+        )
+
+        result = open_dataset("different_id", ctx=ctx)
+        assert isinstance(result, FakeReader)
+        assert constructed["uri"] == str(dataset_dir)
+
+        del sys.modules["_fake_open_dataset_mod"]
+
+    def test_open_dataset_unknown_id_raises(self, tmp_path):
+        """Unknown dataset id raises DatasetResolutionError."""
+        ctx = ResolverContext(storage={"local": {"root": str(tmp_path)}})
+        with pytest.raises(DatasetResolutionError, match="Unknown dataset id"):
+            open_dataset("nonexistent_xyz", ctx=ctx)
+
+    def test_open_dataset_forwards_reader_kwargs(self, tmp_path):
+        """Extra kwargs are forwarded verbatim to the reader constructor."""
+        dataset_dir = tmp_path / "kwarg_data"
+        dataset_dir.mkdir()
+
+        received = {}
+
+        class KwargReader:
+            def __init__(self, uri, time_unit=None, **kwargs):
+                received["uri"] = uri
+                received["time_unit"] = time_unit
+
+        import sys
+        import types
+
+        mod = types.ModuleType("_kwarg_reader_mod")
+        mod.KwargReader = KwargReader
+        sys.modules["_kwarg_reader_mod"] = mod
+
+        ctx = ResolverContext(
+            storage={"local": {"root": str(tmp_path)}},
+            extra_registry_dicts=[
+                {"kwarg_ds": {"reader": "kwarg_reader", "path": "kwarg_data"}}
+            ],
+            extra_reader_aliases={
+                "kwarg_reader": {
+                    "module": "_kwarg_reader_mod",
+                    "class": "KwargReader",
+                    "category": "test",
+                }
+            },
+        )
+
+        open_dataset("kwarg_ds", ctx=ctx, time_unit=["1D"])
+        assert received["time_unit"] == ["1D"]
+
+        del sys.modules["_kwarg_reader_mod"]
+
+    def test_open_dataset_cloud_uri(self, tmp_path):
+        """open_dataset passes an S3 URI to the reader for cloud source."""
+        received = {}
+
+        class CloudReader:
+            def __init__(self, uri, **kwargs):
+                received["uri"] = uri
+
+        import sys
+        import types
+
+        mod = types.ModuleType("_cloud_reader_mod")
+        mod.CloudReader = CloudReader
+        sys.modules["_cloud_reader_mod"] = mod
+
+        ctx = ResolverContext(
+            storage={"s3": {"bucket": "my-bucket", "prefix": "data"}},
+            extra_registry_dicts=[
+                {"cloud_ds": {"reader": "cloud_reader", "path": "subdir/cloud_ds"}}
+            ],
+            extra_reader_aliases={
+                "cloud_reader": {
+                    "module": "_cloud_reader_mod",
+                    "class": "CloudReader",
+                    "category": "test",
+                }
+            },
+        )
+
+        open_dataset("cloud_ds", source="cloud", ctx=ctx)
+        assert received["uri"] == "s3://my-bucket/data/subdir/cloud_ds"
+
+        del sys.modules["_cloud_reader_mod"]
+
+    def test_open_dataset_exported_from_package(self):
+        """open_dataset is importable from the top-level hydrodataset package."""
+        from hydrodataset import open_dataset as pkg_open
+
+        assert pkg_open is open_dataset

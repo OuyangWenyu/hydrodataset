@@ -1,108 +1,31 @@
-r"""
-Author: Wenyu Ouyang
-Date: 2025-10-19 17:09:08
-LastEditTime: 2025-10-19 17:09:48
-LastEditors: Wenyu Ouyang
-Description: Read data from a specified dataset
-FilePath: \hydrodataset\examples\read_dataset.py
-Copyright (c) 2023-2026 Wenyu Ouyang. All rights reserved.
+"""Read data from a specified dataset via the unified open_dataset factory.
+
+Usage:
+    python read_dataset.py camels_us
+    python read_dataset.py lamah_ce
 """
 
 import argparse
-import importlib
 
-from hydrodataset import resolve_data_path
-
-DATASET_MAPPING = {
-    "camels":("hydrodataset.camels", "Camels"),
-    "camels_aus": ("hydrodataset.camels_aus", "CamelsAus"),
-    "camels_br": ("hydrodataset.camels_br", "CamelsBr"),
-    "camels_ch": ("hydrodataset.camels_ch", "CamelsCh"),
-    "camels_cl": ("hydrodataset.camels_cl", "CamelsCl"),
-    "camels_col": ("hydrodataset.camels_col", "CamelsCol"),
-    "camels_de": ("hydrodataset.camels_de", "CamelsDe"),
-    "camels_dk": ("hydrodataset.camels_dk", "CamelsDk"),
-    "camels_fi": ("hydrodataset.camels_fi", "CamelsFi"),
-    "camels_fr": ("hydrodataset.camels_fr", "CamelsFr"),
-    "camels_gb": ("hydrodataset.camels_gb", "CamelsGb"),
-    "camels_ind": ("hydrodataset.camels_ind", "CamelsInd"),
-    "camels_lux": ("hydrodataset.camels_lux", "CamelsLux"),
-    "camels_nz": ("hydrodataset.camels_nz", "CamelsNz"),
-    "camels_se": ("hydrodataset.camels_se", "CamelsSe"),
-    "camels_us": ("hydrodataset.camels_us", "CamelsUs"),
-    "camelsh_kr": ("hydrodataset.camelsh_kr", "CamelshKr"),
-    "camelsh": ("hydrodataset.camelsh", "Camelsh"),
-    "caravan": ("hydrodataset.caravan", "Caravan"),
-    "grdc_caravan": ("hydrodataset.grdc_caravan", "GrdcCaravan"),
-    "hysets": ("hydrodataset.hysets", "Hysets"),
-    "lamah_ce": ("hydrodataset.lamah_ce", "LamahCe"),
-    "lamah_ice": ("hydrodataset.lamah_ice", "LamahIce"),
-    "mopex": ("hydrodataset.mopex", "Mopex"),
-    "bull": ("hydrodataset.bull", "BULL"),
-    "caravan_dk": ("hydrodataset.caravan_dk", "CaravanDK"),
-    "hysets": ("hydrodataset.hysets", "Hysets"),
-    "estreams": ("hydrodataset.estreams", "Estreams"),
-    "hype": ("hydrodataset.hype", "Hype"),
-    "jialing": ("hydrodataset.jialingriverchina", "jialingriverchina"),
-    "simbi": ("hydrodataset.simbi", "simbi"),
-    "waterbenchiowa": ("hydrodataset.waterbenchiowa", "waterbenchiowa"),
-    "camels_es": ("hydrodataset.camels_es", "CamelsEs"),
-    "hyd_responses": ("hydrodataset.hyd_responses", "HydResponses"),
-    "camels_deby": ("hydrodataset.camels_deby", "CamelsDeby"),
-}
+from hydrodataset import open_dataset
+from hydrodataset.configs.data_resolver import _DEFAULT_REGISTRY
 
 
 def main():
+    available = sorted(_DEFAULT_REGISTRY.keys())
+
     parser = argparse.ArgumentParser(description="Read data from a specified dataset.")
     parser.add_argument(
         "dataset",
-        nargs="?",  # make it optional
-        # default="camels_aus",  # change this to test different datasets
-        # default="camels_br",
-        # default="camels_ch",
-        # default="camels_cl",
-        # default="camels_col",
-        # default="camels_de",
-        # default="camels_dk",
-        # default="camels_fi",
-        # default="camels_fr",
-        # default="camels_gb",
-        # default="camels_ind",
-        # default="camels_lux",
-        # default="camels_nz",
-        # default="camels_se",
-        # default="camels_us",
-        # default="camelsh_kr",
-        # default="camelsh",
-        # default="bull",
-        # default="caravan_dk",
-        # default="hysets",
-        # default="estreams",
-        # default="lamah_ice",
-        # default="simbi",
+        nargs="?",
         default="lamah_ce",
-        # default="grdc_caravan",
-        # default="camels",
         help="Name of the dataset to read.",
-        choices=DATASET_MAPPING.keys(),
+        choices=available,
     )
     args = parser.parse_args()
 
-    module_name, class_name = DATASET_MAPPING[args.dataset]
-
-    try:
-        module = importlib.import_module(module_name)
-        dataset_class = getattr(module, class_name)
-    except ImportError:
-        print(f"Error: Could not import {class_name} from {module_name}.")
-        return
-
-    # Resolve the dataset's absolute path from hydro_setting.yml
-    data_path = resolve_data_path(args.dataset)
-
-    ds = dataset_class(data_path)
-
     print(f"Reading from {args.dataset} dataset...")
+    ds = open_dataset(args.dataset)
 
     gage_ids = ds.read_object_ids()
     print("Gage IDs:")
@@ -149,13 +72,6 @@ def main():
     mean_prcp = ds.read_mean_prcp(gage_id_lst=gage_ids[:2])
     print(mean_prcp)
     print("--------------------------------")
-
-    # stations=ds.read_stations_xrdataset(
-    #   station_id_lst=["3", "4"],
-    # )
-    # print(stations)
-    # print("--------------------------------")
-    # print(stations.NEXTDOWNID.values)
 
 
 if __name__ == "__main__":
