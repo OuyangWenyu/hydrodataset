@@ -13,8 +13,9 @@ Usage:
 
 from __future__ import annotations
 
-from pathlib import PurePosixPath, PureWindowsPath, Path
-from typing import Any, Dict, List, Optional
+from dataclasses import dataclass, field
+from pathlib import Path, PurePosixPath, PureWindowsPath
+from typing import Any, Dict, List, Literal, Optional
 
 import yaml
 
@@ -266,13 +267,18 @@ def _load_yaml(path: Path) -> Dict[str, Any]:
 def _load_registry(
     project_root: Path,
     extra_dicts: Optional[List[Dict[str, Dict[str, str]]]] = None,
+    extra_reader_aliases: Optional[Dict[str, Dict[str, str]]] = None,
 ) -> Dict[str, Dict[str, Any]]:
-    """Build dataset registry with three-layer override.
+    """Build and validate the dataset registry with three-layer override.
 
     Cascade order (higher overrides lower):
     1. _DEFAULT_REGISTRY (built-in Python dict, 33 entries)
     2. extra_dicts (injected by callers, e.g. hydrodatasource)
     3. {project_root}/configs/datasets.yml (user project override, YAML)
+
+    Every entry is validated for required fields, a known reader alias, and a
+    safe relative path immediately after the merge so that per-dataset lookup is
+    a plain dict access with no repeated validation.
 
     Parameters
     ----------
@@ -281,16 +287,19 @@ def _load_registry(
     extra_dicts : list of dict, optional
         Additional registry dicts injected between the default and user
         YAML.  Each dict maps dataset_id -> {'reader': ..., 'path': ...}.
+    extra_reader_aliases : dict, optional
+        Additional reader aliases to merge with READER_ALIASES before
+        validating the registry entries.
 
     Returns
     -------
     dict
-        Merged dataset registry.
+        Merged and validated dataset registry.
 
     Raises
     ------
     DatasetResolutionError
-        If the merged registry is empty.
+        If the merged registry is empty or any entry is invalid.
     """
     registry = dict(_DEFAULT_REGISTRY)
 
@@ -310,6 +319,24 @@ def _load_registry(
         raise DatasetResolutionError(
             "No datasets registered. Create configs/datasets.yml in your project."
         )
+
+    effective_aliases = dict(READER_ALIASES)
+    if extra_reader_aliases:
+        effective_aliases.update(extra_reader_aliases)
+
+    for dataset_id, spec in registry.items():
+        reader = spec.get("reader")
+        if not reader:
+            raise DatasetResolutionError(f"Dataset '{dataset_id}' must define 'reader'")
+        if reader not in effective_aliases:
+            raise DatasetResolutionError(
+                f"Unknown reader alias '{reader}' for dataset '{dataset_id}'"
+            )
+        path_val = spec.get("path")
+        if not path_val:
+            raise DatasetResolutionError(f"Dataset '{dataset_id}' must define 'path'")
+        _validate_relative_path(path_val, dataset_id)
+
     return registry
 
 
@@ -334,120 +361,214 @@ def _validate_relative_path(path_value: str, dataset_id: str) -> None:
         )
 
 
-def resolve_data_path(
-    dataset_id: str,
-    *,
-    source: str = "local",
-    project_root: Optional[str] = None,
-    local_root: Optional[str] = None,
-    registry: Optional[Dict[str, Dict[str, Any]]] = None,
-    extra_registry_dicts: Optional[List[Dict[str, Dict[str, str]]]] = None,
-    extra_reader_aliases: Optional[Dict[str, Dict[str, str]]] = None,
-) -> str:
-    """Resolve a dataset id to an absolute data path.
+def _load_storage(project_root: Path) -> Dict[str, Any]:
+    """Load layered storage configuration.
 
-    Combines the dataset registry entry with storage configuration
-    to produce a single absolute path. Follows the same contract as
-    hydromodel's resolve_data_cfgs.
+    Merges storage config from two sources (last wins):
+    1. ``~/hydro_setting.yml`` (user-level)
+    2. ``{project_root}/.hydro_setting.yml`` (project-level override)
 
     Parameters
     ----------
-    dataset_id : str
-        Dataset identifier from the registry (e.g. 'camels_us').
-    source : str
-        Storage backend: 'local' or 'cloud'.
-    project_root : str, optional
-        Root of the calling project (for finding configs/datasets.yml).
-        Defaults to current working directory.
-    local_root : str, optional
-        Override for the local storage root. When provided, skips reading
-        storage settings and uses this path directly. Only applies when
-        source is 'local'.
-    registry : dict, optional
-        Pre-loaded dataset registry. When provided, skips _load_registry().
-    extra_registry_dicts : list of dict, optional
-        Additional dataset registry dicts to merge on top of the default
-        registry. Each dict maps dataset_id -> {'reader': ..., 'path': ...}.
-        Allows other packages (e.g. hydrodatasource) to register their own
-        datasets without touching hydrodataset internals.
-    extra_reader_aliases : dict, optional
-        Additional reader aliases to merge with READER_ALIASES during
-        validation. Allows callers that have their own reader classes
-        (e.g. hydrodatasource's 11 readers) to pass validation.
+    project_root : Path
+        Root of the calling project.
 
     Returns
     -------
-    str
-        Absolute path (local source) or S3 URI (cloud source) pointing
-        to the dataset's data directory.
-
-    Raises
-    ------
-    DatasetResolutionError
-        If any resolution step fails.
+    dict
+        Merged storage configuration (may be empty).
     """
-    if source not in {"local", "cloud"}:
-        raise DatasetResolutionError(
-            f"source must be 'local' or 'cloud', got '{source}'"
-        )
+    from hydrodataset.configs.settings import DEFAULT_SETTING_PATH
 
-    if local_root is not None:
-        local_root = Path(local_root)
+    layers = [
+        DEFAULT_SETTING_PATH,
+        project_root / ".hydro_setting.yml",
+    ]
+    storage: Dict[str, Any] = {}
+    for layer in layers:
+        data = _load_yaml(layer)
+        layer_storage = data.get("storage")
+        if isinstance(layer_storage, dict):
+            storage.update(layer_storage)
+    return storage
 
-    if registry is None:
-        root = Path(project_root) if project_root else Path.cwd()
-        registry = _load_registry(root, extra_dicts=extra_registry_dicts)
 
+Source = Literal["local", "cloud"]
+
+
+@dataclass(frozen=True)
+class ResolverContext:
+    """Immutable bundle of pre-resolved resolver inputs.
+
+    Pass an instance via the ``ctx`` parameter of ``resolve_data_path`` to
+    control registry loading, storage configuration, and reader extension.
+
+    Attributes:
+        project_root: Root directory used to locate
+            ``configs/datasets.yml``.  Defaults to the current working
+            directory at instantiation time.
+        storage: Pre-resolved storage configuration dict (same shape as the
+            ``storage:`` block in ``hydro_setting.yml``).  When None, storage
+            is loaded from ``~/hydro_setting.yml`` at resolve time.
+        registry: Pre-loaded dataset registry.  When None, the registry is
+            built from ``_DEFAULT_REGISTRY`` + ``extra_registry_dicts`` +
+            the project YAML at resolve time.
+        extra_registry_dicts: Additional registry dicts injected on top of
+            the default registry.
+        extra_reader_aliases: Additional reader aliases merged with
+            ``READER_ALIASES`` during registry validation.
+    """
+
+    project_root: Path = field(default_factory=Path.cwd)
+    storage: Optional[Dict[str, Any]] = None
+    registry: Optional[Dict[str, Dict[str, Any]]] = None
+    extra_registry_dicts: Optional[List[Dict[str, Dict[str, str]]]] = None
+    extra_reader_aliases: Optional[Dict[str, Dict[str, str]]] = None
+
+
+def _lookup_relative_path(
+    registry: Dict[str, Dict[str, Any]],
+    dataset_id: str,
+) -> str:
+    """Return the relative path for a dataset from the registry.
+
+    Assumes the registry was produced by ``_load_registry`` and is therefore
+    already validated.  When a pre-built registry is supplied by the caller,
+    a basic existence check is still performed.
+
+    Args:
+        registry: Merged (and ideally pre-validated) dataset registry.
+        dataset_id: Dataset identifier to look up.
+
+    Returns:
+        Relative path string for the dataset.
+
+    Raises:
+        DatasetResolutionError: If the dataset is unknown or has no path.
+    """
     if dataset_id not in registry:
         known = ", ".join(sorted(registry))
         raise DatasetResolutionError(
             f"Unknown dataset id '{dataset_id}'. Known datasets: {known}"
         )
-
-    dataset_spec = registry[dataset_id]
-    reader = dataset_spec.get("reader")
-    if not reader:
-        raise DatasetResolutionError(f"Dataset '{dataset_id}' must define 'reader'")
-
-    effective_aliases = dict(READER_ALIASES)
-    if extra_reader_aliases:
-        effective_aliases.update(extra_reader_aliases)
-    if reader not in effective_aliases:
-        raise DatasetResolutionError(
-            f"Unknown reader alias '{reader}' for dataset '{dataset_id}'"
-        )
-
-    relative_path = dataset_spec.get("path")
-    if not relative_path:
+    path_val = registry[dataset_id].get("path")
+    if not path_val:
         raise DatasetResolutionError(f"Dataset '{dataset_id}' must define 'path'")
-    _validate_relative_path(relative_path, dataset_id)
+    return path_val
 
-    if source == "local":
-        root_dir = local_root if local_root is not None else get_local_root()
-        if root_dir is None:
-            raise DatasetResolutionError(
-                "storage.local.root is not configured. Set it in ~/hydro_setting.yml"
-            )
-        if not root_dir.exists():
-            raise DatasetResolutionError(
-                f"storage.local.root does not exist: {root_dir}"
-            )
-        resolved = root_dir / relative_path
-        if not resolved.exists():
-            raise DatasetResolutionError(
-                f"Resolved dataset path does not exist: {resolved}"
-            )
-        return str(resolved)
 
-    # cloud source
-    storage = get_storage_config()
-    s3 = storage.get("s3")
+def _resolve_local(
+    relative_path: str,
+    storage: Optional[Dict[str, Any]],
+) -> str:
+    """Resolve a dataset path against the local storage root.
+
+    Callers pass storage via ``ResolverContext.storage``, which is the
+    single, consistent source this function reads from.
+
+    Args:
+        relative_path: Validated relative path from the registry.
+        storage: Storage config dict.  Uses ``storage['local']['root']`` when
+            present, otherwise falls back to ``get_local_root()``.
+
+    Returns:
+        Absolute local filesystem path string.
+
+    Raises:
+        DatasetResolutionError: If root is unconfigured, missing, or the
+            resolved dataset path does not exist.
+    """
+    if storage is not None and isinstance(storage.get("local"), dict):
+        root_str = storage["local"].get("root")
+        root_dir: Optional[Path] = Path(root_str) if root_str else None
+    else:
+        root_dir = get_local_root()
+    if root_dir is None:
+        raise DatasetResolutionError(
+            "storage.local.root is not configured. Set it in ~/hydro_setting.yml"
+        )
+    if not root_dir.exists():
+        raise DatasetResolutionError(f"storage.local.root does not exist: {root_dir}")
+    resolved = root_dir / relative_path
+    if not resolved.exists():
+        raise DatasetResolutionError(
+            f"Resolved dataset path does not exist: {resolved}"
+        )
+    return str(resolved)
+
+
+def _resolve_cloud(
+    relative_path: str,
+    storage: Optional[Dict[str, Any]],
+) -> str:
+    """Build an S3 URI for the dataset.
+
+    Args:
+        relative_path: Validated relative path from the registry.
+        storage: Storage config dict; must contain ``s3.bucket``.
+
+    Returns:
+        S3 URI string in the form ``s3://bucket/[prefix/]path``.
+
+    Raises:
+        DatasetResolutionError: If S3 config is absent or incomplete.
+    """
+    storage_cfg = storage if storage is not None else get_storage_config()
+    s3 = storage_cfg.get("s3")
     if not isinstance(s3, dict):
         raise DatasetResolutionError("storage.s3 is required for cloud source")
     bucket = s3.get("bucket")
     if not bucket:
         raise DatasetResolutionError("storage.s3.bucket is required")
     prefix = str(s3.get("prefix") or "").strip("/")
+    # Normalise Windows back-slashes and strip leading slashes before joining.
     rel = relative_path.replace("\\", "/").strip("/")
-    path = f"{prefix}/{rel}" if prefix else rel
-    return f"s3://{bucket}/{path}"
+    parts = [p for p in (prefix, rel) if p]
+    key = str(PurePosixPath(*parts)) if parts else ""
+    return f"s3://{bucket}/{key}"
+
+
+def resolve_data_path(
+    dataset_id: str,
+    *,
+    source: Source = "local",
+    ctx: Optional[ResolverContext] = None,
+) -> str:
+    """Resolve a dataset id to an absolute data path.
+
+    Combines the dataset registry entry with storage configuration to produce
+    a single absolute path.
+
+    Parameters
+    ----------
+    dataset_id : str
+        Dataset identifier from the registry (e.g. 'camels_us').
+    source : 'local' | 'cloud'
+        Storage backend.
+    ctx : ResolverContext, optional
+        Pre-built resolver context.  When None, defaults are used (loads
+        storage from ``~/hydro_setting.yml`` and builds registry from
+        ``_DEFAULT_REGISTRY``).
+
+    Returns
+    -------
+    str
+        Absolute path (local source) or S3 URI (cloud source).
+
+    Raises
+    ------
+    DatasetResolutionError
+        If any resolution step fails.
+    """
+    ctx = ctx or ResolverContext()
+    reg = ctx.registry or _load_registry(
+        ctx.project_root,
+        extra_dicts=ctx.extra_registry_dicts,
+        extra_reader_aliases=ctx.extra_reader_aliases,
+    )
+    relative_path = _lookup_relative_path(reg, dataset_id)
+    if source == "local":
+        return _resolve_local(relative_path, ctx.storage)
+    if source == "cloud":
+        return _resolve_cloud(relative_path, ctx.storage)
+    raise DatasetResolutionError(f"source must be 'local' or 'cloud', got '{source!r}'")

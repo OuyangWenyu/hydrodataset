@@ -8,25 +8,35 @@ This guide provides comprehensive examples for using hydrodataset in your projec
 
 First, ensure you have a `hydro_setting.yml` file in your home directory:
 
+**Windows**: `C:\Users\YourUsername\hydro_setting.yml`
+**Linux/Mac**: `~/hydro_setting.yml`
+
 ```yaml
-local_data_path:
-  root: 'D:\data\waterism'                    # Your root data directory
-  datasets-origin: 'D:\data\waterism\datasets-origin'  # Raw data location
-  cache: 'D:\data\waterism\cache'             # Cache directory for .nc files
+storage:
+  local:
+    root: D:/data/hydrodatasets   # root directory that contains all dataset folders
+  cache: cache                    # relative to local.root, or an absolute path
 ```
 
 ### Import and Initialize
 
+Use `resolve_data_path` to turn a dataset identifier into an absolute path, then
+pass that path to the dataset class:
+
 ```python
+from hydrodataset import resolve_data_path
 from hydrodataset.camels_us import CamelsUs
-from hydrodataset import SETTING
 
-# Access configured paths
-data_path = SETTING["local_data_path"]["datasets-origin"]
+# Resolve the path from your hydro_setting.yml
+data_path = resolve_data_path("camels_us")
 
-# Initialize dataset
+# Initialize the dataset
 ds = CamelsUs(data_path)
 ```
+
+`resolve_data_path` reads `storage.local.root` from `~/hydro_setting.yml` and
+appends the dataset's registered sub-path automatically.  No need to construct
+paths by hand.
 
 ## Exploring Available Data
 

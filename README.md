@@ -103,17 +103,17 @@ The primary goal of `hydrodataset` is to provide a simple, unified API for acces
 ### Basic Example
 
 ```python
+from hydrodataset import resolve_data_path
 from hydrodataset.camels_us import CamelsUs
-from hydrodataset import SETTING
-import os
 
-# All datasets are expected to be in the directory defined in your hydro_setting.yml
-# A example of hydro_setting.yml in Windows is like this:
-# local_data_path:
-#   root: 'D:\data\waterism' # Update with your root data directory
-#   datasets-origin: 'D:\data\waterism\datasets-origin'
-#   cache: 'D:\data\waterism\cache'
-data_path = SETTING["local_data_path"]["datasets-origin"]
+# resolve_data_path reads storage.local.root from ~/hydro_setting.yml
+# Example hydro_setting.yml:
+#
+#   storage:
+#     local:
+#       root: D:/data/hydrodatasets
+#
+data_path = resolve_data_path("camels_us")
 
 # Initialize the dataset class
 ds = CamelsUs(data_path)
@@ -240,10 +240,10 @@ All data returned as `xarray.Dataset` objects:
 LamaH-CE dataset supports querying stream network topology between gauging stations:
 
 ```python
+from hydrodataset import resolve_data_path
 from hydrodataset.lamah_ce import LamahCe
-from hydrodataset import SETTING
 
-ds = LamahCe(SETTING["local_data_path"]["datasets-origin"])
+ds = LamahCe(resolve_data_path("lamah_ce"))
 
 # Read station connectivity data
 stations = ds.read_stations_xrdataset(station_id_lst=["3", "4"])

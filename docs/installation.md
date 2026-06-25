@@ -127,16 +127,16 @@ After installation, create a `hydro_setting.yml` file in your **home directory**
 
 **Content:**
 ```yaml
-local_data_path:
-  root: 'D:\data\waterism'                    # Your root data directory
-  datasets-origin: 'D:\data\waterism\datasets-origin'  # Raw data from AquaFetch
-  cache: 'D:\data\waterism\cache'             # NetCDF cache files
+storage:
+  local:
+    root: D:/data/hydrodatasets   # root directory that contains all dataset folders
+  cache: cache                    # relative to local.root, or supply an absolute path
 ```
 
 **Important**: Update the paths according to your system. Ensure:
-- Directories exist or will be created
+- The `root` directory exists (or will be created when data is first downloaded)
 - You have write permissions
-- Sufficient disk space (cache files can be several GB)
+- Sufficient disk space (raw data + NetCDF cache can be several GB per dataset)
 
 ### Download Data
 
