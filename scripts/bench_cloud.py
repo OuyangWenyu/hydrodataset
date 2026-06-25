@@ -106,14 +106,17 @@ def main(mode: str):
     ts_ds = timed("open ts nc", lambda: open_nc(ts_path))
     print(f"    dims: {dict(ts_ds.sizes)}")
 
+    # cloud cache uses raw var name q_cms_obs, local uses streamflow
+    sf_key = "streamflow" if "streamflow" in ts_ds else "q_cms_obs"
+
     def read_streamflow():
-        vals = ts_ds["streamflow"].sel(
+        vals = ts_ds[sf_key].sel(
             basin=STATION, time=slice(T_RANGE[0], T_RANGE[1])
         )
         return float(vals.mean())
 
-    v = timed(f"  read streamflow ({T_RANGE[0]}~{T_RANGE[1]})", read_streamflow)
-    print(f"    → mean streamflow = {v:.4f}")
+    v = timed(f"  read {sf_key} ({T_RANGE[0]}~{T_RANGE[1]})", read_streamflow)
+    print(f"    → mean = {v:.4f}")
 
     attr_ds.close()
     ts_ds.close()
