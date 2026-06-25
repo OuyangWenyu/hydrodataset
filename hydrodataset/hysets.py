@@ -2,6 +2,8 @@ from typing import Optional
 
 import numpy as np
 import xarray as xr
+import os
+from tqdm import tqdm
 
 from aqua_fetch import HYSETS
 from hydrodataset import HydroDataset, StandardVariable
@@ -198,3 +200,198 @@ class Hysets(HydroDataset):
             },
         },
     }
+
+    def cache_timeseries_xrdataset(self, batch_size=1000):
+        """Cache timeseries to NetCDF in batches (14425 stations × hourly data)."""
+        if not hasattr(self, "aqua_fetch"):
+            raise NotImplementedError("aqua_fetch attribute is required")
+
+        unit_lookup = {}
+        if hasattr(self, "_dynamic_variable_mapping"):
+            for std_name, mapping_info in self._dynamic_variable_mapping.items():
+                for source, source_info in mapping_info["sources"].items():
+                    unit_lookup[source_info["specific_name"]] = source_info["unit"]
+
+        gage_id_lst = self.read_object_ids().tolist()
+        total_stations = len(gage_id_lst)
+        original_var_lst = self.aqua_fetch.dynamic_features
+        cleaned_var_lst = self._clean_feature_names(original_var_lst)
+        var_name_mapping = dict(zip(original_var_lst, cleaned_var_lst))
+
+        n_batches = (total_stations + batch_size - 1) // batch_size
+        print(
+            f"Start batch processing {total_stations} stations, "
+            f"{batch_size} stations per batch ({n_batches} batches)"
+        )
+        self.cache_dir.mkdir(parents=True, exist_ok=True)
+
+        batch_num = 1
+        for batch_idx in range(0, total_stations, batch_size):
+            batch_end = min(batch_idx + batch_size, total_stations)
+            batch_stations = gage_id_lst[batch_idx:batch_end]
+            print(
+                f"\nProcessing batch {batch_num}/{n_batches} "
+                f"(stations {batch_idx}-{batch_end - 1})"
+            )
+            try:
+                batch_data = self.aqua_fetch.fetch_stations_features(
+                    stations=batch_stations,
+                    dynamic_features=original_var_lst,
+                    static_features=None,
+                    st=self.default_t_range[0],
+                    en=self.default_t_range[1],
+                    as_dataframe=False,
+                )
+                dynamic_data = (
+                    batch_data[1] if isinstance(batch_data, tuple) else batch_data
+                )
+
+                new_data_vars = {}
+                time_coord = dynamic_data.coords["time"]
+                for original_var in tqdm(
+                    original_var_lst,
+                    desc=f"Variables (batch {batch_num})",
+                    total=len(original_var_lst),
+                ):
+                    cleaned_var = var_name_mapping[original_var]
+                    var_data = []
+                    for station in batch_stations:
+                        if station in dynamic_data.data_vars:
+                            station_data = dynamic_data[station].sel(
+                                dynamic_features=original_var
+                            )
+                            if "dynamic_features" in station_data.coords:
+                                station_data = station_data.drop("dynamic_features")
+                            var_data.append(station_data)
+                    if var_data:
+                        combined = xr.concat(var_data, dim="basin")
+                        combined["basin"] = batch_stations
+                        combined.attrs["units"] = unit_lookup.get(
+                            cleaned_var, "unknown"
+                        )
+                        new_data_vars[cleaned_var] = combined
+
+                batch_ds = xr.Dataset(
+                    data_vars=new_data_vars,
+                    coords={"basin": batch_stations, "time": time_coord},
+                )
+                batch_filepath = self.cache_dir.joinpath(
+                    f"batch{batch_num:03d}_hysets_timeseries.nc"
+                )
+                batch_ds.to_netcdf(batch_filepath)
+                print(f"Saved batch {batch_num} -> {batch_filepath}")
+
+            except Exception as e:
+                print(f"Batch {batch_num} processing failed: {e}")
+                import traceback
+                traceback.print_exc()
+                continue
+
+            batch_num += 1
+
+        print(f"\nAll batches processed! Total {batch_num - 1} batch files saved")
+
+    def read_ts_xrdataset(
+        self,
+        gage_id_lst: list = None,
+        t_range: list = None,
+        var_lst: list = None,
+        sources: dict = None,
+        **kwargs,
+    ) -> xr.Dataset:
+        """Read timeseries from the batch-saved cache (standard names + sources)."""
+        if (
+            not hasattr(self, "_dynamic_variable_mapping")
+            or not self._dynamic_variable_mapping
+        ):
+            raise NotImplementedError(
+                "This dataset does not support the standardized variable mapping."
+            )
+        if var_lst is None:
+            var_lst = list(self._dynamic_variable_mapping.keys())
+        if t_range is None:
+            t_range = self.default_t_range
+
+        target_vars_to_fetch = []
+        rename_map = {}
+        for std_name in var_lst:
+            if std_name not in self._dynamic_variable_mapping:
+                raise ValueError(
+                    f"'{std_name}' is not a recognized standard variable for this dataset."
+                )
+            mapping_info = self._dynamic_variable_mapping[std_name]
+            is_explicit_source = sources and std_name in sources
+            sources_to_use = []
+            if is_explicit_source:
+                provided_sources = sources[std_name]
+                if isinstance(provided_sources, list):
+                    sources_to_use.extend(provided_sources)
+                else:
+                    sources_to_use.append(provided_sources)
+            else:
+                sources_to_use.append(mapping_info["default_source"])
+
+            needs_suffix = is_explicit_source and len(sources_to_use) > 1
+            for source in sources_to_use:
+                if source not in mapping_info["sources"]:
+                    raise ValueError(
+                        f"Source '{source}' is not available for variable '{std_name}'."
+                    )
+                actual_var_name = mapping_info["sources"][source]["specific_name"]
+                target_vars_to_fetch.append(actual_var_name)
+                output_name = f"{std_name}_{source}" if needs_suffix else std_name
+                rename_map[actual_var_name] = output_name
+
+        import glob
+
+        batch_pattern = str(self.cache_dir / "batch*_hysets_timeseries.nc")
+        batch_files = sorted(glob.glob(batch_pattern))
+        if not batch_files:
+            print("No batch cache files found, starting cache creation...")
+            self.cache_timeseries_xrdataset()
+            batch_files = sorted(glob.glob(batch_pattern))
+            if not batch_files:
+                raise FileNotFoundError("Cache creation failed, no batch files found")
+
+        if gage_id_lst is None:
+            gage_id_lst = self.read_object_ids().tolist()
+        gage_id_lst = [str(gid) for gid in gage_id_lst]
+
+        relevant_datasets = []
+        for batch_file in batch_files:
+            try:
+                ds_batch = xr.open_dataset(batch_file)
+                batch_basins = [str(b) for b in ds_batch.basin.values]
+                common_basins = list(set(gage_id_lst) & set(batch_basins))
+                if common_basins:
+                    missing_vars = [
+                        v for v in target_vars_to_fetch if v not in ds_batch.data_vars
+                    ]
+                    if missing_vars:
+                        ds_batch.close()
+                        raise ValueError(
+                            f"Batch {os.path.basename(batch_file)} missing: {missing_vars}"
+                        )
+                    ds_selected = ds_batch[target_vars_to_fetch].sel(
+                        basin=common_basins, time=slice(t_range[0], t_range[1])
+                    )
+                    relevant_datasets.append(ds_selected)
+                ds_batch.close()
+            except Exception as e:
+                print(f"Failed to read batch file {batch_file}: {e}")
+                continue
+
+        if not relevant_datasets:
+            raise ValueError(
+                f"Specified stations not found in any batch files: {gage_id_lst}"
+            )
+        if len(relevant_datasets) == 1:
+            final_ds = relevant_datasets[0]
+        else:
+            final_ds = xr.concat(relevant_datasets, dim="basin")
+
+        final_ds = final_ds.rename(rename_map)
+        existing_basins = [b for b in gage_id_lst if b in final_ds.basin.values]
+        if existing_basins:
+            final_ds = final_ds.sel(basin=existing_basins)
+        return final_ds

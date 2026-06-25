@@ -70,21 +70,21 @@ READER_ALIASES: Dict[str, Dict[str, str]] = {
         "class": "CamelsDe",
         "category": "hydrodataset",
     },
-    "camels_deby": {
-        "module": "hydrodataset.camels_deby",
-        "class": "CamelsDeby",
-        "category": "hydrodataset",
-    },
+    # "camels_deby": {
+    #     "module": "hydrodataset.camels_deby",
+    #     "class": "CamelsDeby",
+    #     "category": "hydrodataset",
+    # },
     "camels_dk": {
         "module": "hydrodataset.camels_dk",
         "class": "CamelsDk",
         "category": "hydrodataset",
     },
-    "camels_es": {
-        "module": "hydrodataset.camels_es",
-        "class": "CamelsEs",
-        "category": "hydrodataset",
-    },
+    # "camels_es": {
+    #     "module": "hydrodataset.camels_es",
+    #     "class": "CamelsEs",
+    #     "category": "hydrodataset",
+    # },
     "camels_fi": {
         "module": "hydrodataset.camels_fi",
         "class": "CamelsFi",
@@ -164,11 +164,11 @@ READER_ALIASES: Dict[str, Dict[str, str]] = {
         "class": "Hysets",
         "category": "hydrodataset",
     },
-    "mopex": {
-        "module": "hydrodataset.mopex",
-        "class": "Mopex",
-        "category": "hydrodataset",
-    },
+    # "mopex": {
+    #     "module": "hydrodataset.mopex",
+    #     "class": "Mopex",
+    #     "category": "hydrodataset",
+    # },
     "bull": {
         "module": "hydrodataset.bull",
         "class": "BULL",
@@ -179,31 +179,31 @@ READER_ALIASES: Dict[str, Dict[str, str]] = {
         "class": "Estreams",
         "category": "hydrodataset",
     },
-    "hype": {
-        "module": "hydrodataset.hype",
-        "class": "Hype",
-        "category": "hydrodataset",
-    },
+    # "hype": {
+    #     "module": "hydrodataset.hype",
+    #     "class": "Hype",
+    #     "category": "hydrodataset",
+    # },
     "simbi": {
         "module": "hydrodataset.simbi",
         "class": "simbi",
         "category": "hydrodataset",
     },
-    "waterbenchiowa": {
-        "module": "hydrodataset.waterbenchiowa",
-        "class": "waterbenchiowa",
-        "category": "hydrodataset",
-    },
-    "hyd_responses": {
-        "module": "hydrodataset.hyd_responses",
-        "class": "HydResponses",
-        "category": "hydrodataset",
-    },
-    "jialing": {
-        "module": "hydrodataset.jialingriverchina",
-        "class": "jialingriverchina",
-        "category": "hydrodataset",
-    },
+    # "waterbenchiowa": {
+    #     "module": "hydrodataset.waterbenchiowa",
+    #     "class": "waterbenchiowa",
+    #     "category": "hydrodataset",
+    # },
+    # "hyd_responses": {
+    #     "module": "hydrodataset.hyd_responses",
+    #     "class": "HydResponses",
+    #     "category": "hydrodataset",
+    # },
+    # "jialing": {
+    #     "module": "hydrodataset.jialingriverchina",
+    #     "class": "jialingriverchina",
+    #     "category": "hydrodataset",
+    # },
 }
 
 FORBIDDEN_PATH_PATTERNS = {"://", ".."}
@@ -223,9 +223,9 @@ _DEFAULT_REGISTRY: Dict[str, Dict[str, str]] = {
     "camels_cl": {"reader": "camels_cl", "path": "."},
     "camels_col": {"reader": "camels_col", "path": "."},
     "camels_de": {"reader": "camels_de", "path": "."},
-    "camels_deby": {"reader": "camels_deby", "path": "."},
+    # "camels_deby": {"reader": "camels_deby", "path": "."},
     "camels_dk": {"reader": "camels_dk", "path": "."},
-    "camels_es": {"reader": "camels_es", "path": "."},
+    # "camels_es": {"reader": "camels_es", "path": "."},
     "camels_fi": {"reader": "camels_fi", "path": "."},
     "camels_fr": {"reader": "camels_fr", "path": "."},
     "camels_gb": {"reader": "camels_gb", "path": "."},
@@ -238,21 +238,21 @@ _DEFAULT_REGISTRY: Dict[str, Dict[str, str]] = {
     "camelsh_kr": {"reader": "camelsh_kr", "path": "."},
     # CARAVAN Series (3)
     "caravan": {"reader": "caravan", "path": "CARAVAN/Caravan/Caravan"},
-    "caravan_dk": {"reader": "caravan_dk", "path": "caravan_dk"},
-    "grdc_caravan": {"reader": "grdc_caravan", "path": "grdc_caravan"},
+    "caravan_dk": {"reader": "caravan_dk", "path": "."},
+    "grdc_caravan": {"reader": "grdc_caravan", "path": "."},
     # LamaH Series (2)
-    "lamah_ce": {"reader": "lamah_ce", "path": "LamaH_CE"},
-    "lamah_ice": {"reader": "lamah_ice", "path": "LamaH_ICE"},
+    "lamah_ce": {"reader": "lamah_ce", "path": "."},
+    "lamah_ice": {"reader": "lamah_ice", "path": "."},
     # Other Public Datasets (9)
-    "hysets": {"reader": "hysets", "path": "HYSETS"},
-    "mopex": {"reader": "mopex", "path": "MOPEX"},
-    "bull": {"reader": "bull", "path": "BULL"},
-    "estreams": {"reader": "estreams", "path": "estreams"},
-    "hype": {"reader": "hype", "path": "HYPE"},
-    "simbi": {"reader": "simbi", "path": "SIMBI"},
-    "waterbenchiowa": {"reader": "waterbenchiowa", "path": "waterbenchiowa"},
-    "hyd_responses": {"reader": "hyd_responses", "path": "hyd_responses"},
-    "jialing": {"reader": "jialing", "path": "jialing"},
+    "hysets": {"reader": "hysets", "path": "."},
+    # "mopex": {"reader": "mopex", "path": "MOPEX"},
+    "bull": {"reader": "bull", "path": "."},
+    "estreams": {"reader": "estreams", "path": "."},
+    # "hype": {"reader": "hype", "path": "HYPE"},
+    "simbi": {"reader": "simbi", "path": "."},
+    # "waterbenchiowa": {"reader": "waterbenchiowa", "path": "waterbenchiowa"},
+    # "hyd_responses": {"reader": "hyd_responses", "path": "hyd_responses"},
+    # "jialing": {"reader": "jialing", "path": "jialing"},
 }
 
 

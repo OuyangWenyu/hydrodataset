@@ -10,6 +10,10 @@ def pytest_configure(config):
         "markers",
         "skip_if_ci: skip test that requires large dataset download (not suitable for CI)",
     )
+    config.addinivalue_line(
+        "markers",
+        "integration: test that requires real dataset data on disk",
+    )
 
 
 # ── Shared marker ──────────────────────────────────────────────────────

@@ -94,119 +94,102 @@ class Estreams(HydroDataset):
         },
     }
 
-    def cache_timeseries_xrdataset(self, batch_size=100):
-        """
-        Cache timeseries data to NetCDF files in batches
+    def cache_timeseries_xrdataset(self, batch_size=500):
+        """Cache timeseries from per-station meteorology CSV files in batches.
 
-        Args:
-            batch_size: Number of stations to process per batch, default is 100 stations
+        The aqua_fetch ``EStreams`` class reads daily data from individual
+        ``estreams_meteorology_{station}.csv`` files (9 dynamic variables,
+        one file per station).  We call ``meteo_data_station()`` to get the
+        correctly-renamed columns and then build variable-first xarray batches.
         """
         if not hasattr(self, "aqua_fetch"):
             raise NotImplementedError("aqua_fetch attribute is required")
 
-        # Build mapping from variable names to units
         unit_lookup = {}
         if hasattr(self, "_dynamic_variable_mapping"):
             for std_name, mapping_info in self._dynamic_variable_mapping.items():
                 for source, source_info in mapping_info["sources"].items():
                     unit_lookup[source_info["specific_name"]] = source_info["unit"]
 
-        # Get all station IDs
         gage_id_lst = self.read_object_ids().tolist()
         total_stations = len(gage_id_lst)
-
-        # Get original variable list and clean
         original_var_lst = self.aqua_fetch.dynamic_features
         cleaned_var_lst = self._clean_feature_names(original_var_lst)
         var_name_mapping = dict(zip(original_var_lst, cleaned_var_lst))
 
+        n_batches = (total_stations + batch_size - 1) // batch_size
         print(
-            f"Start batch processing {total_stations} stations, {batch_size} stations per batch"
+            f"Start batch processing {total_stations} stations, "
+            f"{batch_size} per batch ({n_batches} batches)"
         )
-        print(
-            f"Total number of batches: {(total_stations + batch_size - 1)//batch_size}"
-        )
-
-        # Ensure cache directory exists
         self.cache_dir.mkdir(parents=True, exist_ok=True)
 
-        # Process stations in batches and save independently
         batch_num = 1
         for batch_idx in range(0, total_stations, batch_size):
             batch_end = min(batch_idx + batch_size, total_stations)
             batch_stations = gage_id_lst[batch_idx:batch_end]
-
             print(
-                f"\nProcessing batch {batch_num}/{(total_stations + batch_size - 1)//batch_size}"
-            )
-            print(
-                f"Station range: {batch_idx} - {batch_end-1} (total {len(batch_stations)} stations)"
+                f"\nBatch {batch_num}/{n_batches} "
+                f"(stations {batch_idx}-{batch_end - 1})"
             )
 
             try:
-                # Get data for this batch
-                batch_data = self.aqua_fetch.fetch_stations_features(
-                    stations=batch_stations,
-                    dynamic_features=original_var_lst,
-                    static_features=None,
-                    st=self.default_t_range[0],
-                    en=self.default_t_range[1],
-                    as_dataframe=False,
-                )
+                # Collect per-station DataFrames via meteo_data_station
+                stn_dfs = {}
+                for station in batch_stations:
+                    df = self.aqua_fetch.meteo_data_station(station)
+                    df = df.loc[self.default_t_range[0]:self.default_t_range[1]]
+                    stn_dfs[station] = df
 
-                dynamic_data = (
-                    batch_data[1] if isinstance(batch_data, tuple) else batch_data
-                )
-
-                # Process variables
+                # Build variable-first data_vars then concat along basin dim
                 new_data_vars = {}
-                time_coord = dynamic_data.coords["time"]
-
                 for original_var in tqdm(
                     original_var_lst,
-                    desc=f"Processing variables (batch {batch_num})",
+                    desc=f"Variables (batch {batch_num})",
                     total=len(original_var_lst),
                 ):
                     cleaned_var = var_name_mapping[original_var]
                     var_data = []
+                    valid_stations = []
                     for station in batch_stations:
-                        if station in dynamic_data.data_vars:
-                            station_data = dynamic_data[station].sel(
-                                dynamic_features=original_var
+                        df = stn_dfs[station]
+                        if original_var in df.columns:
+                            da = xr.DataArray(
+                                df[original_var].values,
+                                dims=["time"],
+                                coords={"time": df.index},
                             )
-                            if "dynamic_features" in station_data.coords:
-                                station_data = station_data.drop("dynamic_features")
-                            var_data.append(station_data)
+                            var_data.append(da)
+                            valid_stations.append(station)
 
                     if var_data:
                         combined = xr.concat(var_data, dim="basin")
-                        combined["basin"] = batch_stations
+                        combined["basin"] = valid_stations
                         combined.attrs["units"] = unit_lookup.get(
                             cleaned_var, "unknown"
                         )
                         new_data_vars[cleaned_var] = combined
 
-                # Create Dataset for this batch
+                # Use union of all time coordinates for the batch
+                all_times = sorted(
+                    set().union(*(df.index for df in stn_dfs.values()))
+                )
                 batch_ds = xr.Dataset(
                     data_vars=new_data_vars,
                     coords={
                         "basin": batch_stations,
-                        "time": time_coord,
+                        "time": all_times,
                     },
                 )
-
-                # Save this batch to independent file
-                batch_filename = f"batch{batch_num:03d}_estreams_timeseries.nc"
-                batch_filepath = self.cache_dir.joinpath(batch_filename)
-
-                print(f"Saving batch {batch_num} to: {batch_filepath}")
+                batch_filepath = self.cache_dir.joinpath(
+                    f"batch{batch_num:03d}_estreams_timeseries.nc"
+                )
                 batch_ds.to_netcdf(batch_filepath)
-                print(f"Batch {batch_num} saved successfully")
+                print(f"Saved batch {batch_num} -> {batch_filepath}")
 
             except Exception as e:
                 print(f"Batch {batch_num} processing failed: {e}")
                 import traceback
-
                 traceback.print_exc()
                 continue
 
