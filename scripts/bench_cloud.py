@@ -2,8 +2,9 @@
 """Local vs cloud read-speed comparison (run on ECS for cloud mode).
 
 Usage:
-    uv run python scripts/bench_cloud.py local     # PC: read local cache
-    uv run python scripts/bench_cloud.py cloud     # ECS: read OSS cache
+    uv run python scripts/bench_cloud.py local     # PC: read local nc cache
+    uv run python scripts/bench_cloud.py cloud     # ECS: read OSS nc cache
+    uv run python scripts/bench_cloud.py zarr      # ECS: read OSS zarr cache
 """
 
 from __future__ import annotations
@@ -36,20 +37,32 @@ CLOUD_CACHE = os.getenv("CLOUD_CACHE_PATH", "camels-us/cache")
 # ── Helpers ────────────────────────────────────────────────────────────
 
 
-def open_nc(path):
-    """Open a NetCDF file — local path or s3:// URI."""
-    if str(path).startswith("s3://"):
-        from io import BytesIO
-        import s3fs
-        fs = s3fs.S3FileSystem(
+def get_s3fs():
+    import s3fs
+    return s3fs.S3FileSystem(
+        key=os.environ["OSS_ACCESS_KEY_ID"],
+        secret=os.environ["OSS_ACCESS_KEY_SECRET"],
+        client_kwargs={"region_name": os.environ.get("OSS_REGION", "cn-beijing")},
+        config_kwargs={"s3": {"addressing_style": "virtual"}},
+        endpoint_url=os.environ.get(
+            "OSS_ENDPOINT", "https://oss-cn-beijing-internal.aliyuncs.com"
+        ),
+    )
+
+
+def open_ds(path, fmt="nc"):
+    """Open a dataset — nc or zarr, local or s3://."""
+    if fmt == "zarr" and str(path).startswith("s3://"):
+        return xr.open_dataset(path, engine="zarr", storage_options=dict(
             key=os.environ["OSS_ACCESS_KEY_ID"],
             secret=os.environ["OSS_ACCESS_KEY_SECRET"],
             client_kwargs={"region_name": os.environ.get("OSS_REGION", "cn-beijing")},
             config_kwargs={"s3": {"addressing_style": "virtual"}},
-            endpoint_url=os.environ.get(
-                "OSS_ENDPOINT", "https://oss-cn-beijing-internal.aliyuncs.com"
-            ),
-        )
+            endpoint_url=os.environ.get("OSS_ENDPOINT", "https://oss-cn-beijing-internal.aliyuncs.com"),
+        ), chunks={})
+    if str(path).startswith("s3://"):
+        from io import BytesIO
+        fs = get_s3fs()
         return xr.open_dataset(BytesIO(fs.cat_file(path)), engine="h5netcdf")
     return xr.open_dataset(path)
 
@@ -76,6 +89,10 @@ def main(mode: str):
         cache = LOCAL_CACHE
         attr_path = cache / "camels_us_attributes.nc"
         ts_path = cache / "camels_us_timeseries.nc"
+    elif mode == "zarr":
+        cache = CLOUD_CACHE
+        attr_path = f"s3://{cache}/camels_us_attributes.zarr"
+        ts_path = f"s3://{cache}/camels_us_timeseries.zarr"
     else:
         cache = CLOUD_CACHE
         attr_path = f"s3://{cache}/camels_us_attributes.nc"
@@ -90,7 +107,8 @@ def main(mode: str):
     # ── Static attributes ──
     print("═══ Static attributes ═══")
 
-    attr_ds = timed("open attrs nc", lambda: open_nc(attr_path))
+    fmt = "zarr" if mode == "zarr" else "nc"
+    attr_ds = timed(f"open attrs {fmt}", lambda: open_ds(attr_path, fmt))
     print(f"    dims: {dict(attr_ds.sizes)}")
 
     def read_p_mean():
@@ -103,7 +121,7 @@ def main(mode: str):
     print()
     print("═══ Dynamic timeseries ═══")
 
-    ts_ds = timed("open ts nc", lambda: open_nc(ts_path))
+    ts_ds = timed(f"open ts {fmt}", lambda: open_ds(ts_path, fmt))
     print(f"    dims: {dict(ts_ds.sizes)}")
 
     # cloud cache uses raw var name q_cms_obs, local uses streamflow
@@ -127,7 +145,7 @@ def main(mode: str):
 
 if __name__ == "__main__":
     mode = sys.argv[1] if len(sys.argv) > 1 else "local"
-    if mode not in ("local", "cloud"):
-        print("Usage: uv run python scripts/bench_cloud.py [local|cloud]")
+    if mode not in ("local", "cloud", "zarr"):
+        print("Usage: uv run python scripts/bench_cloud.py [local|cloud|zarr]")
         sys.exit(1)
     main(mode)
