@@ -57,7 +57,9 @@ def main():
     )
     args = parser.parse_args()
 
-    module_name, class_name, _ = READER_ALIASES[args.dataset]
+    alias = READER_ALIASES[args.dataset]
+    module_name = alias["module"]
+    class_name = alias["class"]
 
     try:
         module = importlib.import_module(module_name)
