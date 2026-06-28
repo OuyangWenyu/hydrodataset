@@ -1,14 +1,16 @@
-"""Read data from a specified dataset via the unified open_dataset factory.
+"""Read data from a specified dataset.
 
 Usage:
     python read_dataset.py camels_us
+    python read_dataset.py camels_us --source cloud
     python read_dataset.py lamah_ce
 """
 
 import argparse
+import importlib
 
-from hydrodataset import open_dataset
-from hydrodataset.configs.data_resolver import _DEFAULT_REGISTRY
+from hydrodataset import resolve_data_path
+from hydrodataset.configs.data_resolver import READER_ALIASES, _DEFAULT_REGISTRY
 
 
 def main():
@@ -17,15 +19,58 @@ def main():
     parser = argparse.ArgumentParser(description="Read data from a specified dataset.")
     parser.add_argument(
         "dataset",
-        nargs="?",
-        default="lamah_ce",
+        nargs="?",  # make it optional
+        # default="camels_aus",  # change this to test different datasets
+        # default="camels_br",
+        # default="camels_ch",
+        # default="camels_cl",
+        # default="camels_col",
+        # default="camels_de",
+        # default="camels_dk",
+        # default="camels_fi",
+        # default="camels_fr",
+        # default="camels_gb",
+        # default="camels_ind",
+        # default="camels_lux",
+        # default="camels_nz",
+        # default="camels_se",
+        default="camels_us",
+        # default="camelsh_kr",
+        # default="camelsh",
+        # default="bull",
+        # default="caravan_dk",
+        # default="hysets",
+        # default="estreams",
+        # default="lamah_ice",
+        # default="simbi",
+        # default="lamah_ce",
+        # default="grdc_caravan",
+        # default="camels",
         help="Name of the dataset to read.",
         choices=available,
     )
+    parser.add_argument(
+        "--source",
+        default="local",
+        choices=["local", "cloud"],
+        help="Data source: 'local' reads from local path, 'cloud' reads zarr on OSS.",
+    )
     args = parser.parse_args()
 
+    module_name, class_name, _ = READER_ALIASES[args.dataset]
+
+    try:
+        module = importlib.import_module(module_name)
+        dataset_class = getattr(module, class_name)
+    except ImportError:
+        print(f"Error: Could not import {class_name} from {module_name}.")
+        return
+
+    uri = resolve_data_path(args.dataset, source=args.source)
+    print(f"Source: {args.source}  URI: {uri}")
+
     print(f"Reading from {args.dataset} dataset...")
-    ds = open_dataset(args.dataset)
+    ds = dataset_class(uri=uri)
 
     gage_ids = ds.read_object_ids()
     print("Gage IDs:")

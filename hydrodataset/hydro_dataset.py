@@ -450,12 +450,7 @@ class HydroDataset(ABC):
             rename_map[actual_var_name] = std_name
 
         # 2. Read data from cache using actual variable names
-        attr_cache_file = self.cache_dir.joinpath(self._attributes_cache_filename)
-        try:
-            attr_ds = xr.open_dataset(attr_cache_file)
-        except FileNotFoundError:
-            self.cache_attributes_xrdataset()
-            attr_ds = xr.open_dataset(attr_cache_file)
+        attr_ds = self._load_attr_dataset()
 
         # 3. Select variables and basins
         ds_subset = attr_ds[target_vars_to_fetch]
@@ -490,24 +485,66 @@ class HydroDataset(ABC):
                 converted_ds[var_name] = new_da
         return converted_ds
 
+    # ── Cloud utilities ───────────────────────────────────────────────────────
+
+    def _is_cloud(self) -> bool:
+        return str(self.data_source_dir).startswith("s3://")
+
+    def _make_s3fs(self):
+        """Create an s3fs filesystem from storage.s3 in hydro_setting.yml."""
+        import s3fs
+        from hydrodataset.configs.settings import get_s3_config
+        cfg = get_s3_config()
+        return s3fs.S3FileSystem(
+            key=cfg.get("access_key_id"),
+            secret=cfg.get("secret_access_key"),
+            endpoint_url=cfg.get("endpoint_url"),
+            config_kwargs={"s3": {"addressing_style": "virtual"}},
+        )
+
+    def _zarr_path_and_opts(self, zarr_name: str):
+        """Return (s3_uri, storage_options) for a zarr store on OSS.
+
+        zarr 3 manages its own async fs internally; passing storage_options
+        avoids the event-loop mismatch caused by mixing a sync s3fs with
+        zarr's internal async loop.
+        """
+        from hydrodataset.configs.settings import get_s3_config
+        cfg = get_s3_config()
+        bucket = cfg["bucket"]
+        out = f"s3://{bucket}/zarr/{zarr_name}"
+        opts = {
+            "key": cfg.get("access_key_id"),
+            "secret": cfg.get("secret_access_key"),
+            "endpoint_url": cfg.get("endpoint_url"),
+            "config_kwargs": {"s3": {"addressing_style": "virtual"}},
+        }
+        return out, opts
+
+    # ── Cache loading hooks ───────────────────────────────────────────────────
+
+    def _load_attr_dataset(self) -> xr.Dataset:
+        """Load the attributes dataset. Cloud → zarr on OSS; local → NC cache."""
+        if self._is_cloud():
+            zarr_name = self._attributes_cache_filename.replace(".nc", ".zarr")
+            out, opts = self._zarr_path_and_opts(zarr_name)
+            return xr.open_zarr(out, storage_options=opts, consolidated=False)
+        attr_cache_file = self.cache_dir.joinpath(self._attributes_cache_filename)
+        try:
+            return xr.open_dataset(attr_cache_file)
+        except FileNotFoundError:
+            self.cache_attributes_xrdataset()
+            return xr.open_dataset(attr_cache_file)
+
     def _load_ts_dataset(self, **kwargs):
-        """
-        Loads the time series dataset from cache.
-
-        This method can be overridden by subclasses to implement different loading
-        strategies (e.g., loading multiple files).
-
-        Args:
-            **kwargs: Additional keyword arguments for loading.
-
-        Returns:
-            xarray.Dataset: The loaded time series dataset.
-        """
+        """Load the timeseries dataset. Cloud → zarr on OSS; local → NC cache."""
+        if self._is_cloud():
+            zarr_name = self._timeseries_cache_filename.replace(".nc", ".zarr")
+            out, opts = self._zarr_path_and_opts(zarr_name)
+            return xr.open_zarr(out, storage_options=opts, consolidated=False)
         ts_cache_file = self.cache_dir.joinpath(self._timeseries_cache_filename)
-
         if not os.path.isfile(ts_cache_file):
             self.cache_timeseries_xrdataset()
-
         return xr.open_dataset(ts_cache_file)
 
     def read_ts_xrdataset(

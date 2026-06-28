@@ -131,8 +131,9 @@ class CamelsUs(HydroDataset):
         super().__init__(uri)
         self.region = "US" if region is None else region
 
-        # Instantiate the custom class defined at module level
-        self.aqua_fetch = CAMELS_US(uri)
+        # aqua_fetch only supports local paths
+        if not str(uri).startswith("s3://"):
+            self.aqua_fetch = CAMELS_US(uri)
 
     @property
     def _attributes_cache_filename(self):
@@ -145,6 +146,43 @@ class CamelsUs(HydroDataset):
     @property
     def default_t_range(self):
         return ["1980-01-01", "2014-12-31"]
+
+    def read_object_ids(self) -> np.ndarray:
+        uri = str(self.data_source_dir).rstrip("/")
+        flow_suffix = "/".join([
+            "CAMELS_US",
+            "basin_timeseries_v1p2_metForcing_obsFlow",
+            "basin_dataset_public_v1p2",
+            "usgs_streamflow",
+        ])
+        _exclude = {"06775500", "06846500", "09535100"}
+
+        if self._is_cloud():
+            fs = self._make_s3fs()
+            flow_dir = f"{uri}/{flow_suffix}"
+
+            def _ls(path):
+                return [p.split("/")[-1] for p in fs.ls(path.removeprefix("s3://"))]
+
+            def _join(*parts):
+                return "/".join(p.rstrip("/") for p in parts)
+
+            stns = [
+                fname.split("_")[0]
+                for huc in _ls(flow_dir)
+                for fname in _ls(_join(flow_dir, huc))
+                if fname.endswith(".txt")
+            ]
+        else:
+            flow_dir = os.path.join(uri, *flow_suffix.split("/"))
+            stns = [
+                fname.split("_")[0]
+                for huc in os.listdir(flow_dir)
+                for fname in os.listdir(os.path.join(flow_dir, huc))
+                if fname.endswith(".txt")
+            ]
+
+        return np.sort(np.array([s for s in stns if s not in _exclude]))
 
     def _dynamic_features(self) -> list:
         """
@@ -322,6 +360,161 @@ class CamelsUs(HydroDataset):
         print(f"Variables in merged dataset: {list(merged_ds.data_vars.keys())}")
         merged_ds.to_netcdf(cache_file, mode="w")
         print(f"Successfully saved final cache to: {cache_file}")
+
+    def cache_attributes_to_zarr(self) -> None:
+        """Read raw CAMELS-US txt files from OSS and write attributes zarr to OSS."""
+        fs = self._make_s3fs()
+        uri = str(self.data_source_dir).rstrip("/")
+        raw_dir = f"{uri}/CAMELS_US"
+        bucket_prefix = raw_dir.removeprefix("s3://")
+        txts = sorted(
+            f"s3://{p}" for p in fs.glob(f"{bucket_prefix}/*.txt")
+            if not p.endswith("readme.txt")
+        )
+        dfs = []
+        for f in txts:
+            with fs.open(f) as fh:
+                df = pd.read_csv(fh, sep=";", index_col="gauge_id",
+                                 dtype={"gauge_id": str})
+            dfs.append(df)
+
+        static = pd.concat(dfs, axis=1)
+        static.index = static.index.astype(str)
+        static.rename(columns={
+            "area_gages2": "area_km2",
+            "gauge_lat": "lat",
+            "gauge_lon": "long",
+            "slope_mean": "slope_mkm-1",
+        }, inplace=True)
+        static.columns = self._clean_feature_names(static.columns)
+        zarr_name = self._attributes_cache_filename.replace(".nc", ".zarr")
+        out, opts = self._zarr_path_and_opts(zarr_name)
+
+        import zarr
+        ids = static.index.tolist()
+        n = len(ids)
+        root = zarr.open_group(out, mode="w", storage_options=opts, zarr_format=2)
+        for col in static.columns:
+            vals = static[col].values.astype(str) if static[col].dtype == object else static[col].values
+            arr = root.create_array(col, shape=(n,), chunks=(n,), dtype=vals.dtype)
+            arr[:] = vals
+            arr.attrs["_ARRAY_DIMENSIONS"] = ["basin"]
+        basin_arr = root.create_array("basin", shape=(n,), chunks=(n,), dtype=str)
+        basin_arr[:] = ids
+        basin_arr.attrs["_ARRAY_DIMENSIONS"] = ["basin"]
+        root.attrs["coordinates"] = "basin"
+        print(f"Attributes zarr written to: {out}")
+
+    def cache_timeseries_to_zarr(self) -> None:
+        """Read raw CAMELS-US txt timeseries from OSS and write chunked zarr to OSS."""
+        import zarr
+
+        fs = self._make_s3fs()
+        uri = str(self.data_source_dir).rstrip("/")
+        ts_base = "/".join([
+            uri, "CAMELS_US",
+            "basin_timeseries_v1p2_metForcing_obsFlow",
+            "basin_dataset_public_v1p2",
+        ])
+
+        def _ls(path):
+            return [p.split("/")[-1] for p in fs.ls(path.removeprefix("s3://"))]
+
+        def _join(*parts):
+            return "/".join(p.rstrip("/") for p in parts)
+
+        # Streamflow: usgs_streamflow/{HUC}/{station}_streamflow_qc.txt
+        flow_records: dict = {}
+        flow_dir = _join(ts_base, "usgs_streamflow")
+        for huc in sorted(_ls(flow_dir)):
+            huc_dir = _join(flow_dir, huc)
+            for fname in _ls(huc_dir):
+                if not fname.endswith(".txt"):
+                    continue
+                station = fname.split("_")[0]
+                with fs.open(_join(huc_dir, fname).removeprefix("s3://")) as fh:
+                    df = pd.read_csv(
+                        fh, sep=r"\s+",
+                        names=["year", "month", "day", "q_obs", "flag"],
+                        dtype={"year": int, "month": int, "day": int, "q_obs": float},
+                    )
+                df["date"] = pd.to_datetime(df[["year", "month", "day"]])
+                flow_records[station] = df.set_index("date")["q_obs"] * 0.0283168
+
+        # Daymet forcing — raw column names from file
+        _fm_raw = ["dayl", "prcp_mm", "srad_wm2", "swe_mm", "tmax_c", "tmin_c", "vp_pa"]
+        # Rename to match _dynamic_variable_mapping specific names so reading works without remapping
+        _fm_rename = {
+            "prcp_mm": "pcp_mm",
+            "srad_wm2": "solrad_wm2",
+            "tmax_c": "airtemp_c_max",
+            "tmin_c": "airtemp_c_min",
+            "vp_pa": "vp_hpa",
+        }
+        fm_cols: dict = {v: {} for v in _fm_raw}
+        fm_dir = _join(ts_base, "basin_mean_forcing", "daymet")
+        for huc in sorted(_ls(fm_dir)):
+            huc_dir = _join(fm_dir, huc)
+            for fname in _ls(huc_dir):
+                if not fname.endswith(".txt"):
+                    continue
+                station = fname.split("_")[0]
+                try:
+                    with fs.open(_join(huc_dir, fname).removeprefix("s3://")) as fh:
+                        df = pd.read_csv(
+                            fh, sep=r"\s+", skiprows=4,
+                            names=["year", "month", "day", "hour"] + _fm_raw,
+                            dtype={"year": int, "month": int, "day": int},
+                        )
+                    df["date"] = pd.to_datetime(df[["year", "month", "day"]])
+                    for v in _fm_raw:
+                        fm_cols[v][station] = df.set_index("date")[v]
+                except Exception:
+                    pass
+
+        # Build xr.Dataset with correct variable names
+        stations = sorted(flow_records.keys())
+        all_times = sorted(set().union(*(s.index for s in flow_records.values())))
+        ds_vars: dict = {}
+        ds_vars["q_cms_obs"] = xr.concat(
+            [xr.DataArray(flow_records[s].reindex(all_times).values,
+                          dims=["time"], coords={"time": all_times})
+             for s in stations], dim="basin")
+        for raw_vn in _fm_raw:
+            zarr_vn = _fm_rename.get(raw_vn, raw_vn)
+            ds_vars[zarr_vn] = xr.concat(
+                [xr.DataArray(
+                    fm_cols[raw_vn].get(s, pd.Series(np.nan, index=all_times)).reindex(all_times).values,
+                    dims=["time"], coords={"time": all_times})
+                 for s in stations], dim="basin")
+
+        nb, nt = len(stations), len(all_times)
+        # Encode time as int64 nanoseconds so xr.open_zarr decodes it as datetime64
+        times_ns = pd.DatetimeIndex(all_times).asi8
+
+        import zarr
+        zarr_name = self._timeseries_cache_filename.replace(".nc", ".zarr")
+        out, opts = self._zarr_path_and_opts(zarr_name)
+        root = zarr.open_group(out, mode="w", storage_options=opts, zarr_format=2)
+
+        for name, da in ds_vars.items():
+            arr = root.create_array(name, shape=(nb, nt),
+                                    chunks=(min(100, nb), 365), dtype="float64")
+            arr[:] = da.values
+            arr.attrs["_ARRAY_DIMENSIONS"] = ["basin", "time"]
+
+        time_arr = root.create_array("time", shape=(nt,), chunks=(365,), dtype="int64")
+        time_arr[:] = times_ns
+        time_arr.attrs["_ARRAY_DIMENSIONS"] = ["time"]
+        time_arr.attrs["units"] = "nanoseconds since 1970-01-01"
+        time_arr.attrs["calendar"] = "proleptic_gregorian"
+
+        basin_arr = root.create_array("basin", shape=(nb,), chunks=(nb,), dtype=str)
+        basin_arr[:] = stations
+        basin_arr.attrs["_ARRAY_DIMENSIONS"] = ["basin"]
+
+        root.attrs["coordinates"] = "basin time"
+        print(f"Timeseries zarr written to: {out}")
 
     _subclass_static_definitions = {
         "huc_02": {"specific_name": "huc_02", "unit": "dimensionless"},

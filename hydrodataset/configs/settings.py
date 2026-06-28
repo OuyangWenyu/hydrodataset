@@ -105,6 +105,25 @@ def get_local_root(
     return root_path
 
 
+def get_s3_config(
+    settings: Optional[Dict[str, Any]] = None,
+) -> Dict[str, Any]:
+    """Extract the storage.s3 block including credentials.
+
+    Returns
+    -------
+    dict
+        S3/OSS configuration (may be empty if not configured). Keys:
+        ``bucket``, ``prefix``, ``endpoint_url``,
+        ``access_key_id``, ``secret_access_key``.
+    """
+    storage = get_storage_config(settings)
+    s3 = storage.get("s3")
+    if not isinstance(s3, dict):
+        return {}
+    return s3
+
+
 def get_default_source(
     settings: Optional[Dict[str, Any]] = None,
 ) -> str:

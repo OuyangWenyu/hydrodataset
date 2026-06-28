@@ -1,6 +1,7 @@
 import os
 import xarray as xr
 import numpy as np
+import pandas as pd
 from typing import Optional
 
 from tqdm import tqdm
@@ -153,6 +154,112 @@ class Camelsh(HydroDataset):
         },
     }
 
+    def cache_timeseries_to_zarr(self, batch_size: int = 100) -> None:
+        """Write timeseries to a single zarr store on OSS, batch by batch.
+
+        Pre-allocates the full (n_stations, n_timesteps) array on OSS, then
+        fills each batch's row-slice using local AquaFetch data. Resumable:
+        a _progress array tracks which batches are already written.
+        """
+        import zarr
+
+        stations = self.read_object_ids().tolist()
+        n = len(stations)
+
+        # CAMELSH is hourly
+        times = pd.date_range(self.default_t_range[0], self.default_t_range[1], freq="h")
+        nt = len(times)
+        times_ns = times.asi8  # int64 nanoseconds since epoch
+
+        original_var_lst = self.aqua_fetch.dynamic_features
+        cleaned_var_lst = self._clean_feature_names(original_var_lst)
+        var_name_map = dict(zip(original_var_lst, cleaned_var_lst))
+
+        zarr_name = self._timeseries_cache_filename.replace(".nc", ".zarr")
+        out, opts = self._zarr_path_and_opts(zarr_name)
+
+        chunk_t = 24 * 30   # one month of hourly data per chunk
+        chunk_b = min(batch_size, n)
+
+        root = zarr.open_group(out, mode="a", storage_options=opts, zarr_format=2)
+
+        # Pre-allocate on first run
+        if "basin" not in root:
+            print(f"Pre-allocating zarr: {n} stations × {nt} timesteps × {len(cleaned_var_lst)} vars")
+            for vn in cleaned_var_lst:
+                arr = root.create_array(
+                    vn, shape=(n, nt), chunks=(chunk_b, chunk_t),
+                    dtype="float64", fill_value=np.nan,
+                )
+                arr.attrs["_ARRAY_DIMENSIONS"] = ["basin", "time"]
+
+            time_arr = root.create_array("time", shape=(nt,), chunks=(chunk_t,), dtype="int64")
+            time_arr[:] = times_ns
+            time_arr.attrs["_ARRAY_DIMENSIONS"] = ["time"]
+            time_arr.attrs["units"] = "nanoseconds since 1970-01-01"
+            time_arr.attrs["calendar"] = "proleptic_gregorian"
+
+            basin_arr = root.create_array("basin", shape=(n,), chunks=(n,), dtype=str)
+            basin_arr[:] = stations
+            basin_arr.attrs["_ARRAY_DIMENSIONS"] = ["basin"]
+
+            prog = root.create_array("_progress", shape=(n,), chunks=(n,), dtype="int8", fill_value=0)
+            prog[:] = 0
+
+            root.attrs["coordinates"] = "basin time"
+            print("Pre-allocation done.")
+        else:
+            print(f"Resuming existing zarr store at {out}")
+
+        progress = root["_progress"]
+        n_batches = (n + batch_size - 1) // batch_size
+
+        for batch_idx in range(0, n, batch_size):
+            batch_end = min(batch_idx + batch_size, n)
+            batch_num = batch_idx // batch_size + 1
+            batch_stations = stations[batch_idx:batch_end]
+
+            if all(progress[batch_idx:batch_end]):
+                print(f"Batch {batch_num}/{n_batches}: already done, skipping")
+                continue
+
+            print(f"Batch {batch_num}/{n_batches}: {len(batch_stations)} stations ...")
+            try:
+                batch_data = self.aqua_fetch.fetch_stations_features(
+                    stations=batch_stations,
+                    dynamic_features=original_var_lst,
+                    static_features=None,
+                    st=self.default_t_range[0],
+                    en=self.default_t_range[1],
+                    as_dataframe=False,
+                )
+                dynamic_data = batch_data[1] if isinstance(batch_data, tuple) else batch_data
+
+                for orig_vn in original_var_lst:
+                    clean_vn = var_name_map[orig_vn]
+                    rows = []
+                    for stn in batch_stations:
+                        if stn in dynamic_data.data_vars:
+                            da = dynamic_data[stn].sel(dynamic_features=orig_vn)
+                            if "dynamic_features" in da.coords:
+                                da = da.drop_vars("dynamic_features")
+                            da = da.reindex(time=times, fill_value=np.nan)
+                            rows.append(da.values)
+                        else:
+                            rows.append(np.full(nt, np.nan))
+                    root[clean_vn][batch_idx:batch_end, :] = np.array(rows)
+
+                progress[batch_idx:batch_end] = 1
+                print(f"Batch {batch_num}/{n_batches}: done")
+
+            except Exception as e:
+                print(f"Batch {batch_num}/{n_batches}: ERROR — {e}")
+                import traceback
+                traceback.print_exc()
+                continue
+
+        print(f"Timeseries zarr written to: {out}")
+
     def cache_timeseries_xrdataset(self, batch_size=100):
         """
         Cache timeseries data to NetCDF files in batches, each batch saved as a separate file
@@ -281,20 +388,18 @@ class Camelsh(HydroDataset):
         sources: dict = None,
         **kwargs,
     ) -> xr.Dataset:
-        """
-        Read timeseries data (supports standardized variable names and multiple data sources)
+        """Read timeseries data from batch NC files (local) or zarr on OSS (cloud)."""
+        if self._is_cloud():
+            # Delegate to base: _load_ts_dataset opens the zarr, base handles
+            # variable selection, time slicing, and renaming.
+            return super().read_ts_xrdataset(
+                gage_id_lst=gage_id_lst,
+                t_range=t_range,
+                var_lst=var_lst,
+                sources=sources,
+                **kwargs,
+            )
 
-        Read data from batch-saved cache files
-
-        Args:
-            gage_id_lst: List of station IDs
-            t_range: Time range [start, end]
-            var_lst: List of standard variable names
-            sources: Data source dictionary, format is {variable_name: data_source} or {variable_name: [data_source_list]}
-
-        Returns:
-            xr.Dataset: xarray dataset containing requested data
-        """
         if (
             not hasattr(self, "_dynamic_variable_mapping")
             or not self._dynamic_variable_mapping
