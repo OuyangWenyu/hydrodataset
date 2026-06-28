@@ -50,8 +50,9 @@ class Camelsh(HydroDataset):
         self.region = region
         self.download = download
 
-        # Use the fixed CAMELSH class with corrected directory paths
-        self.aqua_fetch = CAMELSH(uri)
+        # aqua_fetch only supports local paths
+        if not str(uri).startswith("s3://"):
+            self.aqua_fetch = CAMELSH(uri)
 
     @property
     def _attributes_cache_filename(self):
@@ -64,6 +65,79 @@ class Camelsh(HydroDataset):
     @property
     def default_t_range(self):
         return ["1980-01-01", "2024-12-31"]
+
+    def read_object_ids(self) -> np.ndarray:
+        """List station IDs from Hourly2/Hourly2/ directory (local or OSS)."""
+        uri = str(self.data_source_dir).rstrip("/")
+        h2_rel = "CAMELSH/Hourly2/Hourly2"
+        if self._is_cloud():
+            fs = self._make_s3fs()
+            oss_path = f"{uri}/{h2_rel}".removeprefix("s3://")
+            fnames = [p.split("/")[-1] for p in fs.ls(oss_path)]
+        else:
+            h2_dir = os.path.join(uri, *h2_rel.split("/"))
+            fnames = os.listdir(h2_dir)
+        stations = sorted(
+            f.split("_")[0] for f in fnames if f.endswith("_hourly.nc")
+        )
+        return np.array(stations)
+
+    def cache_attributes_to_zarr(self) -> None:
+        """Read CAMELSH attribute CSV files from OSS and write attributes zarr to OSS."""
+        import zarr
+
+        fs = self._make_s3fs()
+        uri = str(self.data_source_dir).rstrip("/")
+        attr_dir = f"{uri}/CAMELSH/attributes/attributes"
+        oss_attr_dir = attr_dir.removeprefix("s3://")
+
+        # same rename as AquaFetch CAMELSH.static_map
+        static_map = {
+            "LAT_GAGE": "lat",
+            "LNG_GAGE": "long",
+            "ELEV_MEAN_M_BASIN": "elev_catch_m",
+            "DRAIN_SQKM": "area_km2",
+            "ELEV_SITE_M": "elev_gauge_m",
+            "SLOPE_PCT": "slope_percent",
+            "PDEN_2000_BLOCK": "pop_density_2000_km2",
+            "PDEN_DAY_LANDSCAN_2007": "pop_density_2007_km2",
+        }
+
+        csv_paths = [f"s3://{p}" for p in fs.glob(f"{oss_attr_dir}/*.csv")]
+        dfs = []
+        for p in csv_paths:
+            sep = "\t" if "attributes_hydroATLAS.csv" in p else ","
+            with fs.open(p.removeprefix("s3://"), "rb") as fh:
+                df = pd.read_csv(fh, index_col=0, sep=sep, dtype={0: str})
+            df.index = df.index.astype(str)
+            dfs.append(df)
+
+        static = pd.concat(dfs, axis=1)
+        static = static.loc[:, ~static.columns.duplicated()]
+        static = static.rename(columns=static_map)
+        static.columns = self._clean_feature_names(list(static.columns))
+        static.index.name = "basin"
+
+        ids = static.index.tolist()
+        n = len(ids)
+        zarr_name = self._attributes_cache_filename.replace(".nc", ".zarr")
+        out, opts = self._zarr_path_and_opts(zarr_name)
+
+        root = zarr.open_group(out, mode="w", storage_options=opts, zarr_format=2)
+        for col in static.columns:
+            vals = (
+                static[col].values.astype(str)
+                if static[col].dtype == object
+                else static[col].values
+            )
+            arr = root.create_array(col, shape=(n,), chunks=(n,), dtype=vals.dtype)
+            arr[:] = vals
+            arr.attrs["_ARRAY_DIMENSIONS"] = ["basin"]
+        basin_arr = root.create_array("basin", shape=(n,), chunks=(n,), dtype=str)
+        basin_arr[:] = ids
+        basin_arr.attrs["_ARRAY_DIMENSIONS"] = ["basin"]
+        root.attrs["coordinates"] = "basin"
+        print(f"Attributes zarr written to: {out}")
 
     _subclass_static_definitions = {
         # Basic station information
@@ -155,35 +229,56 @@ class Camelsh(HydroDataset):
     }
 
     def cache_timeseries_to_zarr(self, batch_size: int = 100) -> None:
-        """Write timeseries to a single zarr store on OSS, batch by batch.
+        """Read CAMELSH NC files from OSS and write zarr to OSS.
 
-        Pre-allocates the full (n_stations, n_timesteps) array on OSS, then
-        fills each batch's row-slice using local AquaFetch data. Resumable:
-        a _progress array tracks which batches are already written.
+        Reads q from Hourly2/Hourly2/{stn}_hourly.nc and forcing from
+        timeseries_nonobs/Data/CAMELSH/timeseries_nonobs/{stn}.nc directly on
+        OSS (no local copy needed). Resumable via _progress array.
         """
         import zarr
+        import netCDF4 as nc4
+
+        fs = self._make_s3fs()
+        uri = str(self.data_source_dir).rstrip("/")
+        h2_dir = f"{uri}/CAMELSH/Hourly2/Hourly2"
+        nonobs_dir = f"{uri}/CAMELSH/timeseries_nonobs/Data/CAMELSH/timeseries_nonobs"
+        ts_dir = f"{uri}/CAMELSH/timeseries/Data/CAMELSH/timeseries"
+
+        # Same as AquaFetch CAMELSH.dyn_map
+        dyn_map = {
+            "Tair": "airtemp_C_mean",
+            "PotEvap": "pet_mm",
+            "Rainf": "pcp_mm",
+            "streamflow": "q_cms_obs",
+        }
+
+        def open_nc_from_oss(s3_path: str) -> xr.Dataset:
+            buf = fs.cat(s3_path.removeprefix("s3://"))
+            nc = nc4.Dataset("inmemory", memory=buf)
+            return xr.open_dataset(xr.backends.NetCDF4DataStore(nc))
+
+        def oss_exists(s3_path: str) -> bool:
+            return fs.exists(s3_path.removeprefix("s3://"))
+
+        # Canonical cleaned var list from _dynamic_variable_mapping
+        cleaned_var_lst = [
+            info["sources"][info["default_source"]]["specific_name"]
+            for info in self._dynamic_variable_mapping.values()
+        ]
 
         stations = self.read_object_ids().tolist()
         n = len(stations)
-
-        # CAMELSH is hourly
         times = pd.date_range(self.default_t_range[0], self.default_t_range[1], freq="h")
         nt = len(times)
-        times_ns = times.asi8  # int64 nanoseconds since epoch
-
-        original_var_lst = self.aqua_fetch.dynamic_features
-        cleaned_var_lst = self._clean_feature_names(original_var_lst)
-        var_name_map = dict(zip(original_var_lst, cleaned_var_lst))
+        times_ns = times.asi8
 
         zarr_name = self._timeseries_cache_filename.replace(".nc", ".zarr")
         out, opts = self._zarr_path_and_opts(zarr_name)
-
-        chunk_t = 24 * 30   # one month of hourly data per chunk
+        chunk_t = 24 * 30
         chunk_b = min(batch_size, n)
 
         root = zarr.open_group(out, mode="a", storage_options=opts, zarr_format=2)
 
-        # Pre-allocate on first run
         if "basin" not in root:
             print(f"Pre-allocating zarr: {n} stations × {nt} timesteps × {len(cleaned_var_lst)} vars")
             for vn in cleaned_var_lst:
@@ -192,20 +287,16 @@ class Camelsh(HydroDataset):
                     dtype="float64", fill_value=np.nan,
                 )
                 arr.attrs["_ARRAY_DIMENSIONS"] = ["basin", "time"]
-
             time_arr = root.create_array("time", shape=(nt,), chunks=(chunk_t,), dtype="int64")
             time_arr[:] = times_ns
             time_arr.attrs["_ARRAY_DIMENSIONS"] = ["time"]
             time_arr.attrs["units"] = "nanoseconds since 1970-01-01"
             time_arr.attrs["calendar"] = "proleptic_gregorian"
-
             basin_arr = root.create_array("basin", shape=(n,), chunks=(n,), dtype=str)
             basin_arr[:] = stations
             basin_arr.attrs["_ARRAY_DIMENSIONS"] = ["basin"]
-
             prog = root.create_array("_progress", shape=(n,), chunks=(n,), dtype="int8", fill_value=0)
             prog[:] = 0
-
             root.attrs["coordinates"] = "basin time"
             print("Pre-allocation done.")
         else:
@@ -224,39 +315,45 @@ class Camelsh(HydroDataset):
                 continue
 
             print(f"Batch {batch_num}/{n_batches}: {len(batch_stations)} stations ...")
-            try:
-                batch_data = self.aqua_fetch.fetch_stations_features(
-                    stations=batch_stations,
-                    dynamic_features=original_var_lst,
-                    static_features=None,
-                    st=self.default_t_range[0],
-                    en=self.default_t_range[1],
-                    as_dataframe=False,
-                )
-                dynamic_data = batch_data[1] if isinstance(batch_data, tuple) else batch_data
+            batch_arrays = {vn: np.full((len(batch_stations), nt), np.nan) for vn in cleaned_var_lst}
 
-                for orig_vn in original_var_lst:
-                    clean_vn = var_name_map[orig_vn]
-                    rows = []
-                    for stn in batch_stations:
-                        if stn in dynamic_data.data_vars:
-                            da = dynamic_data[stn].sel(dynamic_features=orig_vn)
-                            if "dynamic_features" in da.coords:
-                                da = da.drop_vars("dynamic_features")
-                            da = da.reindex(time=times, fill_value=np.nan)
-                            rows.append(da.values)
-                        else:
-                            rows.append(np.full(nt, np.nan))
-                    root[clean_vn][batch_idx:batch_end, :] = np.array(rows)
+            for i, stn in enumerate(batch_stations):
+                try:
+                    # Read streamflow + water_level from Hourly2
+                    ds_q = open_nc_from_oss(f"{h2_dir}/{stn}_hourly.nc")
+                    ds_q = ds_q.rename({k: v for k, v in dyn_map.items() if k in ds_q.data_vars})
+                    q_clean = {v: self._clean_feature_names([v])[0] for v in list(ds_q.data_vars)}
+                    ds_q = ds_q.rename(q_clean)
 
-                progress[batch_idx:batch_end] = 1
-                print(f"Batch {batch_num}/{n_batches}: done")
+                    # Read forcing from timeseries_nonobs (fallback: timeseries)
+                    forcing_path = f"{nonobs_dir}/{stn}.nc"
+                    if not oss_exists(forcing_path):
+                        forcing_path = f"{ts_dir}/{stn}.nc"
+                    ds_f = open_nc_from_oss(forcing_path)
+                    ds_f = ds_f.drop_vars("Streamflow", errors="ignore")
+                    if "DateTime" in ds_f.coords or "DateTime" in ds_f.dims:
+                        ds_f = ds_f.rename({"DateTime": "time"})
+                    ds_f = ds_f.rename({k: v for k, v in dyn_map.items() if k in ds_f.data_vars})
+                    f_clean = {v: self._clean_feature_names([v])[0] for v in list(ds_f.data_vars)}
+                    ds_f = ds_f.rename(f_clean)
 
-            except Exception as e:
-                print(f"Batch {batch_num}/{n_batches}: ERROR — {e}")
-                import traceback
-                traceback.print_exc()
-                continue
+                    for vn in cleaned_var_lst:
+                        src = ds_q if vn in ds_q else (ds_f if vn in ds_f else None)
+                        if src is not None:
+                            da = src[vn].reindex(time=times)
+                            batch_arrays[vn][i] = da.values.astype(float)
+
+                    ds_q.close()
+                    ds_f.close()
+
+                except Exception as e:
+                    print(f"  Station {stn}: ERROR — {e}")
+                    continue
+
+            for vn in cleaned_var_lst:
+                root[vn][batch_idx:batch_end, :] = batch_arrays[vn]
+            progress[batch_idx:batch_end] = 1
+            print(f"Batch {batch_num}/{n_batches}: done")
 
         print(f"Timeseries zarr written to: {out}")
 
