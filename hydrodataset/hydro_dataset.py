@@ -526,9 +526,16 @@ class HydroDataset(ABC):
     def _load_attr_dataset(self) -> xr.Dataset:
         """Load the attributes dataset. Cloud → zarr on OSS; local → NC cache."""
         if self._is_cloud():
+            import zarr as _zarr
+
             zarr_name = self._attributes_cache_filename.replace(".nc", ".zarr")
             out, opts = self._zarr_path_and_opts(zarr_name)
-            return xr.open_zarr(out, storage_options=opts, consolidated=False)
+            try:
+                return xr.open_zarr(out, storage_options=opts, consolidated=False)
+            except _zarr.errors.GroupNotFoundError:
+                print(f"Attributes zarr not found at {out}, generating...")
+                self.cache_attributes_to_zarr()
+                return xr.open_zarr(out, storage_options=opts, consolidated=False)
         attr_cache_file = self.cache_dir.joinpath(self._attributes_cache_filename)
         try:
             return xr.open_dataset(attr_cache_file)
@@ -539,9 +546,16 @@ class HydroDataset(ABC):
     def _load_ts_dataset(self, **kwargs):
         """Load the timeseries dataset. Cloud → zarr on OSS; local → NC cache."""
         if self._is_cloud():
+            import zarr as _zarr
+
             zarr_name = self._timeseries_cache_filename.replace(".nc", ".zarr")
             out, opts = self._zarr_path_and_opts(zarr_name)
-            return xr.open_zarr(out, storage_options=opts, consolidated=False)
+            try:
+                return xr.open_zarr(out, storage_options=opts, consolidated=False)
+            except _zarr.errors.GroupNotFoundError:
+                print(f"Timeseries zarr not found at {out}, generating...")
+                self.cache_timeseries_to_zarr()
+                return xr.open_zarr(out, storage_options=opts, consolidated=False)
         ts_cache_file = self.cache_dir.joinpath(self._timeseries_cache_filename)
         if not os.path.isfile(ts_cache_file):
             self.cache_timeseries_xrdataset()

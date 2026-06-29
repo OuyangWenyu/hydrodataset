@@ -297,6 +297,7 @@ class Camelsh(HydroDataset):
             basin_arr.attrs["_ARRAY_DIMENSIONS"] = ["basin"]
             prog = root.create_array("_progress", shape=(n,), chunks=(n,), dtype="int8", fill_value=0)
             prog[:] = 0
+            prog.attrs["_ARRAY_DIMENSIONS"] = ["basin"]
             root.attrs["coordinates"] = "basin time"
             print("Pre-allocation done.")
         else:
