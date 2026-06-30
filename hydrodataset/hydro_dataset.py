@@ -531,11 +531,16 @@ class HydroDataset(ABC):
             zarr_name = self._attributes_cache_filename.replace(".nc", ".zarr")
             out, opts = self._zarr_path_and_opts(zarr_name)
             try:
-                return xr.open_zarr(out, storage_options=opts, consolidated=False)
+                return xr.open_zarr(out, storage_options=opts, consolidated=False, mask_and_scale=False)
             except _zarr.errors.GroupNotFoundError:
                 print(f"Attributes zarr not found at {out}, generating...")
+                import s3fs as _s3fs
+                _fs = self._make_s3fs()
+                _raw = out.removeprefix("s3://")
+                if _fs.exists(_raw):
+                    _fs.rm(_raw, recursive=True)
                 self.cache_attributes_to_zarr()
-                return xr.open_zarr(out, storage_options=opts, consolidated=False)
+                return xr.open_zarr(out, storage_options=opts, consolidated=False, mask_and_scale=False)
         attr_cache_file = self.cache_dir.joinpath(self._attributes_cache_filename)
         try:
             return xr.open_dataset(attr_cache_file)
@@ -551,11 +556,16 @@ class HydroDataset(ABC):
             zarr_name = self._timeseries_cache_filename.replace(".nc", ".zarr")
             out, opts = self._zarr_path_and_opts(zarr_name)
             try:
-                return xr.open_zarr(out, storage_options=opts, consolidated=False)
+                return xr.open_zarr(out, storage_options=opts, consolidated=False, mask_and_scale=False)
             except _zarr.errors.GroupNotFoundError:
                 print(f"Timeseries zarr not found at {out}, generating...")
+                import s3fs as _s3fs
+                _fs = self._make_s3fs()
+                _raw = out.removeprefix("s3://")
+                if _fs.exists(_raw):
+                    _fs.rm(_raw, recursive=True)
                 self.cache_timeseries_to_zarr()
-                return xr.open_zarr(out, storage_options=opts, consolidated=False)
+                return xr.open_zarr(out, storage_options=opts, consolidated=False, mask_and_scale=False)
         ts_cache_file = self.cache_dir.joinpath(self._timeseries_cache_filename)
         if not os.path.isfile(ts_cache_file):
             self.cache_timeseries_xrdataset()
@@ -681,6 +691,31 @@ class HydroDataset(ABC):
         """
         data_ds = self.read_attr_xrdataset(gage_id_lst=gage_id_lst, var_lst=["area"])
         return data_ds
+
+    def _p_mean_from_precip(self, basin_ids) -> list:
+        """Per-basin mean of the precipitation timeseries (mm/day).
+
+        For datasets whose raw attributes lack a single ``p_mean`` column, the
+        local ``cache_attributes_xrdataset`` override computes it from the
+        precipitation timeseries. The cloud ``cache_attributes_to_zarr`` path
+        uses this helper to do the same so cloud matches the local NC cache.
+        """
+        basin_ids = [str(b) for b in basin_ids]
+        prcp = self.read_ts_xrdataset(
+            gage_id_lst=basin_ids,
+            t_range=self.default_t_range,
+            var_lst=["precipitation"],
+        )["precipitation"]
+        # scale the per-timestep mean to mm/day (no-op for daily data, x24 for
+        # hourly) so p_mean is consistent regardless of timeseries resolution
+        times = pd.DatetimeIndex(prcp["time"].values)
+        if len(times) > 1:
+            step_hours = (times[1] - times[0]).total_seconds() / 3600.0
+            steps_per_day = 24.0 / step_hours if step_hours else 1.0
+        else:
+            steps_per_day = 1.0
+        series = (prcp.mean(dim="time") * steps_per_day).to_series()
+        return [float(series.get(b, float("nan"))) for b in basin_ids]
 
     def read_mean_prcp(self, gage_id_lst: list[str], unit: str = "mm/d") -> xr.Dataset:
         """Reads the mean daily precipitation for a list of basins, with unit conversion.

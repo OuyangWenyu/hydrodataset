@@ -1,4 +1,4 @@
-"""
+﻿"""
 Author: Yimeng Zhang
 Date: 2025-10-19 19:40:08
 LastEditTime: 2025-10-19 19:40:33
@@ -8,9 +8,11 @@ FilePath: \hydrodataset\hydrodataset\camels_cl.py
 Copyright (c) 2021-2026 Wenyu Ouyang. All rights reserved.
 """
 
+import os
 from typing import Optional
 
 import numpy as np
+import pandas as pd
 import xarray as xr
 
 from aqua_fetch import CAMELS_CL
@@ -29,20 +31,130 @@ class CamelsCl(HydroDataset):
         ds_description: Dictionary containing dataset file paths
     """
 
+    # (folder/file_rel_path, zarr_var_name) 鈥?wide-format TXT per variable
+    _FILE_MAP = [
+        ("2_CAMELScl_streamflow_m3s/2_CAMELScl_streamflow_m3s.txt",   "q_cms_obs"),
+        ("3_CAMELScl_streamflow_mm/3_CAMELScl_streamflow_mm.txt",     "q_mm_obs"),
+        ("4_CAMELScl_precip_cr2met/4_CAMELScl_precip_cr2met.txt",     "pcp_mm_cr2met"),
+        ("5_CAMELScl_precip_chirps/5_CAMELScl_precip_chirps.txt",     "pcp_mm_chirps"),
+        ("6_CAMELScl_precip_mswep/6_CAMELScl_precip_mswep.txt",       "pcp_mm_mswep"),
+        ("7_CAMELScl_precip_tmpa/7_CAMELScl_precip_tmpa.txt",         "pcp_mm_tmpa"),
+        ("8_CAMELScl_tmin_cr2met/8_CAMELScl_tmin_cr2met.txt",         "airtemp_c_min"),
+        ("9_CAMELScl_tmax_cr2met/9_CAMELScl_tmax_cr2met.txt",         "airtemp_c_max"),
+        ("10_CAMELScl_tmean_cr2met/10_CAMELScl_tmean_cr2met.txt",     "airtemp_c_mean"),
+        ("11_CAMELScl_pet_8d_modis/11_CAMELScl_pet_8d_modis.txt",     "pet_mm_modis"),
+        ("12_CAMELScl_pet_hargreaves/12_CAMELScl_pet_hargreaves.txt", "pet_mm_hargreaves"),
+        ("13_CAMELScl_swe/13_CAMELScl_swe.txt",                       "swe"),
+    ]
+
     def __init__(
         self, uri: str, region: Optional[str] = None, download: bool = False
     ) -> None:
-        """Initialize CAMELS_CL dataset.
-
-        Args:
-            uri: Path to the data directory
-            region: Geographic region identifier (optional)
-            download: Whether to download data automatically (default: False)
-        """
         super().__init__(uri)
         self.region = region
         self.download = download
-        self.aqua_fetch = CAMELS_CL(uri)
+        if not str(uri).startswith("s3://"):
+            self.aqua_fetch = CAMELS_CL(uri)
+
+    def read_object_ids(self) -> np.ndarray:
+        import json
+        uri = str(self.data_source_dir).rstrip("/")
+        rel = "CAMELS_CL/stations.json"
+        if self._is_cloud():
+            fs = self._make_s3fs()
+            with fs.open(f"{uri}/{rel}".removeprefix("s3://")) as fh:
+                ids = json.load(fh)
+        else:
+            with open(os.path.join(uri, *rel.split("/"))) as fh:
+                ids = json.load(fh)
+        return np.array(sorted(str(i) for i in ids))
+
+    def cache_attributes_to_zarr(self) -> None:
+        import zarr
+        fs = self._make_s3fs()
+        uri = str(self.data_source_dir).rstrip("/")
+        attr_path = f"{uri}/CAMELS_CL/1_CAMELScl_attributes/1_CAMELScl_attributes.txt".removeprefix("s3://")
+        with fs.open(attr_path) as fh:
+            raw = pd.read_csv(fh, sep="\t", index_col=0, dtype=str)
+        # File is transposed: index=attribute names, columns=station IDs
+        static = raw.T.copy()
+        static.index = static.index.str.strip().astype(str)
+        static.columns = self._clean_feature_names(list(static.columns))
+        static = static.rename(columns={"area": "area_km2", "gauge_lat": "lat"})
+        static = static.apply(pd.to_numeric, errors="ignore")
+        # raw attributes only carry per-product p_mean_*; compute the single
+        # p_mean from the precipitation timeseries, matching the local cache
+        static["p_mean"] = self._p_mean_from_precip(static.index)
+
+        zarr_name = self._attributes_cache_filename.replace(".nc", ".zarr")
+        out, opts = self._zarr_path_and_opts(zarr_name)
+        ids = static.index.tolist()
+        n = len(ids)
+        root = zarr.open_group(out, mode="w", storage_options=opts, zarr_format=2)
+        for col in static.columns:
+            vals = static[col].values.astype(str) if static[col].dtype == object else static[col].values
+            arr = root.create_array(col, shape=(n,), chunks=(n,), dtype=vals.dtype)
+            arr[:] = vals
+            arr.attrs["_ARRAY_DIMENSIONS"] = ["basin"]
+        basin_arr = root.create_array("basin", shape=(n,), chunks=(n,), dtype=str)
+        basin_arr[:] = ids
+        basin_arr.attrs["_ARRAY_DIMENSIONS"] = ["basin"]
+        root.attrs["coordinates"] = "basin"
+        print(f"Attributes zarr written to: {out}")
+
+    def cache_timeseries_to_zarr(self) -> None:
+        import zarr
+        fs = self._make_s3fs()
+        uri = str(self.data_source_dir).rstrip("/")
+        base = f"{uri}/CAMELS_CL"
+
+        def _read_wide(file_rel):
+            path = f"{base}/{file_rel}".removeprefix("s3://")
+            with fs.open(path) as fh:
+                df = pd.read_csv(fh, sep="\t", index_col=0, parse_dates=True,
+                                 na_values=[" ", ""], dtype=str)
+            df.index = pd.to_datetime(df.index)
+            df.columns = df.columns.str.strip()
+            return df.apply(pd.to_numeric, errors="coerce")
+
+        print("Reading wide-format TXT files from OSS...")
+        var_dfs: dict[str, pd.DataFrame] = {}
+        for file_rel, zarr_vn in self._FILE_MAP:
+            try:
+                var_dfs[zarr_vn] = _read_wide(file_rel)
+                print(f"  {file_rel.split('/')[-1]} -> {zarr_vn}")
+            except Exception as e:
+                print(f"  WARN: {file_rel} skipped: {e}")
+
+        stations = self.read_object_ids().tolist()
+        all_times = pd.date_range(self.default_t_range[0], self.default_t_range[1], freq="D")
+        n, nt = len(stations), len(all_times)
+        times_ns = all_times.asi8
+
+        print(f"Writing zarr: {n} stations x {nt} days x {len(var_dfs)} vars")
+        zarr_name = self._timeseries_cache_filename.replace(".nc", ".zarr")
+        out, opts = self._zarr_path_and_opts(zarr_name)
+        root = zarr.open_group(out, mode="w", storage_options=opts, zarr_format=2)
+
+        for zarr_vn, df in var_dfs.items():
+            # df is time-indexed with station columns -> (nt, n); transpose to (n, nt)
+            data = df.reindex(index=all_times, columns=stations).values.T
+            arr = root.create_array(zarr_vn, shape=(n, nt), chunks=(min(n, 100), min(nt, 365)), dtype="float64")
+            arr[:] = data
+            arr.attrs["_ARRAY_DIMENSIONS"] = ["basin", "time"]
+
+        time_arr = root.create_array("time", shape=(nt,), chunks=(min(nt, 365),), dtype="int64")
+        time_arr[:] = times_ns
+        time_arr.attrs["_ARRAY_DIMENSIONS"] = ["time"]
+        time_arr.attrs["units"] = "nanoseconds since 1970-01-01"
+        time_arr.attrs["calendar"] = "proleptic_gregorian"
+
+        basin_arr = root.create_array("basin", shape=(n,), chunks=(n,), dtype=str)
+        basin_arr[:] = stations
+        basin_arr.attrs["_ARRAY_DIMENSIONS"] = ["basin"]
+
+        root.attrs["coordinates"] = "basin time"
+        print(f"Timeseries zarr written to: {out}")
 
     @property
     def _attributes_cache_filename(self):
@@ -152,19 +264,19 @@ class CamelsCl(HydroDataset):
         StandardVariable.TEMPERATURE_MIN: {
             "default_source": "observations",
             "sources": {
-                "observations": {"specific_name": "airtemp_c_min", "unit": "°C"}
+                "observations": {"specific_name": "airtemp_c_min", "unit": "掳C"}
             },
         },
         StandardVariable.TEMPERATURE_MAX: {
             "default_source": "observations",
             "sources": {
-                "observations": {"specific_name": "airtemp_c_max", "unit": "°C"}
+                "observations": {"specific_name": "airtemp_c_max", "unit": "掳C"}
             },
         },
         StandardVariable.TEMPERATURE_MEAN: {
             "default_source": "observations",
             "sources": {
-                "observations": {"specific_name": "airtemp_c_mean", "unit": "°C"}
+                "observations": {"specific_name": "airtemp_c_mean", "unit": "掳C"}
             },
         },
         StandardVariable.POTENTIAL_EVAPOTRANSPIRATION: {

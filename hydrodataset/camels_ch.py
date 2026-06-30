@@ -1,4 +1,4 @@
-import os
+﻿import os
 import pandas as pd
 import numpy as np
 from typing import Optional
@@ -19,6 +19,30 @@ class CamelsCh(HydroDataset):
     URL to the latest Zenodo record.
     """
 
+    # Raw CSV column 鈫?zarr variable name (matches NC cache)
+    _COL_MAP = {
+        "discharge_vol(m3/s)": "q_cms_obs",
+        "discharge_spec(mm/d)": "q_mm_obs",
+        "waterlevel(m)": "waterlevel",
+        "precipitation(mm/d)": "pcp_mm",
+        "temperature_min(degC)": "temperature_min",
+        "temperature_mean(degC)": "temperature_mean",
+        "temperature_max(degC)": "temperature_max",
+        "rel_sun_dur(%)": "rel_sun_dur",
+        "swe(mm)": "swe_mm",
+    }
+    _STATIC_FILES = [
+        "CAMELS_CH_climate_attributes_obs.csv",
+        "CAMELS_CH_geology_attributes.csv",
+        "CAMELS_CH_glacier_attributes.csv",
+        "CAMELS_CH_humaninfluence_attributes.csv",
+        "CAMELS_CH_hydrogeology_attributes.csv",
+        "CAMELS_CH_hydrology_attributes_obs.csv",
+        "CAMELS_CH_landcover_attributes.csv",
+        "CAMELS_CH_soil_attributes.csv",
+        "CAMELS_CH_topographic_attributes.csv",
+    ]
+
     def __init__(
         self,
         uri: str,
@@ -26,18 +50,13 @@ class CamelsCh(HydroDataset):
         download: bool = False,
         version: str = "v0.9",
     ) -> None:
-        """Initialize CAMELS-CH dataset with custom URL and CSV reading methods.
-
-        Args:
-            uri: Path to the data directory.
-            region: Geographic region identifier (optional).
-            download: Whether to download data automatically.
-            version: Dataset version (default: v0.9).
-        """
         super().__init__(uri)
         self.region = region
         self.download = download
         self.version = version
+
+        if str(uri).startswith("s3://"):
+            return
 
         # Define updated URL for the new dataset version
         new_url = "https://zenodo.org/records/15025258"
@@ -302,6 +321,109 @@ class CamelsCh(HydroDataset):
     def default_t_range(self):
         return ["1981-01-01", "2020-12-31"]
 
+    def read_object_ids(self) -> np.ndarray:
+        uri = str(self.data_source_dir).rstrip("/")
+        rel = "CAMELS_CH/camels_ch/camels_ch/static_attributes/CAMELS_CH_glacier_attributes.csv"
+        if self._is_cloud():
+            fs = self._make_s3fs()
+            with fs.open(f"{uri}/{rel}".removeprefix("s3://")) as fh:
+                df = pd.read_csv(fh, comment="#")
+        else:
+            df = pd.read_csv(os.path.join(uri, *rel.split("/")), comment="#")
+        return np.array(sorted(df["gauge_id"].astype(str).tolist()))
+
+    def cache_attributes_to_zarr(self) -> None:
+        import zarr
+        fs = self._make_s3fs()
+        uri = str(self.data_source_dir).rstrip("/")
+        attr_base = f"{uri}/CAMELS_CH/camels_ch/camels_ch/static_attributes"
+        dfs = []
+        for fname in self._STATIC_FILES:
+            path = f"{attr_base}/{fname}".removeprefix("s3://")
+            try:
+                with fs.open(path) as fh:
+                    raw = fh.read()
+                import io
+                for enc in ("utf-8", "latin-1"):
+                    try:
+                        df = pd.read_csv(io.BytesIO(raw), comment="#",
+                                         index_col="gauge_id",
+                                         dtype={"gauge_id": str}, encoding=enc)
+                        break
+                    except UnicodeDecodeError:
+                        continue
+                df.index = df.index.astype(str)
+                dfs.append(df)
+            except Exception as e:
+                print(f"  WARN {fname}: {e}")
+        static = pd.concat(dfs, axis=1)
+        static = static.loc[~static.index.duplicated(keep="first")]
+        static.columns = self._clean_feature_names(list(static.columns))
+        static = static.rename(columns={"area": "area_km2", "gauge_lat": "lat"})
+
+        zarr_name = self._attributes_cache_filename.replace(".nc", ".zarr")
+        out, opts = self._zarr_path_and_opts(zarr_name)
+        ids = static.index.tolist()
+        n = len(ids)
+        root = zarr.open_group(out, mode="w", storage_options=opts, zarr_format=2)
+        for col in static.columns:
+            vals = static[col].values.astype(str) if static[col].dtype == object else static[col].values
+            arr = root.create_array(col, shape=(n,), chunks=(n,), dtype=vals.dtype)
+            arr[:] = vals
+            arr.attrs["_ARRAY_DIMENSIONS"] = ["basin"]
+        basin_arr = root.create_array("basin", shape=(n,), chunks=(n,), dtype=str)
+        basin_arr[:] = ids
+        basin_arr.attrs["_ARRAY_DIMENSIONS"] = ["basin"]
+        root.attrs["coordinates"] = "basin"
+        print(f"Attributes zarr written to: {out}")
+
+    def cache_timeseries_to_zarr(self) -> None:
+        import zarr
+        fs = self._make_s3fs()
+        uri = str(self.data_source_dir).rstrip("/")
+        ts_base = f"{uri}/CAMELS_CH/camels_ch/camels_ch/timeseries/observation_based"
+
+        stations = self.read_object_ids().tolist()
+        all_times = pd.date_range(self.default_t_range[0], self.default_t_range[1], freq="D")
+        n, nt = len(stations), len(all_times)
+        times_ns = all_times.asi8
+        all_vars = list(self._COL_MAP.values())
+
+        data: dict[str, np.ndarray] = {vn: np.full((n, nt), np.nan) for vn in all_vars}
+        print(f"Reading {n} stations from OSS...")
+        for i, stn in enumerate(tqdm(stations, desc="CAMELS_CH zarr")):
+            path = f"{ts_base}/CAMELS_CH_obs_based_{stn}.csv".removeprefix("s3://")
+            try:
+                with fs.open(path) as fh:
+                    df = pd.read_csv(fh, index_col="date", parse_dates=True)
+                df = df.reindex(all_times)
+                for raw_col, zarr_vn in self._COL_MAP.items():
+                    if raw_col in df.columns:
+                        data[zarr_vn][i] = df[raw_col].values.astype(float)
+            except Exception as e:
+                print(f"  WARN {stn}: {e}")
+
+        zarr_name = self._timeseries_cache_filename.replace(".nc", ".zarr")
+        out, opts = self._zarr_path_and_opts(zarr_name)
+        root = zarr.open_group(out, mode="w", storage_options=opts, zarr_format=2)
+        for vn in all_vars:
+            arr = root.create_array(vn, shape=(n, nt), chunks=(min(n, 100), min(nt, 365)), dtype="float64")
+            arr[:] = data[vn]
+            arr.attrs["_ARRAY_DIMENSIONS"] = ["basin", "time"]
+
+        time_arr = root.create_array("time", shape=(nt,), chunks=(min(nt, 365),), dtype="int64")
+        time_arr[:] = times_ns
+        time_arr.attrs["_ARRAY_DIMENSIONS"] = ["time"]
+        time_arr.attrs["units"] = "nanoseconds since 1970-01-01"
+        time_arr.attrs["calendar"] = "proleptic_gregorian"
+
+        basin_arr = root.create_array("basin", shape=(n,), chunks=(n,), dtype=str)
+        basin_arr[:] = stations
+        basin_arr.attrs["_ARRAY_DIMENSIONS"] = ["basin"]
+
+        root.attrs["coordinates"] = "basin time"
+        print(f"Timeseries zarr written to: {out}")
+
     _subclass_static_definitions = {
         "p_mean": {"specific_name": "p_mean", "unit": "mm"},
         "area": {"specific_name": "area_km2", "unit": "km^2"},
@@ -323,18 +445,18 @@ class CamelsCh(HydroDataset):
         },
         StandardVariable.TEMPERATURE_MAX: {
             "default_source": "sfo",
-            "sources": {"sfo": {"specific_name": "airtemp_C_max", "unit": "°C"}},
+            "sources": {"sfo": {"specific_name": "airtemp_C_max", "unit": "掳C"}},
         },
         StandardVariable.TEMPERATURE_MIN: {
             "default_source": "sfo",
             "sources": {
-                "sfo": {"specific_name": "airtemp_C_min", "unit": "°C"},
+                "sfo": {"specific_name": "airtemp_C_min", "unit": "掳C"},
             },
         },
         StandardVariable.TEMPERATURE_MEAN: {
             "default_source": "sfo",
             "sources": {
-                "sfo": {"specific_name": "airtemp_C_mean", "unit": "°C"},
+                "sfo": {"specific_name": "airtemp_C_mean", "unit": "掳C"},
             },
         },
         StandardVariable.RELATIVE_DAYLIGHT_DURATION: {

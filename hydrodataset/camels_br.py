@@ -1,4 +1,4 @@
-"""
+﻿"""
 Author: Wenyu Ouyang
 Date: 2025-10-27 14:52:23
 LastEditTime: 2025-10-28 20:13:06
@@ -29,60 +29,70 @@ class CamelsBr(HydroDataset):
     It overrides the download URLs and provides its own parsing and caching logic.
     """
 
+    # (folder_rel, file_suffix, var_columns) 鈥?used by cache_timeseries_to_zarr
+    _FOLDER_MAP = [
+        (
+            "03_CAMELS_BR_streamflow_selected_catchments/03_CAMELS_BR_streamflow_selected_catchments",
+            "_streamflow.txt",
+            ["streamflow_m3s", "streamflow_mm", "qual_control_by_ana", "qual_flag"],
+        ),
+        (
+            "04_CAMELS_BR_streamflow_simulated/04_CAMELS_BR_streamflow_simulated",
+            "_simulated_streamflow.txt",
+            ["simulated_streamflow_m3s"],
+        ),
+        (
+            "05_CAMELS_BR_precipitation/05_CAMELS_BR_precipitation",
+            "_precipitation.txt",
+            ["p_brdwgd", "p_chirps", "p_cpc", "p_era5land", "p_mswep"],
+        ),
+        (
+            "06_CAMELS_BR_actual_evapotransp/06_CAMELS_BR_actual_evapotransp",
+            "_actual_evapotransp.txt",
+            ["aet_gleam", "aet_era5land", "aet_mgb"],
+        ),
+    ]
+
     def __init__(
         self, uri: str, region: Optional[str] = None, download: bool = False
     ) -> None:
-        """Initialize CAMELS_BR dataset.
-
-        Args:
-            uri: Path to the data directory.
-            region: Geographic region identifier (optional, defaults to BR).
-            download: Whether to download data automatically (not used, handled by aqua_fetch).
-        """
         super().__init__(uri)
         self.region = "BR" if region is None else region
+        self._variable_map = {}
 
-        # Define the new URLs for the latest dataset version
-        new_url = "https://zenodo.org/records/15025488"
-        new_urls = {
-            "01_CAMELS_BR_attributes.zip": "https://zenodo.org/records/15025488/files/",
-            "02_CAMELS_BR_streamflow_all_catchments.zip": "https://zenodo.org/records/15025488/files/",
-            "03_CAMELS_BR_streamflow_selected_catchments.zip": "https://zenodo.org/records/15025488/files/",
-            "04_CAMELS_BR_streamflow_simulated.zip": "https://zenodo.org/records/15025488/files/",
-            "05_CAMELS_BR_precipitation.zip": "https://zenodo.org/records/15025488/files/",
-            "06_CAMELS_BR_actual_evapotransp.zip": "https://zenodo.org/records/15025488/files/",
-            "07_CAMELS_BR_potential_evapotransp.zip": "https://zenodo.org/records/15025488/files/",
-            "08_CAMELS_BR_reference_evapotransp.zip": "https://zenodo.org/records/15025488/files/",
-            "09_CAMELS_BR_temperature.zip": "https://zenodo.org/records/15025488/files/",
-            "10_CAMELS_BR_soil_moisture.zip": "https://zenodo.org/records/15025488/files/",
-            "11_CAMELS_BR_precipitation_ana_gauges.zip": "https://zenodo.org/records/15025488/files/",
-            "12_CAMELS_BR_catchment_boundaries.zip": "https://zenodo.org/records/15025488/files/",
-            "13_CAMELS_BR_gauge_location.zip": "https://zenodo.org/records/15025488/files/",
-            "CAMELS_BR_readme.txt": "https://zenodo.org/records/15025488/files/",
-        }
-        new_folders = {
-            "streamflow_mm": "03_CAMELS_BR_streamflow_selected_catchments",
-        }
+        if not str(uri).startswith("s3://"):
+            new_url = "https://zenodo.org/records/15025488"
+            new_urls = {
+                "01_CAMELS_BR_attributes.zip": "https://zenodo.org/records/15025488/files/",
+                "02_CAMELS_BR_streamflow_all_catchments.zip": "https://zenodo.org/records/15025488/files/",
+                "03_CAMELS_BR_streamflow_selected_catchments.zip": "https://zenodo.org/records/15025488/files/",
+                "04_CAMELS_BR_streamflow_simulated.zip": "https://zenodo.org/records/15025488/files/",
+                "05_CAMELS_BR_precipitation.zip": "https://zenodo.org/records/15025488/files/",
+                "06_CAMELS_BR_actual_evapotransp.zip": "https://zenodo.org/records/15025488/files/",
+                "07_CAMELS_BR_potential_evapotransp.zip": "https://zenodo.org/records/15025488/files/",
+                "08_CAMELS_BR_reference_evapotransp.zip": "https://zenodo.org/records/15025488/files/",
+                "09_CAMELS_BR_temperature.zip": "https://zenodo.org/records/15025488/files/",
+                "10_CAMELS_BR_soil_moisture.zip": "https://zenodo.org/records/15025488/files/",
+                "11_CAMELS_BR_precipitation_ana_gauges.zip": "https://zenodo.org/records/15025488/files/",
+                "12_CAMELS_BR_catchment_boundaries.zip": "https://zenodo.org/records/15025488/files/",
+                "13_CAMELS_BR_gauge_location.zip": "https://zenodo.org/records/15025488/files/",
+                "CAMELS_BR_readme.txt": "https://zenodo.org/records/15025488/files/",
+            }
+            new_folders = {"streamflow_mm": "03_CAMELS_BR_streamflow_selected_catchments"}
 
-        def do_nothing(self, *args, **kwargs):
-            pass
+            def do_nothing(self, *args, **kwargs):
+                pass
 
-        class_attrs = {
-            "url": new_url,
-            "urls": new_urls,
-            "folders": new_folders,
-            "_maybe_to_netcdf": do_nothing,
-        }
-        CustomCamelsBr = type("CAMELS_BR", (CAMELS_BR,), class_attrs)
-
-        # Instantiate our custom class to handle downloads, but note that the reading
-        # logic below is custom and does not rely on aquafetch's parsing.
-        self.aqua_fetch = CustomCamelsBr(uri)
-
-        self.data_source_description = self.set_data_source_describe()
-
-        # Build the variable map for the custom reading logic
-        self._variable_map = self._build_variable_map()
+            class_attrs = {
+                "url": new_url,
+                "urls": new_urls,
+                "folders": new_folders,
+                "_maybe_to_netcdf": do_nothing,
+            }
+            CustomCamelsBr = type("CAMELS_BR", (CAMELS_BR,), class_attrs)
+            self.aqua_fetch = CustomCamelsBr(uri)
+            self.data_source_description = self.set_data_source_describe()
+            self._variable_map = self._build_variable_map()
 
     @property
     def _attributes_cache_filename(self):
@@ -143,23 +153,23 @@ class CamelsBr(HydroDataset):
         StandardVariable.TEMPERATURE_MAX: {
             "default_source": "era5land",
             "sources": {
-                "era5land": {"specific_name": "tmax_era5land", "unit": "°C"},
-                "cpc": {"specific_name": "tmax_cpc", "unit": "°C"},
-                "brdwgd": {"specific_name": "tmax_brdwgd", "unit": "°C"},
+                "era5land": {"specific_name": "tmax_era5land", "unit": "掳C"},
+                "cpc": {"specific_name": "tmax_cpc", "unit": "掳C"},
+                "brdwgd": {"specific_name": "tmax_brdwgd", "unit": "掳C"},
             },
         },
         StandardVariable.TEMPERATURE_MIN: {
             "default_source": "era5land",
             "sources": {
-                "era5land": {"specific_name": "tmin_era5land", "unit": "°C"},
-                "cpc": {"specific_name": "tmin_cpc", "unit": "°C"},
-                "brdwgd": {"specific_name": "tmin_brdwgd", "unit": "°C"},
+                "era5land": {"specific_name": "tmin_era5land", "unit": "掳C"},
+                "cpc": {"specific_name": "tmin_cpc", "unit": "掳C"},
+                "brdwgd": {"specific_name": "tmin_brdwgd", "unit": "掳C"},
             },
         },
         StandardVariable.TEMPERATURE_MEAN: {
             "default_source": "era5land",
             "sources": {
-                "era5land": {"specific_name": "tmean_era5land", "unit": "°C"},
+                "era5land": {"specific_name": "tmean_era5land", "unit": "掳C"},
             },
         },
         StandardVariable.SOIL_MOISTURE: {
@@ -200,6 +210,99 @@ class CamelsBr(HydroDataset):
             },
         },
     }
+
+    def read_object_ids(self) -> np.ndarray:
+        uri = str(self.data_source_dir).rstrip("/")
+        topo_rel = "CAMELS_BR/01_CAMELS_BR_attributes/01_CAMELS_BR_attributes/camels_br_topography.txt"
+        if self._is_cloud():
+            fs = self._make_s3fs()
+            with fs.open(f"{uri}/{topo_rel}".removeprefix("s3://")) as fh:
+                df = pd.read_csv(fh, sep=r"\s+", engine="python")
+        else:
+            df = pd.read_csv(os.path.join(uri, *topo_rel.split("/")), sep=r"\s+", engine="python")
+        return np.array(sorted(df["gauge_id"].astype(str).tolist()))
+
+    def cache_attributes_to_zarr(self) -> None:
+        import zarr
+        fs = self._make_s3fs()
+        uri = str(self.data_source_dir).rstrip("/")
+        csv_path = f"{uri}/CAMELS_BR/static_features.csv".removeprefix("s3://")
+        with fs.open(csv_path) as fh:
+            static = pd.read_csv(fh, index_col="gauge_id", dtype={"gauge_id": str})
+        static.index = static.index.astype(str)
+        static.columns = self._clean_feature_names(list(static.columns))
+        static = static.rename(columns={"area": "area_km2"})
+
+        zarr_name = self._attributes_cache_filename.replace(".nc", ".zarr")
+        out, opts = self._zarr_path_and_opts(zarr_name)
+        ids = static.index.tolist()
+        n = len(ids)
+        root = zarr.open_group(out, mode="w", storage_options=opts, zarr_format=2)
+        for col in static.columns:
+            vals = static[col].values.astype(str) if static[col].dtype == object else static[col].values
+            arr = root.create_array(col, shape=(n,), chunks=(n,), dtype=vals.dtype)
+            arr[:] = vals
+            arr.attrs["_ARRAY_DIMENSIONS"] = ["basin"]
+        basin_arr = root.create_array("basin", shape=(n,), chunks=(n,), dtype=str)
+        basin_arr[:] = ids
+        basin_arr.attrs["_ARRAY_DIMENSIONS"] = ["basin"]
+        root.attrs["coordinates"] = "basin"
+        print(f"Attributes zarr written to: {out}")
+
+    def cache_timeseries_to_zarr(self) -> None:
+        import zarr
+        fs = self._make_s3fs()
+        uri = str(self.data_source_dir).rstrip("/")
+        base = f"{uri}/CAMELS_BR"
+
+        stations = self.read_object_ids().tolist()
+        all_times = pd.date_range(self.default_t_range[0], self.default_t_range[1], freq="D")
+        n, nt = len(stations), len(all_times)
+        times_ns = all_times.asi8
+
+        all_vars = [v for _, _, cols in self._FOLDER_MAP for v in cols]
+
+        print(f"Reading {n} stations x {nt} days x {len(all_vars)} vars from OSS...")
+        # Collect per-station data: {var -> [basin, time] array}
+        data: dict[str, np.ndarray] = {vn: np.full((n, nt), np.nan) for vn in all_vars}
+
+        for i, stn in enumerate(tqdm(stations, desc="CAMELS_BR zarr")):
+            for folder_rel, suffix, cols in self._FOLDER_MAP:
+                path = f"{base}/{folder_rel}/{stn}{suffix}".removeprefix("s3://")
+                try:
+                    with fs.open(path) as fh:
+                        df = pd.read_csv(fh, sep=r"\s+", engine="python")
+                    df["date"] = pd.to_datetime(df[["year", "month", "day"]])
+                    df = df.set_index("date").reindex(all_times)
+                    for vn in cols:
+                        if vn in df.columns:
+                            vals = df[vn].values.astype(float)
+                            vals[vals < 0] = np.nan
+                            data[vn][i] = vals
+                except Exception as e:
+                    print(f"  WARN {stn} {folder_rel}: {e}")
+
+        zarr_name = self._timeseries_cache_filename.replace(".nc", ".zarr")
+        out, opts = self._zarr_path_and_opts(zarr_name)
+        root = zarr.open_group(out, mode="w", storage_options=opts, zarr_format=2)
+
+        for vn in all_vars:
+            arr = root.create_array(vn, shape=(n, nt), chunks=(min(n, 100), min(nt, 365)), dtype="float64")
+            arr[:] = data[vn]
+            arr.attrs["_ARRAY_DIMENSIONS"] = ["basin", "time"]
+
+        time_arr = root.create_array("time", shape=(nt,), chunks=(min(nt, 365),), dtype="int64")
+        time_arr[:] = times_ns
+        time_arr.attrs["_ARRAY_DIMENSIONS"] = ["time"]
+        time_arr.attrs["units"] = "nanoseconds since 1970-01-01"
+        time_arr.attrs["calendar"] = "proleptic_gregorian"
+
+        basin_arr = root.create_array("basin", shape=(n,), chunks=(n,), dtype=str)
+        basin_arr[:] = stations
+        basin_arr.attrs["_ARRAY_DIMENSIONS"] = ["basin"]
+
+        root.attrs["coordinates"] = "basin time"
+        print(f"Timeseries zarr written to: {out}")
 
     def _build_variable_map(self):
         """

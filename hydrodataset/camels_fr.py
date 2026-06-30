@@ -1,7 +1,9 @@
-import numpy as np
-import xarray as xr
+﻿import os
 from typing import Optional
 
+import numpy as np
+import pandas as pd
+import xarray as xr
 from hydroutils import hydro_file
 from tqdm import tqdm
 from hydrodataset import HydroDataset, StandardVariable
@@ -9,6 +11,49 @@ from aqua_fetch import CAMELS_FR
 
 
 class CamelsFr(HydroDataset):
+
+    _COL_MAP = {
+        "tsd_q_l":           "q_cms_obs",
+        "tsd_q_mm":          "q_mm_obs",
+        "tsd_val_s":         "tsd_val_s",
+        "tsd_val_q":         "tsd_val_q",
+        "tsd_val_m":         "tsd_val_m",
+        "tsd_val_c":         "tsd_val_c",
+        "tsd_val_i":         "tsd_val_i",
+        "tsd_prec":          "pcp_mm",
+        "tsd_prec_solid_frac": "pcp_mm_solfrac",
+        "tsd_temp":          "airtemp_c_mean",
+        "tsd_pet_ou":        "pet_mm_ou",
+        "tsd_pet_pe":        "pet_mm_pe",
+        "tsd_pet_pm":        "pet_mm_pm",
+        "tsd_wind":          "windspeed_mps",
+        "tsd_humid":         "spechum_gkg",
+        "tsd_rad_dli":       "lwdownrad_wm2",
+        "tsd_rad_ssi":       "solrad_wm2",
+        "tsd_swi_gr":        "tsd_swi_gr",
+        "tsd_swi_isba":      "tsd_swi_isba",
+        "tsd_swe_isba":      "tsd_swe_isba",
+        "tsd_temp_min":      "airtemp_c_min",
+        "tsd_temp_max":      "airtemp_c_max",
+    }
+    # Only one-row-per-station files (654 rows, sta_code_h3 index). AquaFetch
+    # skips the long-format soil/topography quantile files (thousands of rows).
+    _ATTR_FILES = [
+        "CAMELS_FR_geology_attributes.csv",
+        "CAMELS_FR_human_influences_dams.csv",
+        "CAMELS_FR_hydrogeology_attributes.csv",
+        "CAMELS_FR_land_cover_attributes.csv",
+        "CAMELS_FR_station_general_attributes.csv",
+        "CAMELS_FR_topography_general_attributes.csv",
+    ]
+    # AquaFetch static_map: lat/lon from station_general, area from site_general
+    _STATIC_RENAME = {
+        "sta_y_w84": "lat",
+        "sta_x_w84": "long",
+        "sit_area_topo": "area_km2",
+    }
+    _ATTR_REL = "CAMELS_FR/CAMELS_FR_attributes/CAMELS_FR_attributes/static_attributes"
+    _TS_REL = "CAMELS_FR/CAMELS_FR_time_series/CAMELS_FR_time_series/daily"
     """CAMELS_FR dataset class extending RainfallRunoff.
 
     This class provides access to the CAMELS_FR dataset, which contains hourly
@@ -38,6 +83,8 @@ class CamelsFr(HydroDataset):
         super().__init__(uri, cache_path=cache_path)
         self.region = region
         self.download = download
+        if str(uri).startswith("s3://"):
+            return
         try:
             self.aqua_fetch = CAMELS_FR(uri)
         except Exception as e:
@@ -61,6 +108,123 @@ class CamelsFr(HydroDataset):
             if check_zip_extract:
                 hydro_file.zip_extract(self.data_source_dir.joinpath("CAMELS_FR"))
             self.aqua_fetch = CAMELS_FR(uri)
+
+    def read_object_ids(self) -> np.ndarray:
+        uri = str(self.data_source_dir).rstrip("/")
+        if self._is_cloud():
+            fs = self._make_s3fs()
+            names = [p.split("/")[-1] for p in fs.ls(f"{uri}/{self._TS_REL}".removeprefix("s3://"))]
+        else:
+            names = os.listdir(os.path.join(uri, *self._TS_REL.split("/")))
+        ids = sorted(
+            n.replace("CAMELS_FR_tsd_", "").replace(".csv", "")
+            for n in names if n.startswith("CAMELS_FR_tsd_")
+        )
+        return np.array(ids)
+
+    def cache_attributes_to_zarr(self) -> None:
+        import zarr
+        fs = self._make_s3fs()
+        uri = str(self.data_source_dir).rstrip("/")
+        base = f"{uri}/{self._ATTR_REL}"
+        dfs = []
+        for fname in self._ATTR_FILES:
+            path = f"{base}/{fname}".removeprefix("s3://")
+            try:
+                with fs.open(path) as fh:
+                    df = pd.read_csv(fh, sep=";", index_col="sta_code_h3",
+                                     dtype={"sta_code_h3": str})
+                df.index = df.index.astype(str)
+                dfs.append(df)
+            except Exception as e:
+                print(f"  WARN {fname}: {e}")
+        static = pd.concat(dfs, axis=1)
+
+        # site_general is indexed by sit_code_h3 (8 digits) while the per-station
+        # files use sta_code_h3 (10 digits); map by trimming the last 2 digits
+        # so sit_area_topo (catchment area) can be joined.
+        try:
+            site_path = f"{base}/CAMELS_FR_site_general_attributes.csv".removeprefix("s3://")
+            with fs.open(site_path) as fh:
+                site = pd.read_csv(fh, sep=";", index_col="sit_code_h3",
+                                   dtype={"sit_code_h3": str})
+            site.index = site.index.astype(str)
+            site = site.rename(index={stn[:-2]: stn for stn in static.index})
+            static = pd.concat([site, static], axis=1)
+        except Exception as e:
+            print(f"  WARN site_general join failed: {e}")
+
+        static = static.loc[:, ~static.columns.duplicated(keep="first")]
+        static = static.loc[~static.index.duplicated(keep="first")]
+        stations = self.read_object_ids().tolist()
+        static = static.reindex(stations)
+        static.columns = self._clean_feature_names(list(static.columns))
+        static = static.rename(columns=self._STATIC_RENAME)
+        if "p_mean" not in static.columns:
+            static["p_mean"] = self._p_mean_from_precip(static.index)
+
+        zarr_name = self._attributes_cache_filename.replace(".nc", ".zarr")
+        out, opts = self._zarr_path_and_opts(zarr_name)
+        n = len(stations)
+        root = zarr.open_group(out, mode="w", storage_options=opts, zarr_format=2)
+        for col in static.columns:
+            vals = static[col].values.astype(str) if static[col].dtype == object else static[col].values
+            arr = root.create_array(col, shape=(n,), chunks=(n,), dtype=vals.dtype)
+            arr[:] = vals
+            arr.attrs["_ARRAY_DIMENSIONS"] = ["basin"]
+        basin_arr = root.create_array("basin", shape=(n,), chunks=(n,), dtype=str)
+        basin_arr[:] = stations
+        basin_arr.attrs["_ARRAY_DIMENSIONS"] = ["basin"]
+        root.attrs["coordinates"] = "basin"
+        print(f"Attributes zarr written to: {out}")
+
+    def cache_timeseries_to_zarr(self) -> None:
+        import zarr
+        fs = self._make_s3fs()
+        uri = str(self.data_source_dir).rstrip("/")
+        ts_base = f"{uri}/{self._TS_REL}"
+
+        stations = self.read_object_ids().tolist()
+        all_times = pd.date_range(self.default_t_range[0], self.default_t_range[1], freq="D")
+        n, nt = len(stations), len(all_times)
+        times_ns = all_times.asi8
+        all_vars = list(self._COL_MAP.values())
+
+        data: dict[str, np.ndarray] = {vn: np.full((n, nt), np.nan) for vn in all_vars}
+        print(f"Reading {n} stations from OSS...")
+        for i, stn in enumerate(tqdm(stations, desc="CAMELS_FR zarr")):
+            path = f"{ts_base}/CAMELS_FR_tsd_{stn}.csv".removeprefix("s3://")
+            try:
+                with fs.open(path) as fh:
+                    df = pd.read_csv(fh, sep=";", comment="#", dtype=str)
+                df.index = pd.to_datetime(df["tsd_date"], format="%Y%m%d")
+                df = df.reindex(all_times)
+                for raw_col, zarr_vn in self._COL_MAP.items():
+                    if raw_col in df.columns:
+                        data[zarr_vn][i] = pd.to_numeric(df[raw_col], errors="coerce").values
+            except Exception as e:
+                print(f"  WARN {stn}: {e}")
+
+        zarr_name = self._timeseries_cache_filename.replace(".nc", ".zarr")
+        out, opts = self._zarr_path_and_opts(zarr_name)
+        root = zarr.open_group(out, mode="w", storage_options=opts, zarr_format=2)
+        for vn in all_vars:
+            arr = root.create_array(vn, shape=(n, nt), chunks=(min(n, 100), min(nt, 365)), dtype="float64")
+            arr[:] = data[vn]
+            arr.attrs["_ARRAY_DIMENSIONS"] = ["basin", "time"]
+
+        time_arr = root.create_array("time", shape=(nt,), chunks=(min(nt, 365),), dtype="int64")
+        time_arr[:] = times_ns
+        time_arr.attrs["_ARRAY_DIMENSIONS"] = ["time"]
+        time_arr.attrs["units"] = "nanoseconds since 1970-01-01"
+        time_arr.attrs["calendar"] = "proleptic_gregorian"
+
+        basin_arr = root.create_array("basin", shape=(n,), chunks=(n,), dtype=str)
+        basin_arr[:] = stations
+        basin_arr.attrs["_ARRAY_DIMENSIONS"] = ["basin"]
+
+        root.attrs["coordinates"] = "basin time"
+        print(f"Timeseries zarr written to: {out}")
 
     @property
     def _attributes_cache_filename(self):
@@ -168,19 +332,19 @@ class CamelsFr(HydroDataset):
         StandardVariable.TEMPERATURE_MEAN: {
             "default_source": "SIM2-SAFRAN",
             "sources": {
-                "SIM2-SAFRAN": {"specific_name": "airtemp_C_mean", "unit": "°C"},
+                "SIM2-SAFRAN": {"specific_name": "airtemp_C_mean", "unit": "掳C"},
             },
         },
         StandardVariable.TEMPERATURE_MIN: {
             "default_source": "SIM2-SAFRAN",
             "sources": {
-                "SIM2-SAFRAN": {"specific_name": "airtemp_C_min", "unit": "°C"},
+                "SIM2-SAFRAN": {"specific_name": "airtemp_C_min", "unit": "掳C"},
             },
         },
         StandardVariable.TEMPERATURE_MAX: {
             "default_source": "SIM2-SAFRAN",
             "sources": {
-                "SIM2-SAFRAN": {"specific_name": "airtemp_C_max", "unit": "°C"},
+                "SIM2-SAFRAN": {"specific_name": "airtemp_C_max", "unit": "掳C"},
             },
         },
         StandardVariable.POTENTIAL_EVAPOTRANSPIRATION: {

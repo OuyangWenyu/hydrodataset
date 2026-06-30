@@ -1,6 +1,8 @@
 import os
 from typing import Optional
 
+import numpy as np
+import pandas as pd
 from hydrodataset import HydroDataset, StandardVariable
 from tqdm import tqdm
 from aqua_fetch import CAMELS_NZ as _AquaFetchCAMELS_NZ
@@ -147,6 +149,23 @@ class CAMELS_NZ(_AquaFetchCAMELS_NZ):
 
 
 class CamelsNz(HydroDataset):
+
+    # (subfolder, filename_prefix, data_column, zarr_var_name)
+    _VAR_MAP = [
+        ("CAMELS_NZ_Streamflow",       "flow_station_id_",          "flow",              "q_cms_obs"),
+        ("CAMELS_NZ_Precipitation",    "precipitation_station_id_", "precipitation",     "pcp_mm"),
+        ("CAMELS_NZ_Temperature",      "temperature_station_id_",   "temperature",       "airtemp_c_mean"),
+        ("CAMELS_NZ_PET",              "PET_station_id_",           "PET",               "pet_mm"),
+        ("CAMELS_NZ_Relative_Humidity","RH_station_id_",            "Relative_humidity", "rh_"),
+    ]
+    _ATTR_FILES = [
+        "1.CAMELS_NZ_Catchment_information.csv",
+        "2.CAMELS_NZ_Climatic_attribute.csv",
+        "3.CAMELS_NZ_Landcover_attribute.csv",
+        "4.CAMELS_NZ_Geology.csv",
+        "5.CAMELS_NZ_Anthropogenic_attribute.csv",
+    ]
+    _DATA_REL = "CAMELS_NZ/camels_nz"
     """CAMELS_NZ dataset class.
 
     This class uses a custom data reading implementation to support a newer
@@ -180,9 +199,132 @@ class CamelsNz(HydroDataset):
         self.region = "NZ" if region is None else region
         self.download = download
         self.timestep = timestep
+        if not str(uri).startswith("s3://"):
+            self.aqua_fetch = CAMELS_NZ(uri, timestep=timestep)
 
-        # Instantiate our custom CAMELS_NZ class with timestep support
-        self.aqua_fetch = CAMELS_NZ(uri, timestep=timestep)
+    def read_object_ids(self) -> np.ndarray:
+        uri = str(self.data_source_dir).rstrip("/")
+        flow_rel = f"{self._DATA_REL}/CAMELS_NZ_Streamflow"
+        if self._is_cloud():
+            fs = self._make_s3fs()
+            names = [p.split("/")[-1] for p in fs.ls(f"{uri}/{flow_rel}".removeprefix("s3://"))]
+        else:
+            names = os.listdir(os.path.join(uri, *flow_rel.split("/")))
+        ids = sorted(
+            n.replace("flow_station_id_", "").replace(".csv", "")
+            for n in names if n.startswith("flow_station_id_")
+        )
+        return np.array(ids)
+
+    def cache_attributes_to_zarr(self) -> None:
+        import zarr
+        fs = self._make_s3fs()
+        uri = str(self.data_source_dir).rstrip("/")
+        attr_base = f"{uri}/{self._DATA_REL}/CAMELS_NZ_Catchment_Atrributes"
+        dfs = []
+        for i, fname in enumerate(self._ATTR_FILES):
+            path = f"{attr_base}/{fname}".removeprefix("s3://")
+            try:
+                with fs.open(path) as fh:
+                    raw = fh.read()
+                df = pd.read_csv(
+                    __import__("io").BytesIO(raw),
+                    index_col=0, dtype={0: str}, encoding="utf-8-sig",
+                )
+                df.index = df.index.astype(str)
+                # Every file repeats RID/StationName/latitude/longitude; AquaFetch
+                # keeps them only from the first file and drops them elsewhere.
+                if i > 0:
+                    df = df.drop(
+                        columns=["RID", "StationName", "latitude", "longitude"],
+                        errors="ignore",
+                    )
+                dfs.append(df)
+            except Exception as e:
+                print(f"  WARN {fname}: {e}")
+        static = pd.concat(dfs, axis=1)
+        static = static.loc[~static.index.duplicated(keep="first")]
+        stations = self.read_object_ids().tolist()
+        static = static.reindex(stations)
+        static.columns = self._clean_feature_names(list(static.columns))
+        static = static.rename(columns={"uparea": "area_km2"})
+        # NZ has no mean-precip attribute; derive p_mean from the timeseries
+        static["p_mean"] = self._p_mean_from_precip(static.index)
+
+        zarr_name = self._attributes_cache_filename.replace(".nc", ".zarr")
+        out, opts = self._zarr_path_and_opts(zarr_name)
+        n = len(stations)
+        root = zarr.open_group(out, mode="w", storage_options=opts, zarr_format=2)
+        for col in static.columns:
+            vals = static[col].values.astype(str) if static[col].dtype == object else static[col].values
+            arr = root.create_array(col, shape=(n,), chunks=(n,), dtype=vals.dtype)
+            arr[:] = vals
+            arr.attrs["_ARRAY_DIMENSIONS"] = ["basin"]
+        basin_arr = root.create_array("basin", shape=(n,), chunks=(n,), dtype=str)
+        basin_arr[:] = stations
+        basin_arr.attrs["_ARRAY_DIMENSIONS"] = ["basin"]
+        root.attrs["coordinates"] = "basin"
+        print(f"Attributes zarr written to: {out}")
+
+    def cache_timeseries_to_zarr(self) -> None:
+        import zarr
+        fs = self._make_s3fs()
+        uri = str(self.data_source_dir).rstrip("/")
+        base = f"{uri}/{self._DATA_REL}"
+        freq = "h" if self.timestep == "H" else "D"
+
+        stations = self.read_object_ids().tolist()
+        all_times = pd.date_range(self.default_t_range[0], self.default_t_range[1], freq=freq)
+        n, nt = len(stations), len(all_times)
+        times_ns = all_times.asi8
+        all_vars = [row[3] for row in self._VAR_MAP]
+
+        zarr_name = self._timeseries_cache_filename.replace(".nc", ".zarr")
+        out, opts = self._zarr_path_and_opts(zarr_name)
+        root = zarr.open_group(out, mode="w", storage_options=opts, zarr_format=2)
+
+        # Pre-create coordinate arrays
+        time_arr = root.create_array("time", shape=(nt,), chunks=(min(nt, 8760),), dtype="int64")
+        time_arr[:] = times_ns
+        time_arr.attrs["_ARRAY_DIMENSIONS"] = ["time"]
+        time_arr.attrs["units"] = "nanoseconds since 1970-01-01"
+        time_arr.attrs["calendar"] = "proleptic_gregorian"
+
+        basin_arr = root.create_array("basin", shape=(n,), chunks=(n,), dtype=str)
+        basin_arr[:] = stations
+        basin_arr.attrs["_ARRAY_DIMENSIONS"] = ["basin"]
+
+        # Pre-create all data arrays
+        chunk_t = min(nt, 8760)
+        for vn in all_vars:
+            arr = root.create_array(vn, shape=(n, nt), chunks=(min(n, 50), chunk_t), dtype="float64")
+            arr.attrs["_ARRAY_DIMENSIONS"] = ["basin", "time"]
+
+        root.attrs["coordinates"] = "basin time"
+
+        # Fill one variable at a time to limit memory usage
+        for subfolder, prefix, col, zarr_vn in self._VAR_MAP:
+            print(f"Reading {zarr_vn} ({n} stations)...")
+            data = np.full((n, nt), np.nan, dtype="float64")
+            ts_base = f"{base}/{subfolder}"
+            for i, stn in enumerate(tqdm(stations, desc=zarr_vn)):
+                path = f"{ts_base}/{prefix}{stn}.csv".removeprefix("s3://")
+                try:
+                    with fs.open(path) as fh:
+                        df = pd.read_csv(fh, index_col="time", parse_dates=True)
+                    if col in df.columns:
+                        # some station files carry duplicate timestamps, which
+                        # breaks reindex; keep the first occurrence
+                        df = df[~df.index.duplicated(keep="first")]
+                        df = df[[col]].reindex(all_times)
+                        data[i] = pd.to_numeric(df[col], errors="coerce").values
+                except Exception as e:
+                    print(f"  WARN {stn}: {e}")
+            root[zarr_vn][:] = data
+            del data
+            print(f"  -> written")
+
+        print(f"Timeseries zarr written to: {out}")
 
     @property
     def _attributes_cache_filename(self):
@@ -201,7 +343,7 @@ class CamelsNz(HydroDataset):
     # as stored in the cache file after _clean_feature_names() processing
     _subclass_static_definitions = {
         "area": {"specific_name": "area_km2", "unit": "km^2"},
-        "p_mean": {"specific_name": "meanannualrainfall", "unit": "mm"},
+        "p_mean": {"specific_name": "p_mean", "unit": "mm/day"},
     }
 
     # Dynamic variable mapping for CAMELS-NZ
