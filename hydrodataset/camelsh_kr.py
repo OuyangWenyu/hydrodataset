@@ -160,25 +160,34 @@ class CamelshKr(HydroDataset):
 
         root.attrs["coordinates"] = "basin time"
 
-        # fill one variable at a time
+        # Read each station file once (all variables at once, like AquaFetch's
+        # _read_stn_dyn) instead of re-reading every file once per variable.
+        # Process one basin-chunk at a time to keep memory bounded.
         raw_cols = list(self._COL_MAP.keys())
         zarr_vns = list(self._COL_MAP.values())
-        for var_idx, (raw_col, zarr_vn) in enumerate(zip(raw_cols, zarr_vns)):
-            print(f"[{var_idx+1}/{len(raw_cols)}] Reading {zarr_vn}...")
-            data = np.full((n, nt), np.nan, dtype="float64")
-            for i, stn in enumerate(tqdm(stations, desc=zarr_vn)):
+        chunk_b = min(n, 50)
+        for start in range(0, n, chunk_b):
+            end = min(start + chunk_b, n)
+            batch = stations[start:end]
+            buffers = {vn: np.full((len(batch), nt), np.nan) for vn in zarr_vns}
+            for j, stn in enumerate(tqdm(batch, desc=f"stations {start}-{end}")):
                 path = f"{ts_base}/{stn}.csv".removeprefix("s3://")
                 try:
                     with fs.open(path) as fh:
-                        df = pd.read_csv(fh, usecols=["DateTime", raw_col],
-                                         index_col="DateTime", parse_dates=True,
+                        df = pd.read_csv(fh, index_col="DateTime", parse_dates=True,
                                          date_format="%d-%b-%Y %H:%M:%S")
+                    df = df[~df.index.duplicated(keep="first")]
                     df = df.reindex(all_times)
-                    data[i] = pd.to_numeric(df[raw_col], errors="coerce").values
+                    for raw_col, vn in zip(raw_cols, zarr_vns):
+                        if raw_col in df.columns:
+                            buffers[vn][j] = pd.to_numeric(
+                                df[raw_col], errors="coerce"
+                            ).values
                 except Exception as e:
                     print(f"  WARN {stn}: {e}")
-            root[zarr_vn][:] = data
-            del data
+            for vn in zarr_vns:
+                root[vn][start:end, :] = buffers[vn]
+            del buffers
 
         print(f"Timeseries zarr written to: {out}")
 
