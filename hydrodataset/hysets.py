@@ -1,6 +1,7 @@
 from typing import Optional
 
 import numpy as np
+import pandas as pd
 import xarray as xr
 import os
 from tqdm import tqdm
@@ -34,7 +35,184 @@ class Hysets(HydroDataset):
         super().__init__(uri)
         self.region = region
         self.download = download
+        # cloud path: aqua_fetch cannot read S3, use cache_*_to_zarr instead
+        if str(uri).startswith("s3://"):
+            return
         self.aqua_fetch = HYSETS(uri)
+
+    # OSS relative paths (folder HYSETS); default source for every dynamic
+    # feature is ERA5, stored in one big NetCDF
+    _STATIC_REL = "HYSETS/HYSETS_watershed_properties.txt"
+    _ERA5_NC_REL = "HYSETS/HYSETS_2023_update_ERA51.nc"
+    # AquaFetch HYSETS.static_map
+    _STATIC_RENAME = {
+        "Drainage_Area_km2": "area_km2",
+        "Centroid_Lat_deg_N": "lat",
+        "Slope_deg": "slope_degrees",
+        "Centroid_Lon_deg_E": "long",
+    }
+    # AquaFetch HYSETS.dyn_map resolved to cleaned names (nc dynamic_features
+    # coord uses the raw keys; "total_runoff" has no mapping and is ignored)
+    _DYN_RENAME = {
+        "10m_u_component_of_wind": "windspeedu_mps",
+        "10m_v_component_of_wind": "windspeedv_mps",
+        "2m_dewpoint": "dptemp_c_mean_2m",
+        "2m_tasmax": "airtemp_c_2m_max",
+        "2m_tasmin": "airtemp_c_2m_min",
+        "discharge": "q_cms_obs",
+        "evaporation": "evap_mm",
+        "snow_density": "snowdensity_kgm3",
+        "snow_evaporation": "evap_mm_snow",
+        "snow_water_equivalent": "swe_mm",
+        "snowfall": "snowfall_mm",
+        "snowmelt": "snowmelt_mm",
+        "surface_downwards_solar_radiation": "solrad_wm2",
+        "surface_downwards_thermal_radiation": "lwdownrad_wm2",
+        "surface_net_solar_radiation": "solradnet_wm2",
+        "surface_net_thermal_radiation": "lwnetrad_wm2",
+        "surface_pressure": "airpres_hpa",
+        "surface_runoff": "q_mm_obs",
+        "total_cloud_cover": "cloudcover",
+        "total_precipitation": "pcp_mm",
+    }
+
+    def read_object_ids(self) -> np.ndarray:
+        if self._is_cloud():
+            fs = self._make_s3fs()
+            uri = str(self.data_source_dir).rstrip("/")
+            with fs.open(f"{uri}/{self._STATIC_REL}".removeprefix("s3://")) as fh:
+                idx = pd.read_csv(fh, index_col="Watershed_ID", sep=",",
+                                  usecols=["Watershed_ID"]).index
+            return np.array(sorted((str(i) for i in idx), key=lambda x: int(x)))
+        return super().read_object_ids()
+
+    def cache_attributes_to_zarr(self) -> None:
+        import zarr
+
+        fs = self._make_s3fs()
+        uri = str(self.data_source_dir).rstrip("/")
+        with fs.open(f"{uri}/{self._STATIC_REL}".removeprefix("s3://")) as fh:
+            static = pd.read_csv(fh, index_col="Watershed_ID", sep=",")
+        static.index = static.index.astype(str)
+        static = static.rename(columns=self._STATIC_RENAME)
+        static.columns = self._clean_feature_names(list(static.columns))
+        static = static.loc[:, ~static.columns.duplicated(keep="first")]
+        # p_mean is derived from the precipitation timeseries (matches local)
+        static["p_mean"] = self._p_mean_from_precip(static.index)
+
+        zarr_name = self._attributes_cache_filename.replace(".nc", ".zarr")
+        out, opts = self._zarr_path_and_opts(zarr_name)
+        ids = static.index.tolist()
+        n = len(ids)
+        root = zarr.open_group(out, mode="w", storage_options=opts, zarr_format=2)
+        for col in static.columns:
+            vals = static[col].values.astype(str) if static[col].dtype == object else static[col].values
+            arr = root.create_array(col, shape=(n,), chunks=(n,), dtype=vals.dtype)
+            arr[:] = vals
+            arr.attrs["_ARRAY_DIMENSIONS"] = ["basin"]
+        basin_arr = root.create_array("basin", shape=(n,), chunks=(n,), dtype=str)
+        basin_arr[:] = ids
+        basin_arr.attrs["_ARRAY_DIMENSIONS"] = ["basin"]
+        root.attrs["coordinates"] = "basin"
+        print(f"Attributes zarr written to: {out}")
+
+    def cache_timeseries_to_zarr(self, batch_size: int = 200) -> None:
+        import zarr
+
+        fs = self._make_s3fs()
+        uri = str(self.data_source_dir).rstrip("/")
+        nc_path = f"{uri}/{self._ERA5_NC_REL}".removeprefix("s3://")
+
+        stations = self.read_object_ids().tolist()  # Watershed_IDs as strings
+        n = len(stations)
+        all_times = pd.date_range(self.default_t_range[0], self.default_t_range[1], freq="D")
+        nt = len(all_times)
+        times_ns = all_times.asi8
+
+        cleaned_var_lst = []
+        for info in self._dynamic_variable_mapping.values():
+            for s in info["sources"].values():
+                if s["specific_name"] not in cleaned_var_lst:
+                    cleaned_var_lst.append(s["specific_name"])
+
+        zarr_name = self._timeseries_cache_filename.replace(".nc", ".zarr")
+        out, opts = self._zarr_path_and_opts(zarr_name)
+        chunk_t = min(nt, 365)
+        chunk_b = min(batch_size, n)
+        root = zarr.open_group(out, mode="a", storage_options=opts, zarr_format=2)
+        if "basin" not in root:
+            for vn in cleaned_var_lst:
+                arr = root.create_array(vn, shape=(n, nt), chunks=(chunk_b, chunk_t),
+                                        dtype="float64", fill_value=np.nan)
+                arr.attrs["_ARRAY_DIMENSIONS"] = ["basin", "time"]
+            time_arr = root.create_array("time", shape=(nt,), chunks=(chunk_t,), dtype="int64")
+            time_arr[:] = times_ns
+            time_arr.attrs["_ARRAY_DIMENSIONS"] = ["time"]
+            time_arr.attrs["units"] = "nanoseconds since 1970-01-01"
+            time_arr.attrs["calendar"] = "proleptic_gregorian"
+            basin_arr = root.create_array("basin", shape=(n,), chunks=(n,), dtype=str)
+            basin_arr[:] = stations
+            basin_arr.attrs["_ARRAY_DIMENSIONS"] = ["basin"]
+            prog = root.create_array("_progress", shape=(n,), chunks=(n,), dtype="int8", fill_value=0)
+            prog[:] = 0
+            prog.attrs["_ARRAY_DIMENSIONS"] = ["basin"]
+            root.attrs["coordinates"] = "basin time"
+        progress = root["_progress"]
+
+        # Open the 13 GB ERA5 NetCDF over S3 with h5py directly.  xr.open_dataset
+        # would eagerly scan the metadata of all 14425 variables on open (one per
+        # station), which over S3 means tens of thousands of tiny range reads and
+        # effectively hangs.  h5py opens lazily (only the superblock + root group)
+        # and reads each dataset's header on first access, so we pay that cost
+        # spread across the batch loop (with visible progress) instead of upfront.
+        import h5py
+
+        print(f"Opening ERA5 NetCDF over S3 (lazy, h5py): {nc_path}", flush=True)
+        raw_file = fs.open(nc_path, "rb", block_size=8 * 1024 * 1024, cache_type="readahead")
+        h5 = h5py.File(raw_file, "r")
+        raw_feats = [
+            v.decode() if isinstance(v, bytes) else str(v)
+            for v in h5["dynamic_features"][:]
+        ]
+        # nc time axis is a contiguous daily series 1950-01-01..2023-12-31, which
+        # equals default_t_range's date_range -> align positionally (no decoding).
+        if h5["0"].shape[0] != nt:
+            raise RuntimeError(
+                f"nc time length {h5['0'].shape[0]} != expected {nt}; "
+                "positional time alignment invalid"
+            )
+        # map each raw feature column index -> cleaned specific name
+        feat_targets = {}  # col_index -> cleaned name (only mapped ones)
+        for idx, feat in enumerate(raw_feats):
+            cleaned = self._clean_feature_names([self._DYN_RENAME.get(feat, feat)])[0]
+            if cleaned in cleaned_var_lst:
+                feat_targets[idx] = cleaned
+        print(f"  opened. {n} stations x {nt} timesteps x {len(feat_targets)} vars", flush=True)
+
+        n_batches = (n + batch_size - 1) // batch_size
+        for start in range(0, n, batch_size):
+            end = min(start + batch_size, n)
+            bnum = start // batch_size + 1
+            if all(progress[start:end]):
+                print(f"Batch {bnum}/{n_batches}: already done, skipping", flush=True)
+                continue
+            print(f"Batch {bnum}/{n_batches}: {end-start} stations ...", flush=True)
+            buffers = {vn: np.full((end - start, nt), np.nan) for vn in cleaned_var_lst}
+            for j, stn in enumerate(tqdm(stations[start:end], desc=f"batch {bnum}")):
+                var = str(int(stn) - 1)  # nc data_vars are 0-based watershed idx
+                try:
+                    arr = h5[var][:]  # (nt, n_features), positional time
+                    for idx, vn in feat_targets.items():
+                        buffers[vn][j] = arr[:, idx].astype("float64")
+                except Exception as e:
+                    print(f"  WARN {stn}: {e}", flush=True)
+            for vn in cleaned_var_lst:
+                root[vn][start:end, :] = buffers[vn]
+            progress[start:end] = 1
+            print(f"Batch {bnum}/{n_batches}: done", flush=True)
+        h5.close()
+        raw_file.close()
+        print(f"Timeseries zarr written to: {out}", flush=True)
 
     @property
     def _attributes_cache_filename(self):
@@ -300,6 +478,12 @@ class Hysets(HydroDataset):
         **kwargs,
     ) -> xr.Dataset:
         """Read timeseries from the batch-saved cache (standard names + sources)."""
+        if self._is_cloud():
+            # cloud: base class opens the zarr and handles selection/renaming
+            return super().read_ts_xrdataset(
+                gage_id_lst=gage_id_lst, t_range=t_range,
+                var_lst=var_lst, sources=sources, **kwargs,
+            )
         if (
             not hasattr(self, "_dynamic_variable_mapping")
             or not self._dynamic_variable_mapping

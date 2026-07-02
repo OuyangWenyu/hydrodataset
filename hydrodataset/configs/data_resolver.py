@@ -576,7 +576,7 @@ def _resolve_cloud(
 def resolve_data_path(
     dataset_id: str,
     *,
-    source: Source = "local",
+    source: Optional[Source] = None,
     ctx: Optional[ResolverContext] = None,
 ) -> str:
     """Resolve a dataset id to an absolute data path.
@@ -588,8 +588,10 @@ def resolve_data_path(
     ----------
     dataset_id : str
         Dataset identifier from the registry (e.g. 'camels_us').
-    source : 'local' | 'cloud'
-        Storage backend.
+    source : 'local' | 'cloud', optional
+        Storage backend.  When None (the default), it falls back to
+        ``storage.default_source`` from the settings, or 'local' if that
+        key is absent.
     ctx : ResolverContext, optional
         Pre-built resolver context.  When None, defaults are used (loads
         storage from ``~/hydro_setting.yml`` and builds registry from
@@ -611,6 +613,10 @@ def resolve_data_path(
     storage = (
         ctx.storage if ctx.storage is not None else _load_storage(ctx.project_root)
     )
+    # When source is not given explicitly, use storage.default_source
+    # (falling back to 'local').
+    if source is None:
+        source = storage.get("default_source", "local")
     reg = ctx.registry or _load_registry(
         ctx.project_root,
         extra_dicts=ctx.extra_registry_dicts,
@@ -627,7 +633,7 @@ def resolve_data_path(
 def open_dataset(
     dataset_id: str,
     *,
-    source: Source = "local",
+    source: Optional[Source] = None,
     ctx: Optional[ResolverContext] = None,
     **reader_kwargs: Any,
 ):

@@ -167,8 +167,167 @@ class LamahIce(HydroDataset):
         self.region = region
         self.download = download
 
+        # cloud path: aqua_fetch cannot read S3, use cache_*_to_zarr instead
+        if str(uri).startswith("s3://"):
+            return
         # Use the custom LamaHIce class defined at module level
         self.aqua_fetch = LamaHIce(uri)
+
+    # OSS relative paths (timestep=D, data_type=total_upstrm)
+    _P = "LamaHIce/lamah_ice/lamah_ice"
+    _BASINS_REL = f"{_P}/A_basins_total_upstrm"
+    _CATCH_ATTR_REL = f"{_P}/A_basins_total_upstrm/1_attributes"
+    _METEO_REL = f"{_P}/A_basins_total_upstrm/2_timeseries/daily/meteorological_data"
+    _GAUGE_ATTR_REL = f"{_P}/D_gauges/1_attributes"
+    _Q_REL = f"{_P}/D_gauges/2_timeseries/daily"
+    # AquaFetch LamaHIce.static_map
+    _STATIC_RENAME = {
+        "area_calc_basin": "area_km2",
+        "lat_gauge": "lat",
+        "slope_mean_basin": "slope_mkm-1",
+        "lon_gauge": "long",
+    }
+    # AquaFetch LamaHIce.dyn_map['D'] resolved to cleaned names
+    _DYN_RENAME = {
+        "qobs": "q_cms_obs",
+        "2m_temp_min": "airtemp_c_2m_min",
+        "2m_temp_max": "airtemp_c_2m_max",
+        "2m_temp_mean": "airtemp_c_mean_2m",
+        "prec": "pcp_mm",
+        "pet": "pet_mm",
+        "ref_et_rav": "ref_et_mm",
+    }
+
+    def read_object_ids(self) -> np.ndarray:
+        if self._is_cloud():
+            fs = self._make_s3fs()
+            uri = str(self.data_source_dir).rstrip("/")
+            names = [p.split("/")[-1] for p in fs.ls(f"{uri}/{self._METEO_REL}".removeprefix("s3://"))]
+            ids = sorted(
+                (n.split(".")[0].split("_")[1] for n in names if n.startswith("ID_")),
+                key=lambda x: int(x),
+            )
+            return np.array(ids)
+        return super().read_object_ids()
+
+    def cache_attributes_to_zarr(self) -> None:
+        import zarr
+
+        fs = self._make_s3fs()
+        uri = str(self.data_source_dir).rstrip("/")
+
+        def _read(rel, fname):
+            with fs.open(f"{uri}/{rel}/{fname}".removeprefix("s3://")) as fh:
+                df = pd.read_csv(fh, sep=";", index_col="id")
+            df.index = df.index.astype(str)
+            return df
+
+        # basin attributes = catchment + water_balance(_all) + unfiltered(_unfiltered),
+        # all then suffixed with _basin
+        cat = _read(self._CATCH_ATTR_REL, "Catchment_attributes.csv")
+        wb = _read(self._CATCH_ATTR_REL, "water_balance.csv")
+        wb.columns = [c + "_all" for c in wb.columns]
+        wbu = _read(self._CATCH_ATTR_REL, "water_balance_unfiltered.csv")
+        wbu.columns = [c + "_unfiltered" for c in wbu.columns]
+        basin = pd.concat([cat, wb, wbu], axis=1)
+        basin.columns = [c + "_basin" for c in basin.columns]
+
+        # gauge attributes = Gauge_attributes + hydro_indices
+        g = _read(self._GAUGE_ATTR_REL, "Gauge_attributes.csv")
+        hidx = _read(self._GAUGE_ATTR_REL, "hydro_indices_1981_2018.csv")
+        gauge = pd.concat([g, hidx], axis=1)
+
+        static = pd.concat([basin, gauge], axis=1)
+        static = static.loc[~static.index.duplicated(keep="first")]
+        static = static.rename(columns=self._STATIC_RENAME)
+        static.columns = self._clean_feature_names(list(static.columns))
+        static = static.loc[:, ~static.columns.duplicated(keep="first")]
+
+        zarr_name = self._attributes_cache_filename.replace(".nc", ".zarr")
+        out, opts = self._zarr_path_and_opts(zarr_name)
+        ids = static.index.tolist()
+        n = len(ids)
+        root = zarr.open_group(out, mode="w", storage_options=opts, zarr_format=2)
+        for col in static.columns:
+            vals = static[col].values.astype(str) if static[col].dtype == object else static[col].values
+            arr = root.create_array(col, shape=(n,), chunks=(n,), dtype=vals.dtype)
+            arr[:] = vals
+            arr.attrs["_ARRAY_DIMENSIONS"] = ["basin"]
+        basin_arr = root.create_array("basin", shape=(n,), chunks=(n,), dtype=str)
+        basin_arr[:] = ids
+        basin_arr.attrs["_ARRAY_DIMENSIONS"] = ["basin"]
+        root.attrs["coordinates"] = "basin"
+        print(f"Attributes zarr written to: {out}")
+
+    def cache_timeseries_to_zarr(self) -> None:
+        import zarr
+
+        fs = self._make_s3fs()
+        uri = str(self.data_source_dir).rstrip("/")
+        meteo_base = f"{uri}/{self._METEO_REL}"
+        q_base = f"{uri}/{self._Q_REL}"
+
+        stations = self.read_object_ids().tolist()
+        all_times = pd.date_range(self.default_t_range[0], self.default_t_range[1], freq="D")
+        n, nt = len(stations), len(all_times)
+        times_ns = all_times.asi8
+
+        cleaned_var_lst = []
+        for info in self._dynamic_variable_mapping.values():
+            for s in info["sources"].values():
+                if s["specific_name"] not in cleaned_var_lst:
+                    cleaned_var_lst.append(s["specific_name"])
+
+        def _read_dated(path):
+            with fs.open(path.removeprefix("s3://")) as fh:
+                df = pd.read_csv(fh, sep=";")
+            idx = pd.to_datetime(dict(year=df["YYYY"], month=df["MM"], day=df["DD"]))
+            df = df.drop(columns=[c for c in ("YYYY", "MM", "DD", "DOY") if c in df.columns])
+            df.index = idx
+            return df
+
+        data = {vn: np.full((n, nt), np.nan) for vn in cleaned_var_lst}
+        for i, stn in enumerate(tqdm(stations, desc="lamah_ice")):
+            parts = []
+            try:
+                parts.append(_read_dated(f"{meteo_base}/ID_{stn}.csv"))
+            except Exception as e:
+                print(f"  WARN meteo {stn}: {e}")
+            try:
+                parts.append(_read_dated(f"{q_base}/ID_{stn}.csv"))
+            except Exception:
+                pass
+            if not parts:
+                continue
+            df = pd.concat(parts, axis=1)
+            df = df.loc[~df.index.duplicated(keep="first")]
+            df.columns = self._clean_feature_names(
+                [self._DYN_RENAME.get(c, c) for c in df.columns]
+            )
+            df = df.reindex(all_times)
+            for vn in cleaned_var_lst:
+                if vn in df.columns:
+                    data[vn][i] = pd.to_numeric(df[vn], errors="coerce").values
+
+        zarr_name = self._timeseries_cache_filename.replace(".nc", ".zarr")
+        out, opts = self._zarr_path_and_opts(zarr_name)
+        chunk_t = min(nt, 365)
+        root = zarr.open_group(out, mode="w", storage_options=opts, zarr_format=2)
+        for vn in cleaned_var_lst:
+            arr = root.create_array(vn, shape=(n, nt), chunks=(min(n, 100), chunk_t),
+                                    dtype="float64", fill_value=np.nan)
+            arr[:] = data[vn]
+            arr.attrs["_ARRAY_DIMENSIONS"] = ["basin", "time"]
+        time_arr = root.create_array("time", shape=(nt,), chunks=(chunk_t,), dtype="int64")
+        time_arr[:] = times_ns
+        time_arr.attrs["_ARRAY_DIMENSIONS"] = ["time"]
+        time_arr.attrs["units"] = "nanoseconds since 1970-01-01"
+        time_arr.attrs["calendar"] = "proleptic_gregorian"
+        basin_arr = root.create_array("basin", shape=(n,), chunks=(n,), dtype=str)
+        basin_arr[:] = stations
+        basin_arr.attrs["_ARRAY_DIMENSIONS"] = ["basin"]
+        root.attrs["coordinates"] = "basin time"
+        print(f"Timeseries zarr written to: {out}")
 
     @property
     def _attributes_cache_filename(self):

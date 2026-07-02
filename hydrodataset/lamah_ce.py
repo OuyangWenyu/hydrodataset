@@ -192,8 +192,165 @@ class LamahCe(HydroDataset):
         super().__init__(uri, cache_path=cache_path)
         self.region = region
         self.download = download
+        # cloud path: aqua_fetch cannot read S3, use cache_*_to_zarr instead
+        if str(uri).startswith("s3://"):
+            return
         # Use the custom LamaHCE class defined at module level
         self.aqua_fetch = LamaHCE(uri)
+
+    # OSS relative paths (timestep=D, data_type=total_upstrm)
+    _CATCH_ATTR_REL = "LamaHCE/A_basins_total_upstrm/1_attributes"
+    _METEO_REL = "LamaHCE/A_basins_total_upstrm/2_timeseries/daily"
+    _GAUGE_ATTR_REL = "LamaHCE/D_gauges/1_attributes"
+    _Q_REL = "LamaHCE/D_gauges/2_timeseries/daily"
+    # AquaFetch LamaHCE.static_map
+    _STATIC_RENAME = {
+        "area_calc": "area_km2",
+        "slope_mean": "slope_mkm-1",
+        "lon": "long",
+    }
+    # AquaFetch LamaHCE.dyn_map['D'] resolved to cleaned names (q file's qobs
+    # is first renamed to q_cms by AquaFetch)
+    _DYN_RENAME = {
+        "q_cms": "q_cms_obs",
+        "2m_temp_min": "airtemp_c_min",
+        "2m_temp_max": "airtemp_c_max",
+        "2m_temp_mean": "airtemp_c_mean",
+        "prec": "pcp_mm",
+        "swe": "swe_mm",
+        "surf_net_solar_rad_max": "solrad_wm2_max",
+        "surf_net_solar_rad_mean": "solrad_wm2",
+        "surf_net_therm_rad_max": "thermrad_wm2_max",
+        "surf_net_therm_rad_mean": "thermrad_wm2",
+        "10m_wind_u": "windspeedu_mps",
+        "10m_wind_v": "windspeedv_mps",
+        "2m_dp_temp_max": "dptemp_c_max_2m",
+        "2m_dp_temp_mean": "dptemp_c_mean_2m",
+        "2m_dp_temp_min": "dptemp_c_min_2m",
+        "surf_press": "airpres_hpa",
+    }
+
+    def read_object_ids(self) -> np.ndarray:
+        if self._is_cloud():
+            fs = self._make_s3fs()
+            uri = str(self.data_source_dir).rstrip("/")
+            names = [p.split("/")[-1] for p in fs.ls(f"{uri}/{self._METEO_REL}".removeprefix("s3://"))]
+            ids = sorted(
+                (n.split("_")[1].split(".csv")[0] for n in names if n.startswith("ID_")),
+                key=lambda x: int(x),
+            )
+            return np.array(ids)
+        return super().read_object_ids()
+
+    def cache_attributes_to_zarr(self) -> None:
+        import zarr
+
+        fs = self._make_s3fs()
+        uri = str(self.data_source_dir).rstrip("/")
+
+        def _read(rel, fname):
+            with fs.open(f"{uri}/{rel}/{fname}".removeprefix("s3://")) as fh:
+                df = pd.read_csv(fh, sep=";", index_col="ID")
+            df.index = df.index.astype(str)
+            return df
+
+        cat = _read(self._CATCH_ATTR_REL, "Catchment_attributes.csv")
+        gauge = _read(self._GAUGE_ATTR_REL, "Gauge_attributes.csv")
+        static = pd.concat([cat, gauge], axis=1)
+        static = static.loc[~static.index.duplicated(keep="first")]
+        static = static.rename(columns=self._STATIC_RENAME)
+        static.columns = self._clean_feature_names(list(static.columns))
+        static = static.loc[:, ~static.columns.duplicated(keep="first")]
+
+        zarr_name = self._attributes_cache_filename.replace(".nc", ".zarr")
+        out, opts = self._zarr_path_and_opts(zarr_name)
+        ids = static.index.tolist()
+        n = len(ids)
+        root = zarr.open_group(out, mode="w", storage_options=opts, zarr_format=2)
+        for col in static.columns:
+            vals = static[col].values.astype(str) if static[col].dtype == object else static[col].values
+            arr = root.create_array(col, shape=(n,), chunks=(n,), dtype=vals.dtype)
+            arr[:] = vals
+            arr.attrs["_ARRAY_DIMENSIONS"] = ["basin"]
+        basin_arr = root.create_array("basin", shape=(n,), chunks=(n,), dtype=str)
+        basin_arr[:] = ids
+        basin_arr.attrs["_ARRAY_DIMENSIONS"] = ["basin"]
+        root.attrs["coordinates"] = "basin"
+        print(f"Attributes zarr written to: {out}")
+
+    def cache_timeseries_to_zarr(self) -> None:
+        import zarr
+
+        fs = self._make_s3fs()
+        uri = str(self.data_source_dir).rstrip("/")
+        meteo_base = f"{uri}/{self._METEO_REL}"
+        q_base = f"{uri}/{self._Q_REL}"
+
+        stations = self.read_object_ids().tolist()
+        all_times = pd.date_range(self.default_t_range[0], self.default_t_range[1], freq="D")
+        n, nt = len(stations), len(all_times)
+        times_ns = all_times.asi8
+
+        cleaned_var_lst = []
+        for info in self._dynamic_variable_mapping.values():
+            for s in info["sources"].values():
+                if s["specific_name"] not in cleaned_var_lst:
+                    cleaned_var_lst.append(s["specific_name"])
+
+        def _read_dated(path, q=False):
+            with fs.open(path.removeprefix("s3://")) as fh:
+                df = pd.read_csv(fh, sep=";")
+            idx = pd.to_datetime(dict(year=df["YYYY"], month=df["MM"], day=df["DD"]))
+            df = df.drop(columns=[c for c in ("YYYY", "MM", "DD", "DOY") if c in df.columns])
+            df.index = idx
+            if q:
+                df = df.rename(columns={"qobs": "q_cms"})
+            return df
+
+        data = {vn: np.full((n, nt), np.nan) for vn in cleaned_var_lst}
+        for i, stn in enumerate(tqdm(stations, desc="lamah_ce")):
+            parts = []
+            try:
+                parts.append(_read_dated(f"{meteo_base}/ID_{stn}.csv"))
+            except Exception as e:
+                print(f"  WARN meteo {stn}: {e}")
+            try:
+                parts.append(_read_dated(f"{q_base}/ID_{stn}.csv", q=True))
+            except Exception:
+                pass
+            if not parts:
+                continue
+            df = pd.concat(parts, axis=1)
+            df = df.loc[~df.index.duplicated(keep="first")]
+            df.columns = self._clean_feature_names(
+                [self._DYN_RENAME.get(c, c) for c in df.columns]
+            )
+            if "airpres_hpa" in df.columns:  # AquaFetch dyn_factors: Pa -> hPa
+                df["airpres_hpa"] = pd.to_numeric(df["airpres_hpa"], errors="coerce") * 0.01
+            df = df.reindex(all_times)
+            for vn in cleaned_var_lst:
+                if vn in df.columns:
+                    data[vn][i] = pd.to_numeric(df[vn], errors="coerce").values
+
+        zarr_name = self._timeseries_cache_filename.replace(".nc", ".zarr")
+        out, opts = self._zarr_path_and_opts(zarr_name)
+        chunk_t = min(nt, 365)
+        root = zarr.open_group(out, mode="w", storage_options=opts, zarr_format=2)
+        for vn in cleaned_var_lst:
+            arr = root.create_array(vn, shape=(n, nt), chunks=(min(n, 100), chunk_t),
+                                    dtype="float64", fill_value=np.nan)
+            arr[:] = data[vn]
+            arr.attrs["_ARRAY_DIMENSIONS"] = ["basin", "time"]
+        time_arr = root.create_array("time", shape=(nt,), chunks=(chunk_t,), dtype="int64")
+        time_arr[:] = times_ns
+        time_arr.attrs["_ARRAY_DIMENSIONS"] = ["time"]
+        time_arr.attrs["units"] = "nanoseconds since 1970-01-01"
+        time_arr.attrs["calendar"] = "proleptic_gregorian"
+        basin_arr = root.create_array("basin", shape=(n,), chunks=(n,), dtype=str)
+        basin_arr[:] = stations
+        basin_arr.attrs["_ARRAY_DIMENSIONS"] = ["basin"]
+        root.attrs["coordinates"] = "basin time"
+        print(f"Timeseries zarr written to: {out}")
 
     @property
     def _attributes_cache_filename(self):
@@ -322,80 +479,69 @@ class LamahCe(HydroDataset):
         """Cache filename for stations mapping."""
         return "lamahce_stations.nc"
 
-    def cache_stations_xrdataset(self):
-        """Read Stream_dist.csv and convert to NetCDF format for station stream data.
+    # Stream-network topology file (static; identical across daily/hourly bundles,
+    # so the extracted 1_LamaH-CE_daily_hourly copy is used). Relative to the
+    # dataset root -> works for both local (F:/data) and cloud (s3://bucket).
+    _STREAM_REL = (
+        "LamaHCE/1_LamaH-CE_daily_hourly/B_basins_intermediate_all/"
+        "1_attributes/Stream_dist.csv"
+    )
 
-        This function reads the stream distance CSV file which contains station
-        stream attributes and creates a NetCDF file.
+    @staticmethod
+    def _prep_stream_df(df):
+        """Shared processing of Stream_dist.csv (used by local NC and cloud zarr).
 
-        The CSV file has columns:
-        - ID: Station ID
-        - NEXTDOWNID: Downstream station ID
-        - dist_hdn: Distance to downstream node
-        - elev_diff: Elevation difference
-        - strm_slope: Stream slope
-
-        The output NetCDF contains:
-        - Dimensions: ID
-        - Coordinates: ID (string type)
-        - Data variables: NEXTDOWNID, dist_hdn, elev_diff, strm_slope
+        Keeps NEXTDOWNID/dist_hdn/elev_diff/strm_slope, ID as string index,
+        numeric columns as float. No renaming/unit conversion (matches the raw
+        file), so local and cloud results are identical.
         """
-        # Try to find the Stream_dist.csv file
-        # Based on the LamaH-CE dataset structure, try multiple possible paths
-        possible_paths = [
-            os.path.join(
-                self.data_source_dir,
-                "lamahce",
-                "2_LamaH-CE_daily",
-                "B_basins_intermediate_all",
-                "1_attributes",
-                "Stream_dist.csv",
-            ),
-            os.path.join(
-                self.data_source_dir,
-                "lamahce",
-                "1_LamaH-CE_daily_hourly",
-                "B_basins_intermediate_all",
-                "1_attributes",
-                "Stream_dist.csv",
-            ),
-        ]
-
-        csv_path = None
-        for path in possible_paths:
-            if os.path.exists(path):
-                csv_path = path
-                break
-
-        if csv_path is None:
-            raise FileNotFoundError(
-                f"Could not find Stream_dist.csv in any of the expected locations: "
-                f"{possible_paths}"
-            )
-
-        # Read the CSV file
-        df = pd.read_csv(csv_path, sep=";")
-
-        # Convert ID to string and set as index
         df["ID"] = df["ID"].astype(str)
-        df = df.set_index("ID")
-
-        # Select only the required columns
-        columns_to_keep = ["NEXTDOWNID", "dist_hdn", "elev_diff", "strm_slope"]
-        df = df[columns_to_keep]
-
-        # Cast NEXTDOWNID to string (identifier), keep numeric columns as float
+        df = df.set_index("ID")[["NEXTDOWNID", "dist_hdn", "elev_diff", "strm_slope"]]
         df["NEXTDOWNID"] = df["NEXTDOWNID"].astype(str)
         for col in ["dist_hdn", "elev_diff", "strm_slope"]:
             df[col] = pd.to_numeric(df[col], errors="coerce")
+        return df
 
-        # Convert to xarray Dataset
-        ds = df.to_xarray()
+    def cache_stations_xrdataset(self):
+        """Read Stream_dist.csv (local) and cache it as NetCDF (ID-indexed).
 
-        # Save to NetCDF file in the same location as cache_attributes_xrdataset
+        Columns: NEXTDOWNID (downstream station id), dist_hdn, elev_diff,
+        strm_slope. Output dims/coord: ID (string).
+        """
+        csv_path = os.path.join(str(self.data_source_dir), *self._STREAM_REL.split("/"))
+        if not os.path.exists(csv_path):
+            raise FileNotFoundError(f"Stream_dist.csv not found at {csv_path}")
+        df = self._prep_stream_df(pd.read_csv(csv_path, sep=";"))
         output_path = self.cache_dir.joinpath(self._stations_cache_filename)
-        ds.to_netcdf(output_path)
+        df.to_xarray().to_netcdf(output_path)
         print(f"Stations stream data saved to: {output_path}")
+
+    def cache_stations_to_zarr(self):
+        """Read Stream_dist.csv from OSS and write the stations zarr (cloud)."""
+        import zarr
+
+        fs = self._make_s3fs()
+        uri = str(self.data_source_dir).rstrip("/")
+        path = f"{uri}/{self._STREAM_REL}".removeprefix("s3://")
+        with fs.open(path) as fh:
+            df = pd.read_csv(fh, sep=";")
+        df = self._prep_stream_df(df)
+
+        zarr_name = self._stations_cache_filename.replace(".nc", ".zarr")
+        out, opts = self._zarr_path_and_opts(zarr_name)
+        ids = df.index.tolist()
+        n = len(ids)
+        root = zarr.open_group(out, mode="w", storage_options=opts, zarr_format=2)
+        for col in df.columns:
+            vals = df[col].values.astype(str) if df[col].dtype == object else df[col].values
+            arr = root.create_array(col, shape=(n,), chunks=(n,), dtype=vals.dtype)
+            arr[:] = vals
+            arr.attrs["_ARRAY_DIMENSIONS"] = ["ID"]
+        id_arr = root.create_array("ID", shape=(n,), chunks=(n,), dtype=str)
+        id_arr[:] = ids
+        id_arr.attrs["_ARRAY_DIMENSIONS"] = ["ID"]
+        root.attrs["coordinates"] = "ID"
+        print(f"Stations zarr written to: {out}")
 
     def read_stations_xrdataset(
         self,
@@ -422,12 +568,25 @@ class LamahCe(HydroDataset):
             ... )
             >>> print(ds)
         """
-        # Load the cache file, generate if not exists
-        cache_file = self.cache_dir.joinpath(self._stations_cache_filename)
-        if not os.path.isfile(cache_file):
-            self.cache_stations_xrdataset()
+        if self._is_cloud():
+            import zarr as _zarr
 
-        ds = xr.open_dataset(cache_file)
+            out, opts = self._zarr_path_and_opts(
+                self._stations_cache_filename.replace(".nc", ".zarr")
+            )
+            try:
+                ds = xr.open_zarr(out, storage_options=opts, consolidated=False,
+                                  mask_and_scale=False)
+            except _zarr.errors.GroupNotFoundError:
+                self.cache_stations_to_zarr()
+                ds = xr.open_zarr(out, storage_options=opts, consolidated=False,
+                                  mask_and_scale=False)
+        else:
+            # Load the local cache file, generate if not exists
+            cache_file = self.cache_dir.joinpath(self._stations_cache_filename)
+            if not os.path.isfile(cache_file):
+                self.cache_stations_xrdataset()
+            ds = xr.open_dataset(cache_file)
 
         # Filter by station_id if provided
         if station_id_lst is not None:

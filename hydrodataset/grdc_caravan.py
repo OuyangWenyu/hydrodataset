@@ -1,6 +1,8 @@
 import os
 from typing import Optional
 
+import numpy as np
+import pandas as pd
 import xarray as xr
 from tqdm import tqdm
 
@@ -159,8 +161,151 @@ class GrdcCaravan(HydroDataset):
         self.region = region
         self.download = download
 
+        # cloud path: aqua_fetch cannot read S3, use cache_*_to_zarr instead
+        if str(uri).startswith("s3://"):
+            return
         # Instantiate the custom class defined at module level
         self.aqua_fetch = GRDCCaravan(uri)
+
+    # OSS relative paths (uploaded folder GRDCCaravan; nc extension is populated)
+    _EXT = "GRDCCaravan/GRDC_Caravan_extension_nc/GRDC_Caravan_extension_nc"
+    _ATTR_REL = f"{_EXT}/attributes/grdc"
+    _TS_REL = f"{_EXT}/timeseries/netcdf/grdc"
+    # AquaFetch GRDCCaravan.static_map
+    _STATIC_RENAME = {"area": "area_km2", "gauge_lat": "lat", "gauge_lon": "long"}
+    # AquaFetch GRDCCaravan.dyn_map resolved to cleaned names (others pass through)
+    _DYN_RENAME = {
+        "streamflow": "q_mm_obs",
+        "temperature_2m_mean": "airtemp_c_mean_2m",
+        "temperature_2m_min": "airtemp_c_2m_min",
+        "temperature_2m_max": "airtemp_c_2m_max",
+        "total_precipitation_sum": "pcp_mm",
+    }
+
+    def read_object_ids(self) -> np.ndarray:
+        if self._is_cloud():
+            fs = self._make_s3fs()
+            uri = str(self.data_source_dir).rstrip("/")
+            names = [p.split("/")[-1] for p in fs.ls(f"{uri}/{self._TS_REL}".removeprefix("s3://"))]
+            ids = sorted(n[:-3] for n in names if n.endswith(".nc"))
+            return np.array(ids)
+        return super().read_object_ids()
+
+    def cache_attributes_to_zarr(self) -> None:
+        import zarr
+
+        fs = self._make_s3fs()
+        uri = str(self.data_source_dir).rstrip("/")
+        base = f"{uri}/{self._ATTR_REL}"
+
+        def _read(fname):
+            with fs.open(f"{base}/{fname}".removeprefix("s3://")) as fh:
+                df = pd.read_csv(fh, index_col="gauge_id")
+            df.index = df.index.astype(str)
+            return df
+
+        other = _read("attributes_other_grdc.csv")
+        hydro = _read("attributes_hydroatlas_grdc.csv")
+        caravan = _read("attributes_caravan_grdc.csv")
+        static = pd.concat([other, hydro, caravan], axis=1)
+        static = static.loc[~static.index.duplicated(keep="first")]
+        static = static.rename(columns=self._STATIC_RENAME)
+        static.columns = self._clean_feature_names(list(static.columns))
+        static = static.loc[:, ~static.columns.duplicated(keep="first")]
+
+        zarr_name = self._attributes_cache_filename.replace(".nc", ".zarr")
+        out, opts = self._zarr_path_and_opts(zarr_name)
+        ids = static.index.tolist()
+        n = len(ids)
+        root = zarr.open_group(out, mode="w", storage_options=opts, zarr_format=2)
+        for col in static.columns:
+            vals = static[col].values.astype(str) if static[col].dtype == object else static[col].values
+            arr = root.create_array(col, shape=(n,), chunks=(n,), dtype=vals.dtype)
+            arr[:] = vals
+            arr.attrs["_ARRAY_DIMENSIONS"] = ["basin"]
+        basin_arr = root.create_array("basin", shape=(n,), chunks=(n,), dtype=str)
+        basin_arr[:] = ids
+        basin_arr.attrs["_ARRAY_DIMENSIONS"] = ["basin"]
+        root.attrs["coordinates"] = "basin"
+        print(f"Attributes zarr written to: {out}")
+
+    def cache_timeseries_to_zarr(self, batch_size: int = 200) -> None:
+        import zarr
+        import netCDF4 as nc4
+
+        fs = self._make_s3fs()
+        uri = str(self.data_source_dir).rstrip("/")
+        ts_base = f"{uri}/{self._TS_REL}"
+
+        stations = self.read_object_ids().tolist()
+        n = len(stations)
+        all_times = pd.date_range(self.default_t_range[0], self.default_t_range[1], freq="D")
+        nt = len(all_times)
+        times_ns = all_times.asi8
+
+        cleaned_var_lst = []
+        for info in self._dynamic_variable_mapping.values():
+            for s in info["sources"].values():
+                if s["specific_name"] not in cleaned_var_lst:
+                    cleaned_var_lst.append(s["specific_name"])
+
+        zarr_name = self._timeseries_cache_filename.replace(".nc", ".zarr")
+        out, opts = self._zarr_path_and_opts(zarr_name)
+        chunk_t = min(nt, 365)
+        chunk_b = min(batch_size, n)
+        root = zarr.open_group(out, mode="a", storage_options=opts, zarr_format=2)
+        if "basin" not in root:
+            for vn in cleaned_var_lst:
+                arr = root.create_array(vn, shape=(n, nt), chunks=(chunk_b, chunk_t),
+                                        dtype="float64", fill_value=np.nan)
+                arr.attrs["_ARRAY_DIMENSIONS"] = ["basin", "time"]
+            time_arr = root.create_array("time", shape=(nt,), chunks=(chunk_t,), dtype="int64")
+            time_arr[:] = times_ns
+            time_arr.attrs["_ARRAY_DIMENSIONS"] = ["time"]
+            time_arr.attrs["units"] = "nanoseconds since 1970-01-01"
+            time_arr.attrs["calendar"] = "proleptic_gregorian"
+            basin_arr = root.create_array("basin", shape=(n,), chunks=(n,), dtype=str)
+            basin_arr[:] = stations
+            basin_arr.attrs["_ARRAY_DIMENSIONS"] = ["basin"]
+            prog = root.create_array("_progress", shape=(n,), chunks=(n,), dtype="int8", fill_value=0)
+            prog[:] = 0
+            prog.attrs["_ARRAY_DIMENSIONS"] = ["basin"]
+            root.attrs["coordinates"] = "basin time"
+        progress = root["_progress"]
+
+        n_batches = (n + batch_size - 1) // batch_size
+        for start in range(0, n, batch_size):
+            end = min(start + batch_size, n)
+            bnum = start // batch_size + 1
+            if all(progress[start:end]):
+                print(f"Batch {bnum}/{n_batches}: already done, skipping")
+                continue
+            print(f"Batch {bnum}/{n_batches}: {end-start} stations ...")
+            buffers = {vn: np.full((end - start, nt), np.nan) for vn in cleaned_var_lst}
+            for j, stn in enumerate(tqdm(stations[start:end], desc=f"batch {bnum}")):
+                path = f"{ts_base}/{stn}.nc".removeprefix("s3://")
+                try:
+                    buf = fs.cat(path)
+                    ds = xr.open_dataset(xr.backends.NetCDF4DataStore(
+                        nc4.Dataset("inmem", memory=buf)))
+                    df = ds.to_dataframe()
+                    ds.close()
+                    if "date" in df.index.names:
+                        df.index = pd.to_datetime(df.index.get_level_values("date"))
+                    df = df.rename(columns=self._DYN_RENAME)
+                    df = df[~df.index.duplicated(keep="first")]
+                    df.columns = self._clean_feature_names(list(df.columns))
+                    df = df.reindex(all_times)
+                    for vn in cleaned_var_lst:
+                        if vn in df.columns:
+                            buffers[vn][j] = pd.to_numeric(df[vn], errors="coerce").values
+                except Exception as e:
+                    print(f"  WARN {stn}: {e}")
+            for vn in cleaned_var_lst:
+                root[vn][start:end, :] = buffers[vn]
+            progress[start:end] = 1
+            print(f"Batch {bnum}/{n_batches}: done")
+        print(f"Timeseries zarr written to: {out}")
 
     @property
     def _attributes_cache_filename(self):
@@ -600,6 +745,13 @@ class GrdcCaravan(HydroDataset):
         **kwargs,
     ) -> xr.Dataset:
         """Read timeseries from the batch-saved cache (standard names + sources)."""
+        if self._is_cloud():
+            # cloud: base class opens the zarr and handles selection/renaming
+            return super().read_ts_xrdataset(
+                gage_id_lst=gage_id_lst, t_range=t_range,
+                var_lst=var_lst, sources=sources, **kwargs,
+            )
+
         if (
             not hasattr(self, "_dynamic_variable_mapping")
             or not self._dynamic_variable_mapping

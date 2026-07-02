@@ -39,6 +39,10 @@ class Caravan(HydroDataset):
             self.region_data_name = list(region_name_dict.values())
         else:
             self.region_data_name = region_name_dict[self.region]
+        # cloud path: skip local-filesystem describe/checks; cache_*_to_zarr
+        # reads raw files from OSS directly
+        if str(uri).startswith("s3://"):
+            return
         self.data_source_description = self.set_data_source_describe()
         try:
             self.is_data_ready()
@@ -399,7 +403,134 @@ class Caravan(HydroDataset):
         np.array
             gage/station ids
         """
+        if self._is_cloud():
+            fs = self._make_s3fs()
+            uri = str(self.data_source_dir).rstrip("/")
+            regions = self.region_data_name
+            if not isinstance(regions, list):
+                regions = [regions]
+            ids = []
+            for region in regions:
+                path = f"{uri}/attributes/{region}/attributes_caravan_{region}.csv".removeprefix("s3://")
+                with fs.open(path) as fh:
+                    ids.extend(pd.read_csv(fh, usecols=["gauge_id"])["gauge_id"].tolist())
+            return np.array(ids)
         return self.sites["gauge_id"].values
+
+    def _cloud_regions(self) -> list:
+        regions = self.region_data_name
+        return regions if isinstance(regions, list) else [regions]
+
+    def cache_attributes_to_zarr(self) -> None:
+        import zarr
+
+        fs = self._make_s3fs()
+        uri = str(self.data_source_dir).rstrip("/")
+
+        def _read(region, kind):
+            path = f"{uri}/attributes/{region}/attributes_{kind}_{region}.csv".removeprefix("s3://")
+            with fs.open(path) as fh:
+                df = pd.read_csv(fh, index_col="gauge_id")
+            df.index = df.index.astype(str)
+            return df
+
+        region_frames = []
+        for region in self._cloud_regions():
+            parts = [_read(region, k) for k in ("caravan", "hydroatlas", "other")]
+            rdf = pd.concat(parts, axis=1)
+            rdf = rdf.loc[:, ~rdf.columns.duplicated(keep="first")]
+            region_frames.append(rdf)
+        static = pd.concat(region_frames, axis=0)
+        static = static.loc[~static.index.duplicated(keep="first")]
+        static.columns = self._clean_feature_names(list(static.columns))
+        static = static.loc[:, ~static.columns.duplicated(keep="first")]
+
+        zarr_name = self._attributes_cache_filename.replace(".nc", ".zarr")
+        out, opts = self._zarr_path_and_opts(zarr_name)
+        ids = static.index.tolist()
+        n = len(ids)
+        root = zarr.open_group(out, mode="w", storage_options=opts, zarr_format=2)
+        for col in static.columns:
+            vals = static[col].values.astype(str) if static[col].dtype == object else static[col].values
+            arr = root.create_array(col, shape=(n,), chunks=(n,), dtype=vals.dtype)
+            arr[:] = vals
+            arr.attrs["_ARRAY_DIMENSIONS"] = ["basin"]
+        basin_arr = root.create_array("basin", shape=(n,), chunks=(n,), dtype=str)
+        basin_arr[:] = ids
+        basin_arr.attrs["_ARRAY_DIMENSIONS"] = ["basin"]
+        root.attrs["coordinates"] = "basin"
+        print(f"Attributes zarr written to: {out}")
+
+    def cache_timeseries_to_zarr(self, batch_size: int = 300) -> None:
+        import zarr
+
+        fs = self._make_s3fs()
+        uri = str(self.data_source_dir).rstrip("/")
+
+        stations = self.read_object_ids().tolist()
+        n = len(stations)
+        all_times = pd.date_range(self.default_t_range[0], self.default_t_range[1], freq="D")
+        nt = len(all_times)
+        times_ns = all_times.asi8
+
+        cleaned_var_lst = []
+        for info in self._dynamic_variable_mapping.values():
+            for s in info["sources"].values():
+                if s["specific_name"] not in cleaned_var_lst:
+                    cleaned_var_lst.append(s["specific_name"])
+
+        zarr_name = self._attributes_cache_filename.replace("_attributes.nc", "_timeseries.zarr")
+        out, opts = self._zarr_path_and_opts(zarr_name)
+        chunk_t = min(nt, 365)
+        chunk_b = min(batch_size, n)
+        root = zarr.open_group(out, mode="a", storage_options=opts, zarr_format=2)
+        if "basin" not in root:
+            for vn in cleaned_var_lst:
+                arr = root.create_array(vn, shape=(n, nt), chunks=(chunk_b, chunk_t),
+                                        dtype="float64", fill_value=np.nan)
+                arr.attrs["_ARRAY_DIMENSIONS"] = ["basin", "time"]
+            time_arr = root.create_array("time", shape=(nt,), chunks=(chunk_t,), dtype="int64")
+            time_arr[:] = times_ns
+            time_arr.attrs["_ARRAY_DIMENSIONS"] = ["time"]
+            time_arr.attrs["units"] = "nanoseconds since 1970-01-01"
+            time_arr.attrs["calendar"] = "proleptic_gregorian"
+            basin_arr = root.create_array("basin", shape=(n,), chunks=(n,), dtype=str)
+            basin_arr[:] = stations
+            basin_arr.attrs["_ARRAY_DIMENSIONS"] = ["basin"]
+            prog = root.create_array("_progress", shape=(n,), chunks=(n,), dtype="int8", fill_value=0)
+            prog[:] = 0
+            prog.attrs["_ARRAY_DIMENSIONS"] = ["basin"]
+            root.attrs["coordinates"] = "basin time"
+        progress = root["_progress"]
+
+        n_batches = (n + batch_size - 1) // batch_size
+        for start in range(0, n, batch_size):
+            end = min(start + batch_size, n)
+            bnum = start // batch_size + 1
+            if all(progress[start:end]):
+                print(f"Batch {bnum}/{n_batches}: already done, skipping")
+                continue
+            print(f"Batch {bnum}/{n_batches}: {end-start} stations ...")
+            buffers = {vn: np.full((end - start, nt), np.nan) for vn in cleaned_var_lst}
+            for j, stn in enumerate(tqdm(stations[start:end], desc=f"batch {bnum}")):
+                region = str(stn).rsplit("_", 1)[0]
+                path = f"{uri}/timeseries/csv/{region}/{stn}.csv".removeprefix("s3://")
+                try:
+                    with fs.open(path) as fh:
+                        df = pd.read_csv(fh, index_col="date", parse_dates=True)
+                    df = df[~df.index.duplicated(keep="first")]
+                    df.columns = self._clean_feature_names(list(df.columns))
+                    df = df.reindex(all_times)
+                    for vn in cleaned_var_lst:
+                        if vn in df.columns:
+                            buffers[vn][j] = pd.to_numeric(df[vn], errors="coerce").values
+                except Exception as e:
+                    print(f"  WARN {stn}: {e}")
+            for vn in cleaned_var_lst:
+                root[vn][start:end, :] = buffers[vn]
+            progress[start:end] = 1
+            print(f"Batch {bnum}/{n_batches}: done")
+        print(f"Timeseries zarr written to: {out}")
 
     def read_target_cols(
         self,
@@ -1082,6 +1213,23 @@ class Caravan(HydroDataset):
         Returns:
             xr.Dataset: The loaded time series dataset.
         """
+        if self._is_cloud():
+            # cloud: open the single timeseries zarr on OSS (fixed name, since
+            # _timeseries_cache_filename is a glob pattern for local batches)
+            import zarr as _zarr
+
+            out, opts = self._zarr_path_and_opts("caravan_timeseries.zarr")
+            try:
+                return xr.open_zarr(out, storage_options=opts, consolidated=False,
+                                    mask_and_scale=False)
+            except _zarr.errors.GroupNotFoundError:
+                _fs = self._make_s3fs()
+                _raw = out.removeprefix("s3://")
+                if _fs.exists(_raw):
+                    _fs.rm(_raw, recursive=True)
+                self.cache_timeseries_to_zarr()
+                return xr.open_zarr(out, storage_options=opts, consolidated=False,
+                                    mask_and_scale=False)
         file_paths = sorted(glob.glob(self._timeseries_cache_filename))
         if len(file_paths) == 0:
             self.cache_timeseries_xrdataset(checkregion="all")

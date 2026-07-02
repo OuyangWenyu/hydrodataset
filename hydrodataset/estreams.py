@@ -1,5 +1,6 @@
 import os
 import glob
+import numpy as np
 import pandas as pd
 import xarray as xr
 from typing import Optional
@@ -31,9 +32,166 @@ class Estreams(HydroDataset):
         self.region = region
         self.download = download
 
+        # cloud path: aqua_fetch cannot read S3, use cache_*_to_zarr instead
+        if str(uri).startswith("s3://"):
+            return
         # Instantiate EStreams from aqua_fetch
         # The _read_stn_dyn method and path2 fix have been added directly to aqua_fetch
         self.aqua_fetch = EStreams(uri)
+
+    # OSS relative paths (folder EStreams; aqua path2 = path/EStreams/EStreams)
+    _P2 = "EStreams/EStreams/EStreams"
+    _STATIC_REL = "EStreams/EStreams/EStreams/attributes/static_attributes"
+    _SIG_REL = "EStreams/EStreams/EStreams/hydroclimatic_signatures"
+    _GAUGE_REL = "EStreams/EStreams/EStreams/streamflow_gauges"
+    _METEO_REL = "EStreams/EStreams/EStreams/meteorology"
+    # AquaFetch EStreams.static_map
+    _STATIC_RENAME = {
+        "area_estreams": "area_km2",
+        "slope_sawicz": "slope_no_unit",
+        "lon": "long",
+    }
+    # AquaFetch EStreams.dyn_map resolved to cleaned names (others pass through,
+    # e.g. sp_mean stays sp_mean)
+    _DYN_RENAME = {
+        "t_min": "airtemp_c_min",
+        "t_max": "airtemp_c_max",
+        "t_mean": "airtemp_c_mean",
+        "p_mean": "pcp_mm",
+        "pet_mean": "pet_mm",
+        "rh_mean": "rh_",
+        "swr_mean": "solrad_wm2",
+        "ws_mean": "windspeed_mps",
+    }
+
+    def read_object_ids(self) -> np.ndarray:
+        if self._is_cloud():
+            fs = self._make_s3fs()
+            uri = str(self.data_source_dir).rstrip("/")
+            names = [p.split("/")[-1] for p in fs.ls(f"{uri}/{self._METEO_REL}".removeprefix("s3://"))]
+            ids = sorted(
+                n[len("estreams_meteorology_"):].split(".csv")[0]
+                for n in names if n.startswith("estreams_meteorology_")
+            )
+            return np.array(ids)
+        return super().read_object_ids()
+
+    def cache_attributes_to_zarr(self) -> None:
+        import zarr
+
+        fs = self._make_s3fs()
+        uri = str(self.data_source_dir).rstrip("/")
+
+        def _read(rel, fname):
+            with fs.open(f"{uri}/{rel}/{fname}".removeprefix("s3://")) as fh:
+                df = pd.read_csv(fh, index_col="basin_id", dtype={"basin_id": str})
+            df.index = df.index.astype(str)
+            return df
+
+        dfs = [
+            _read(self._SIG_REL, "estreams_hydrometeo_signatures.csv"),
+            _read(self._GAUGE_REL, "estreams_gauging_stations.csv"),
+        ]
+        sdir = f"{uri}/{self._STATIC_REL}".removeprefix("s3://")
+        for p in sorted(fs.ls(sdir)):
+            if p.endswith(".csv"):
+                with fs.open(p) as fh:
+                    df = pd.read_csv(fh, index_col="basin_id", dtype={"basin_id": str})
+                df.index = df.index.astype(str)
+                dfs.append(df)
+        static = pd.concat(dfs, axis=1)
+        static = static.loc[~static.index.duplicated(keep="first")]
+        static = static.rename(columns=self._STATIC_RENAME)
+        static.columns = self._clean_feature_names(list(static.columns))
+        static = static.loc[:, ~static.columns.duplicated(keep="first")]
+
+        zarr_name = self._attributes_cache_filename.replace(".nc", ".zarr")
+        out, opts = self._zarr_path_and_opts(zarr_name)
+        ids = static.index.tolist()
+        n = len(ids)
+        root = zarr.open_group(out, mode="w", storage_options=opts, zarr_format=2)
+        for col in static.columns:
+            vals = static[col].values.astype(str) if static[col].dtype == object else static[col].values
+            arr = root.create_array(col, shape=(n,), chunks=(n,), dtype=vals.dtype)
+            arr[:] = vals
+            arr.attrs["_ARRAY_DIMENSIONS"] = ["basin"]
+        basin_arr = root.create_array("basin", shape=(n,), chunks=(n,), dtype=str)
+        basin_arr[:] = ids
+        basin_arr.attrs["_ARRAY_DIMENSIONS"] = ["basin"]
+        root.attrs["coordinates"] = "basin"
+        print(f"Attributes zarr written to: {out}")
+
+    def cache_timeseries_to_zarr(self, batch_size: int = 500) -> None:
+        import zarr
+
+        fs = self._make_s3fs()
+        uri = str(self.data_source_dir).rstrip("/")
+        ts_base = f"{uri}/{self._METEO_REL}"
+
+        stations = self.read_object_ids().tolist()
+        n = len(stations)
+        all_times = pd.date_range(self.default_t_range[0], self.default_t_range[1], freq="D")
+        nt = len(all_times)
+        times_ns = all_times.asi8
+
+        cleaned_var_lst = []
+        for info in self._dynamic_variable_mapping.values():
+            for s in info["sources"].values():
+                if s["specific_name"] not in cleaned_var_lst:
+                    cleaned_var_lst.append(s["specific_name"])
+
+        zarr_name = self._timeseries_cache_filename.replace(".nc", ".zarr")
+        out, opts = self._zarr_path_and_opts(zarr_name)
+        chunk_t = min(nt, 365)
+        chunk_b = min(batch_size, n)
+        root = zarr.open_group(out, mode="a", storage_options=opts, zarr_format=2)
+        if "basin" not in root:
+            for vn in cleaned_var_lst:
+                arr = root.create_array(vn, shape=(n, nt), chunks=(chunk_b, chunk_t),
+                                        dtype="float64", fill_value=np.nan)
+                arr.attrs["_ARRAY_DIMENSIONS"] = ["basin", "time"]
+            time_arr = root.create_array("time", shape=(nt,), chunks=(chunk_t,), dtype="int64")
+            time_arr[:] = times_ns
+            time_arr.attrs["_ARRAY_DIMENSIONS"] = ["time"]
+            time_arr.attrs["units"] = "nanoseconds since 1970-01-01"
+            time_arr.attrs["calendar"] = "proleptic_gregorian"
+            basin_arr = root.create_array("basin", shape=(n,), chunks=(n,), dtype=str)
+            basin_arr[:] = stations
+            basin_arr.attrs["_ARRAY_DIMENSIONS"] = ["basin"]
+            prog = root.create_array("_progress", shape=(n,), chunks=(n,), dtype="int8", fill_value=0)
+            prog[:] = 0
+            prog.attrs["_ARRAY_DIMENSIONS"] = ["basin"]
+            root.attrs["coordinates"] = "basin time"
+        progress = root["_progress"]
+
+        n_batches = (n + batch_size - 1) // batch_size
+        for start in range(0, n, batch_size):
+            end = min(start + batch_size, n)
+            bnum = start // batch_size + 1
+            if all(progress[start:end]):
+                print(f"Batch {bnum}/{n_batches}: already done, skipping")
+                continue
+            print(f"Batch {bnum}/{n_batches}: {end-start} stations ...")
+            buffers = {vn: np.full((end - start, nt), np.nan) for vn in cleaned_var_lst}
+            for j, stn in enumerate(tqdm(stations[start:end], desc=f"batch {bnum}")):
+                path = f"{ts_base}/estreams_meteorology_{stn}.csv".removeprefix("s3://")
+                try:
+                    with fs.open(path) as fh:
+                        df = pd.read_csv(fh, index_col="date", parse_dates=True)
+                    df = df.rename(columns=self._DYN_RENAME)
+                    df = df[~df.index.duplicated(keep="first")]
+                    df.columns = self._clean_feature_names(list(df.columns))
+                    df = df.reindex(all_times)
+                    for vn in cleaned_var_lst:
+                        if vn in df.columns:
+                            buffers[vn][j] = pd.to_numeric(df[vn], errors="coerce").values
+                except Exception as e:
+                    print(f"  WARN {stn}: {e}")
+            for vn in cleaned_var_lst:
+                root[vn][start:end, :] = buffers[vn]
+            progress[start:end] = 1
+            print(f"Batch {bnum}/{n_batches}: done")
+        print(f"Timeseries zarr written to: {out}")
 
     @property
     def _attributes_cache_filename(self):
@@ -217,6 +375,13 @@ class Estreams(HydroDataset):
         Returns:
             xr.Dataset: xarray dataset containing requested data
         """
+        if self._is_cloud():
+            # cloud: base class opens the zarr and handles selection/renaming
+            return super().read_ts_xrdataset(
+                gage_id_lst=gage_id_lst, t_range=t_range,
+                var_lst=var_lst, sources=sources, **kwargs,
+            )
+
         if (
             not hasattr(self, "_dynamic_variable_mapping")
             or not self._dynamic_variable_mapping
