@@ -137,6 +137,7 @@ class Camelsh(HydroDataset):
         basin_arr[:] = ids
         basin_arr.attrs["_ARRAY_DIMENSIONS"] = ["basin"]
         root.attrs["coordinates"] = "basin"
+        self._write_zarr_units(root, "static")
         print(f"Attributes zarr written to: {out}")
 
     _subclass_static_definitions = {
@@ -356,6 +357,7 @@ class Camelsh(HydroDataset):
             progress[batch_idx:batch_end] = 1
             print(f"Batch {batch_num}/{n_batches}: done")
 
+        self._write_zarr_units(root, "dynamic")
         print(f"Timeseries zarr written to: {out}")
 
     def cache_timeseries_xrdataset(self, batch_size=100):

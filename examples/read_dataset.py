@@ -34,7 +34,7 @@ def main():
         # default="camels_lux",
         # default="camels_nz",
         # default="camels_se",
-        default="camels_us",
+        # default="camels_us",
         # default="camelsh_kr",
         # default="camelsh",
         # default="bull",
@@ -45,7 +45,7 @@ def main():
         # default="simbi",
         # default="lamah_ce",
         # default="grdc_caravan",
-        # default="camels",
+        default="caravan",
         help="Name of the dataset to read.",
         choices=available,
     )
@@ -101,6 +101,9 @@ def main():
         var_lst=["precipitation", "streamflow"],
     )
     print(ts_data)
+    print("Timeseries variable units:")
+    for v in ts_data.data_vars:
+        print(f"  {v}: {ts_data[v].attrs.get('units', '(none)')}")
     print("--------------------------------")
 
     print("Reading attribute data...")
@@ -109,6 +112,10 @@ def main():
         var_lst=["area"],
     )
     print(attr_data)
+    print("Attribute variable units:")
+    for v in attr_data.data_vars:
+        print(f"  {v}: {attr_data[v].attrs.get('units', '(none)')}")
+    print("--------------------------------")
 
     print("\nTesting read_area...")
     area = ds.read_area(gage_id_lst=gage_ids[:2])

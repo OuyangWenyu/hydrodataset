@@ -459,6 +459,7 @@ class Caravan(HydroDataset):
         basin_arr[:] = ids
         basin_arr.attrs["_ARRAY_DIMENSIONS"] = ["basin"]
         root.attrs["coordinates"] = "basin"
+        self._write_zarr_units(root, "static")
         print(f"Attributes zarr written to: {out}")
 
     def cache_timeseries_to_zarr(self, batch_size: int = 300) -> None:
@@ -530,6 +531,7 @@ class Caravan(HydroDataset):
                 root[vn][start:end, :] = buffers[vn]
             progress[start:end] = 1
             print(f"Batch {bnum}/{n_batches}: done")
+        self._write_zarr_units(root, "dynamic")
         print(f"Timeseries zarr written to: {out}")
 
     def read_target_cols(

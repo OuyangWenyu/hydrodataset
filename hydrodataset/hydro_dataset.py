@@ -389,6 +389,43 @@ class HydroDataset(ABC):
             for std_name, info in self._static_variable_definitions.items()
         }
 
+    def _write_zarr_units(self, root, kind: str) -> None:
+        """Attach a ``units`` attr to each data array of a cloud zarr group.
+
+        Mirrors the units the local NetCDF cache writes, so cloud zarr is
+        self-describing and consistent with local. Keys are cleaned with
+        ``_clean_feature_names`` to match the zarr array names exactly.
+
+        Args:
+            root: an open ``zarr`` group (the timeseries or attributes store).
+            kind: ``"dynamic"`` for timeseries variables (unit source is
+                ``_dynamic_variable_mapping``, default ``"unknown"``) or
+                ``"static"`` for attributes (unit source is
+                ``_static_variable_definitions``, default ``"undefined"``).
+
+        Coordinate/bookkeeping arrays (``basin``/``time``/``_progress``) are
+        skipped.
+        """
+        clean = self._clean_feature_names
+        if kind == "dynamic":
+            lookup = {}
+            for info in getattr(self, "_dynamic_variable_mapping", {}).values():
+                for src in info.get("sources", {}).values():
+                    lookup[clean([src["specific_name"]])[0]] = src.get(
+                        "unit", "unknown"
+                    )
+            default = "unknown"
+        else:
+            lookup = {
+                clean([info["specific_name"]])[0]: info["unit"]
+                for info in self._static_variable_definitions.values()
+            }
+            default = "undefined"
+        for name in root.array_keys():
+            if name in ("basin", "time", "_progress"):
+                continue
+            root[name].attrs["units"] = lookup.get(name, default)
+
     def cache_attributes_xrdataset(self):
         if hasattr(self, "aqua_fetch"):
             df_attr = self.aqua_fetch.fetch_static_features()
