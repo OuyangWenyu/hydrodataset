@@ -558,6 +558,20 @@ class HydroDataset(ABC):
         }
         return out, opts
 
+    def _open_zarr_pref_consolidated(self, out: str, opts: dict) -> xr.Dataset:
+        """Open a cloud zarr, preferring consolidated metadata (one GET) and
+        falling back to unconsolidated for stores written before B. Both paths
+        keep mask_and_scale=False so real 0/1970 values survive.
+        """
+        try:
+            return xr.open_zarr(
+                out, storage_options=opts, consolidated=True, mask_and_scale=False
+            )
+        except Exception:
+            return xr.open_zarr(
+                out, storage_options=opts, consolidated=False, mask_and_scale=False
+            )
+
     # ── Cache loading hooks ───────────────────────────────────────────────────
 
     def _load_attr_dataset(self) -> xr.Dataset:
@@ -568,7 +582,7 @@ class HydroDataset(ABC):
             zarr_name = self._attributes_cache_filename.replace(".nc", ".zarr")
             out, opts = self._zarr_path_and_opts(zarr_name)
             try:
-                return xr.open_zarr(out, storage_options=opts, consolidated=False, mask_and_scale=False)
+                return self._open_zarr_pref_consolidated(out, opts)
             except _zarr.errors.GroupNotFoundError:
                 print(f"Attributes zarr not found at {out}, generating...")
                 import s3fs as _s3fs
@@ -577,7 +591,7 @@ class HydroDataset(ABC):
                 if _fs.exists(_raw):
                     _fs.rm(_raw, recursive=True)
                 self.cache_attributes_to_zarr()
-                return xr.open_zarr(out, storage_options=opts, consolidated=False, mask_and_scale=False)
+                return self._open_zarr_pref_consolidated(out, opts)
         attr_cache_file = self.cache_dir.joinpath(self._attributes_cache_filename)
         try:
             return xr.open_dataset(attr_cache_file)
@@ -593,7 +607,7 @@ class HydroDataset(ABC):
             zarr_name = self._timeseries_cache_filename.replace(".nc", ".zarr")
             out, opts = self._zarr_path_and_opts(zarr_name)
             try:
-                return xr.open_zarr(out, storage_options=opts, consolidated=False, mask_and_scale=False)
+                return self._open_zarr_pref_consolidated(out, opts)
             except _zarr.errors.GroupNotFoundError:
                 print(f"Timeseries zarr not found at {out}, generating...")
                 import s3fs as _s3fs
@@ -602,7 +616,7 @@ class HydroDataset(ABC):
                 if _fs.exists(_raw):
                     _fs.rm(_raw, recursive=True)
                 self.cache_timeseries_to_zarr()
-                return xr.open_zarr(out, storage_options=opts, consolidated=False, mask_and_scale=False)
+                return self._open_zarr_pref_consolidated(out, opts)
         ts_cache_file = self.cache_dir.joinpath(self._timeseries_cache_filename)
         if not os.path.isfile(ts_cache_file):
             self.cache_timeseries_xrdataset()

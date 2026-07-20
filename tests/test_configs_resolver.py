@@ -31,7 +31,7 @@ class TestReaderAliases:
     def test_count_matches_registry(self):
         # 7 entries (camels_deby, camels_es, mopex, hype, waterbenchiowa,
         # hyd_responses, jialing) are commented out pending reader migration.
-        assert len(READER_ALIASES) == 26
+        assert len(READER_ALIASES) == 27
 
 
 class TestValidateRelativePath:

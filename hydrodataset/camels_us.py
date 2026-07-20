@@ -404,6 +404,7 @@ class CamelsUs(HydroDataset):
         basin_arr.attrs["_ARRAY_DIMENSIONS"] = ["basin"]
         root.attrs["coordinates"] = "basin"
         self._write_zarr_units(root, "static")
+        zarr.consolidate_metadata(root.store)
         print(f"Attributes zarr written to: {out}")
 
     def cache_timeseries_to_zarr(self) -> None:
@@ -473,6 +474,54 @@ class CamelsUs(HydroDataset):
                 except Exception:
                     pass
 
+        # Model output PET/ET — mean across SAC-SMA random seeds, mirroring
+        # read_camels_us_model_output_data (the local NC cache adds these too).
+        # One fs.cat per HUC fetches that HUC's ~hundreds of small files
+        # concurrently (latency-bound), bounding peak memory to one HUC.
+        import io
+        pet_records: dict = {}
+        et_records: dict = {}
+        mo_dir = _join(
+            uri, "CAMELS_US",
+            "basin_timeseries_v1p2_modelOutput_daymet",
+            "model_output_daymet", "model_output",
+            "flow_timeseries", "daymet",
+        )
+        for huc in sorted(_ls(mo_dir)):
+            huc_dir = _join(mo_dir, huc)
+            fnames = [f for f in _ls(huc_dir) if f.endswith("_model_output.txt")]
+            if not fnames:
+                continue
+            paths = [_join(huc_dir, f).removeprefix("s3://") for f in fnames]
+            try:
+                blobs = fs.cat(paths)  # concurrent multi-get -> {path: bytes}
+            except Exception:
+                continue
+            by_base = {p.rsplit("/", 1)[-1]: b for p, b in blobs.items()}
+            station_pet: dict = {}
+            station_et: dict = {}
+            for fname in fnames:
+                raw = by_base.get(fname)
+                if raw is None:
+                    continue
+                station = fname.split("_")[0]
+                try:
+                    df = pd.read_csv(io.BytesIO(raw), sep=r"\s+")
+                    df["date"] = pd.to_datetime(
+                        df[["YR", "MNTH", "DY"]].rename(
+                            columns={"YR": "year", "MNTH": "month", "DY": "day"}
+                        )
+                    )
+                    df = df.set_index("date")
+                    station_pet.setdefault(station, []).append(df["PET"])
+                    station_et.setdefault(station, []).append(df["ET"])
+                except Exception:
+                    pass
+            for station, series in station_pet.items():
+                pet_records[station] = pd.concat(series, axis=1).mean(axis=1)
+            for station, series in station_et.items():
+                et_records[station] = pd.concat(series, axis=1).mean(axis=1)
+
         # Build xr.Dataset with correct variable names
         stations = sorted(flow_records.keys())
         all_times = sorted(set().union(*(s.index for s in flow_records.values())))
@@ -488,6 +537,14 @@ class CamelsUs(HydroDataset):
                     fm_cols[raw_vn].get(s, pd.Series(np.nan, index=all_times)).reindex(all_times).values,
                     dims=["time"], coords={"time": all_times})
                  for s in stations], dim="basin")
+        # PET/ET keep their raw names so read_ts_xrdataset (which matches on the
+        # specific_name "PET"/"ET" verbatim) finds them, matching the local NC.
+        for name, records in (("PET", pet_records), ("ET", et_records)):
+            ds_vars[name] = xr.concat(
+                [xr.DataArray(
+                    records.get(s, pd.Series(np.nan, index=all_times)).reindex(all_times).values,
+                    dims=["time"], coords={"time": all_times})
+                 for s in stations], dim="basin")
 
         nb, nt = len(stations), len(all_times)
         # Encode time as int64 nanoseconds so xr.open_zarr decodes it as datetime64
@@ -499,12 +556,14 @@ class CamelsUs(HydroDataset):
         root = zarr.open_group(out, mode="w", storage_options=opts, zarr_format=2)
 
         for name, da in ds_vars.items():
+            # All basins in one basin-chunk, 10-year time chunks (~18.8 MiB/chunk):
+            # near-peak throughput without over-fetching on partial-time reads.
             arr = root.create_array(name, shape=(nb, nt),
-                                    chunks=(min(100, nb), 365), dtype="float64")
+                                    chunks=(nb, 3650), dtype="float64")
             arr[:] = da.values
             arr.attrs["_ARRAY_DIMENSIONS"] = ["basin", "time"]
 
-        time_arr = root.create_array("time", shape=(nt,), chunks=(365,), dtype="int64")
+        time_arr = root.create_array("time", shape=(nt,), chunks=(3650,), dtype="int64")
         time_arr[:] = times_ns
         time_arr.attrs["_ARRAY_DIMENSIONS"] = ["time"]
         time_arr.attrs["units"] = "nanoseconds since 1970-01-01"
@@ -516,6 +575,12 @@ class CamelsUs(HydroDataset):
 
         root.attrs["coordinates"] = "basin time"
         self._write_zarr_units(root, "dynamic")
+        # PET/ET are named with the raw specific_name, which _write_zarr_units'
+        # cleaned lookup ("pet"/"et") misses, so set their units explicitly.
+        for name in ("PET", "ET"):
+            if name in list(root.array_keys()):
+                root[name].attrs["units"] = "mm/day"
+        zarr.consolidate_metadata(root.store)
         print(f"Timeseries zarr written to: {out}")
 
     _subclass_static_definitions = {

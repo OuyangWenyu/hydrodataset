@@ -33,6 +33,7 @@ def main():
         # default="camels_ind",
         # default="camels_lux",
         # default="camels_nz",
+        default="camels_pe",
         # default="camels_se",
         # default="camels_us",
         # default="camelsh_kr",
@@ -45,7 +46,7 @@ def main():
         # default="simbi",
         # default="lamah_ce",
         # default="grdc_caravan",
-        default="caravan",
+        # default="caravan",
         help="Name of the dataset to read.",
         choices=available,
     )
@@ -95,10 +96,19 @@ def main():
     print("--------------------------------")
 
     print("Reading timeseries data...")
+    preferred_ts_vars = [
+        "potential_evapotranspiration",
+        "evapotranspiration",
+        "precipitation",
+        "streamflow",
+    ]
+    ts_vars = [v for v in preferred_ts_vars if v in ts_available]
+    if not ts_vars:
+        ts_vars = list(ts_available)[:1]
     ts_data = ds.read_ts_xrdataset(
         gage_id_lst=gage_ids[-1:],
         t_range=[ds.default_t_range[0], ds.default_t_range[0]],
-        var_lst=["precipitation", "streamflow"],
+        var_lst=ts_vars,
     )
     print(ts_data)
     print("Timeseries variable units:")

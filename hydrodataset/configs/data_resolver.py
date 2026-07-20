@@ -36,7 +36,7 @@ class DatasetResolutionError(ValueError):
 # Category is always "hydrodataset" for datasets in this package.
 # hydromodel reads this to merge into its own READER_ALIASES.
 READER_ALIASES: Dict[str, Dict[str, str]] = {
-    # CAMELS Series (17)
+    # CAMELS Series (18)
     "camels_us": {
         "module": "hydrodataset.camels_us",
         "class": "CamelsUs",
@@ -90,6 +90,11 @@ READER_ALIASES: Dict[str, Dict[str, str]] = {
     "camels_fi": {
         "module": "hydrodataset.camels_fi",
         "class": "CamelsFi",
+        "category": "hydrodataset",
+    },
+    "camels_pe": {
+        "module": "hydrodataset.camels_pe",
+        "class": "CamelsPe",
         "category": "hydrodataset",
     },
     "camels_fr": {
@@ -236,7 +241,7 @@ def _effective_aliases(
 # resolve_data_path(extra_registry_dicts=...).
 # Users can override entries by placing a configs/datasets.yml in their project.
 _DEFAULT_REGISTRY: Dict[str, Dict[str, str]] = {
-    # CAMELS Series (17)
+    # CAMELS Series (18)
     "camels_us": {"reader": "camels_us", "path": "."},
     "camels_aus": {"reader": "camels_aus", "path": "."},
     "camels_br": {"reader": "camels_br", "path": "."},
@@ -248,6 +253,7 @@ _DEFAULT_REGISTRY: Dict[str, Dict[str, str]] = {
     "camels_dk": {"reader": "camels_dk", "path": "."},
     # "camels_es": {"reader": "camels_es", "path": "."},
     "camels_fi": {"reader": "camels_fi", "path": "."},
+    "camels_pe": {"reader": "camels_pe", "path": "."},
     "camels_fr": {"reader": "camels_fr", "path": "."},
     "camels_gb": {"reader": "camels_gb", "path": "."},
     "camels_ind": {"reader": "camels_ind", "path": "."},

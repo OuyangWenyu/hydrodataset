@@ -138,6 +138,7 @@ class Camelsh(HydroDataset):
         basin_arr.attrs["_ARRAY_DIMENSIONS"] = ["basin"]
         root.attrs["coordinates"] = "basin"
         self._write_zarr_units(root, "static")
+        zarr.consolidate_metadata(root.store)
         print(f"Attributes zarr written to: {out}")
 
     _subclass_static_definitions = {
@@ -229,13 +230,20 @@ class Camelsh(HydroDataset):
         },
     }
 
-    def cache_timeseries_to_zarr(self, batch_size: int = 100) -> None:
+    def cache_timeseries_to_zarr(self, batch_size: int = 1200) -> None:
         """Read CAMELSH NC files from OSS and write zarr to OSS.
 
         Reads q from Hourly2/Hourly2/{stn}_hourly.nc and forcing from
         timeseries_nonobs/Data/CAMELSH/timeseries_nonobs/{stn}.nc directly on
         OSS (no local copy needed). Resumable via _progress array.
+
+        Time-sliced write: for each basin batch, the store is filled one time
+        chunk at a time, so peak memory is ``batch_size x chunk_t x vars`` rather
+        than ``batch_size x nt x vars``. This lets the basin chunk grow large
+        (1200) on a memory-limited box; the cost is that each station NC is
+        re-downloaded once per time chunk.
         """
+        import gc
         import zarr
         import netCDF4 as nc4
 
@@ -261,6 +269,15 @@ class Camelsh(HydroDataset):
         def oss_exists(s3_path: str) -> bool:
             return fs.exists(s3_path.removeprefix("s3://"))
 
+        def rss_gb() -> float:
+            # Current resident memory (GiB); Linux-only, -1 elsewhere.
+            try:
+                with open("/proc/self/statm") as f:
+                    pages = int(f.read().split()[1])
+                return pages * 4096 / 1024 ** 3
+            except Exception:
+                return -1.0
+
         # Canonical cleaned var list from _dynamic_variable_mapping
         cleaned_var_lst = [
             info["sources"][info["default_source"]]["specific_name"]
@@ -275,7 +292,7 @@ class Camelsh(HydroDataset):
 
         zarr_name = self._timeseries_cache_filename.replace(".nc", ".zarr")
         out, opts = self._zarr_path_and_opts(zarr_name)
-        chunk_t = 24 * 30
+        chunk_t = 24 * 365 * 9  # 9-year hourly chunk (~378 MiB with chunk_b=1200)
         chunk_b = min(batch_size, n)
 
         root = zarr.open_group(out, mode="a", storage_options=opts, zarr_format=2)
@@ -285,7 +302,7 @@ class Camelsh(HydroDataset):
             for vn in cleaned_var_lst:
                 arr = root.create_array(
                     vn, shape=(n, nt), chunks=(chunk_b, chunk_t),
-                    dtype="float64", fill_value=np.nan,
+                    dtype="float32", fill_value=np.nan,
                 )
                 arr.attrs["_ARRAY_DIMENSIONS"] = ["basin", "time"]
             time_arr = root.create_array("time", shape=(nt,), chunks=(chunk_t,), dtype="int64")
@@ -306,58 +323,81 @@ class Camelsh(HydroDataset):
 
         progress = root["_progress"]
         n_batches = (n + batch_size - 1) // batch_size
+        n_tchunks = (nt + chunk_t - 1) // chunk_t
 
         for batch_idx in range(0, n, batch_size):
             batch_end = min(batch_idx + batch_size, n)
             batch_num = batch_idx // batch_size + 1
             batch_stations = stations[batch_idx:batch_end]
+            nb = len(batch_stations)
 
             if all(progress[batch_idx:batch_end]):
                 print(f"Batch {batch_num}/{n_batches}: already done, skipping")
                 continue
 
-            print(f"Batch {batch_num}/{n_batches}: {len(batch_stations)} stations ...")
-            batch_arrays = {vn: np.full((len(batch_stations), nt), np.nan) for vn in cleaned_var_lst}
+            print(f"Batch {batch_num}/{n_batches}: {nb} stations x "
+                  f"{n_tchunks} time-chunks (re-read per chunk) ...")
 
-            for i, stn in enumerate(batch_stations):
-                try:
-                    # Read streamflow + water_level from Hourly2
-                    ds_q = open_nc_from_oss(f"{h2_dir}/{stn}_hourly.nc")
-                    ds_q = ds_q.rename({k: v for k, v in dyn_map.items() if k in ds_q.data_vars})
-                    q_clean = {v: self._clean_feature_names([v])[0] for v in list(ds_q.data_vars)}
-                    ds_q = ds_q.rename(q_clean)
+            # Fill and write one time chunk at a time to keep peak memory at
+            # nb x chunk_t x vars. Each station NC is re-downloaded per time chunk.
+            for tc, t0 in enumerate(range(0, nt, chunk_t), start=1):
+                t1 = min(t0 + chunk_t, nt)
+                times_slice = times[t0:t1]
+                slice_arrays = {
+                    vn: np.full((nb, t1 - t0), np.nan, dtype=np.float32)
+                    for vn in cleaned_var_lst
+                }
 
-                    # Read forcing from timeseries_nonobs (fallback: timeseries)
-                    forcing_path = f"{nonobs_dir}/{stn}.nc"
-                    if not oss_exists(forcing_path):
-                        forcing_path = f"{ts_dir}/{stn}.nc"
-                    ds_f = open_nc_from_oss(forcing_path)
-                    ds_f = ds_f.drop_vars("Streamflow", errors="ignore")
-                    if "DateTime" in ds_f.coords or "DateTime" in ds_f.dims:
-                        ds_f = ds_f.rename({"DateTime": "time"})
-                    ds_f = ds_f.rename({k: v for k, v in dyn_map.items() if k in ds_f.data_vars})
-                    f_clean = {v: self._clean_feature_names([v])[0] for v in list(ds_f.data_vars)}
-                    ds_f = ds_f.rename(f_clean)
+                for i, stn in enumerate(batch_stations):
+                    ds_q = ds_f = None
+                    try:
+                        # Read streamflow + water_level from Hourly2
+                        ds_q = open_nc_from_oss(f"{h2_dir}/{stn}_hourly.nc")
+                        ds_q = ds_q.rename({k: v for k, v in dyn_map.items() if k in ds_q.data_vars})
+                        q_clean = {v: self._clean_feature_names([v])[0] for v in list(ds_q.data_vars)}
+                        ds_q = ds_q.rename(q_clean)
 
-                    for vn in cleaned_var_lst:
-                        src = ds_q if vn in ds_q else (ds_f if vn in ds_f else None)
-                        if src is not None:
-                            da = src[vn].reindex(time=times)
-                            batch_arrays[vn][i] = da.values.astype(float)
+                        # Read forcing from timeseries_nonobs (fallback: timeseries)
+                        forcing_path = f"{nonobs_dir}/{stn}.nc"
+                        if not oss_exists(forcing_path):
+                            forcing_path = f"{ts_dir}/{stn}.nc"
+                        ds_f = open_nc_from_oss(forcing_path)
+                        ds_f = ds_f.drop_vars("Streamflow", errors="ignore")
+                        if "DateTime" in ds_f.coords or "DateTime" in ds_f.dims:
+                            ds_f = ds_f.rename({"DateTime": "time"})
+                        ds_f = ds_f.rename({k: v for k, v in dyn_map.items() if k in ds_f.data_vars})
+                        f_clean = {v: self._clean_feature_names([v])[0] for v in list(ds_f.data_vars)}
+                        ds_f = ds_f.rename(f_clean)
 
-                    ds_q.close()
-                    ds_f.close()
+                        for vn in cleaned_var_lst:
+                            src = ds_q if vn in ds_q else (ds_f if vn in ds_f else None)
+                            if src is not None:
+                                da = src[vn].reindex(time=times_slice)
+                                slice_arrays[vn][i] = da.values.astype(float)
 
-                except Exception as e:
-                    print(f"  Station {stn}: ERROR — {e}")
-                    continue
+                    except Exception as e:
+                        print(f"  Station {stn} (tchunk {tc}): ERROR — {e}")
+                        continue
+                    finally:
+                        # Always release the in-memory netCDF handles, even on error,
+                        # or their C-level buffers accumulate and OOM the process.
+                        if ds_q is not None:
+                            ds_q.close()
+                        if ds_f is not None:
+                            ds_f.close()
 
-            for vn in cleaned_var_lst:
-                root[vn][batch_idx:batch_end, :] = batch_arrays[vn]
+                for vn in cleaned_var_lst:
+                    root[vn][batch_idx:batch_end, t0:t1] = slice_arrays[vn]
+                del slice_arrays
+                gc.collect()  # reclaim closed netCDF buffers before the next chunk
+                print(f"  Batch {batch_num}/{n_batches} tchunk {tc}/{n_tchunks} "
+                      f"[{t0}:{t1}] written  (RSS={rss_gb():.1f} GiB)")
+
             progress[batch_idx:batch_end] = 1
             print(f"Batch {batch_num}/{n_batches}: done")
 
         self._write_zarr_units(root, "dynamic")
+        zarr.consolidate_metadata(root.store)
         print(f"Timeseries zarr written to: {out}")
 
     def cache_timeseries_xrdataset(self, batch_size=100):

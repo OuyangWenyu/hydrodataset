@@ -17,6 +17,7 @@ from hydrodataset.camels_se import CamelsSe
 from hydrodataset.camelsh_kr import CamelshKr
 from hydrodataset.camels_gb import CamelsGb
 from hydrodataset.camels_fi import CamelsFi
+from hydrodataset.camels_pe import CamelsPe
 from hydrodataset.camels_lux import CamelsLux
 from hydrodataset.camels_nz import CamelsNz
 from hydrodataset.camels_de import CamelsDe
@@ -37,6 +38,7 @@ from tests._paths import (
     CAMELSH_KR_PATH,
     CAMELS_GB_PATH,
     CAMELS_FI_PATH,
+    CAMELS_PE_PATH,
     CAMELS_LUX_PATH,
     CAMELS_NZ_PATH,
     CAMELS_DE_PATH,
@@ -54,6 +56,7 @@ from tests._paths import (
     needs_camelsh_kr,
     needs_camels_gb,
     needs_camels_fi,
+    needs_camels_pe,
     needs_camels_lux,
     needs_camels_nz,
     needs_camels_de,
@@ -531,6 +534,89 @@ def test_read_camels_fi_timeseries_xrdataset():
         result_1, result_2, rtol=1e-6
     ), f"Expected {result_2}, got {result_1}"
 
+
+
+# "Test whether read_attr_xrdataset() from camels_pe correctly reads .nc files and returns a list of watershed ID strings."
+@needs_camels_pe
+@skip_if_ci
+def test_read_camels_pe_attr_xrdataset():
+    ds = CamelsPe(CAMELS_PE_PATH)
+    result_1 = ds.read_attr_xrdataset(gage_id_lst=["PE_110139"], var_lst=["p_mean"])[
+        "p_mean"
+    ].values
+    csv_path = os.path.join(
+        data_path,
+        "CAMELS_PE",
+        "CAMELS-PE",
+        "02_attributes",
+        "climatic_indices.csv",
+    )
+    df = pd.read_csv(csv_path)
+    result_2 = df[df["gauge_id"] == "PE_110139"]["p_mean"].values[0]
+    assert result_1 == result_2
+
+
+# "Test whether read_ts_xrdataset() from camels_pe correctly reads .nc files and returns a list of watershed ID strings."
+@needs_camels_pe
+@skip_if_ci
+def test_read_camels_pe_timeseries_xrdataset():
+    ds = CamelsPe(CAMELS_PE_PATH)
+    ts_data = ds.read_ts_xrdataset(
+        gage_id_lst=["PE_110139"],
+        var_lst=["precipitation"],
+        t_range=["1981-01-04", "1981-01-04"],
+        sources={"precipitation": "pisco"},
+    )
+    result_1 = ts_data["precipitation"].values.flatten()[0]
+    file_path = os.path.join(
+        data_path,
+        "CAMELS_PE",
+        "CAMELS-PE",
+        "03_timeseries",
+        "by_catchment",
+        "PE_110139.csv",
+    )
+    ts_df = pd.read_csv(file_path)
+    result_2 = ts_df[ts_df["date"] == "1981-01-04"]["prec"].values[0]
+    assert np.isclose(
+        result_1, result_2, rtol=1e-6
+    ), f"Expected {result_2}, got {result_1}"
+
+
+@needs_camels_pe
+@skip_if_ci
+def test_read_camels_pe_unified_cols_api():
+    ds = CamelsPe(CAMELS_PE_PATH)
+    attr = ds.read_constant_cols(
+        object_ids=["PE_110139"],
+        constant_cols=["area"],
+    )
+    ts = ds.read_relevant_cols(
+        object_ids=["PE_110139"],
+        t_range_list=["1981-01-04", "1981-01-04"],
+        relevant_cols=["precipitation"],
+    )
+    assert attr.shape == (1, 1)
+    assert ts.shape == (1, 1, 1)
+    assert np.isfinite(attr[0, 0])
+    assert np.isclose(ts[0, 0, 0], 9.783, rtol=1e-6)
+
+
+def test_read_camels_pe_cloud_object_ids(monkeypatch):
+    from io import StringIO
+
+    opened = []
+
+    class FakeFs:
+        def open(self, path):
+            opened.append(path)
+            assert path == "bucket/prefix/CAMELS_PE/CAMELS-PE/01_metadata/stations.csv"
+            return StringIO("gauge_id\nPE_2\nPE_1\n")
+
+    monkeypatch.setattr(CamelsPe, "_make_s3fs", lambda self: FakeFs())
+    ds = CamelsPe("s3://bucket/prefix")
+    assert ds.read_object_ids().tolist() == ["PE_1", "PE_2"]
+    assert opened == ["bucket/prefix/CAMELS_PE/CAMELS-PE/01_metadata/stations.csv"]
 
 
 # "Test whether read_attr_xrdataset() from camels_lux correctly reads .nc files and returns a list of watershed ID strings."
