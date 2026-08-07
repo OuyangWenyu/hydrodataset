@@ -135,7 +135,7 @@ They are generated automatically on first read and use consolidated metadata (`.
 
 ### The first cloud read is slow. Is this normal?
 
-Yes. The first read has to fetch metadata and data chunks from OSS and may generate the Zarr cache. Subsequent reads are fast because only the needed chunks are downloaded; benchmark results are available in [cloud_bench_result.md](cloud_bench_result.md).
+Yes. The first read has to fetch metadata and data chunks from OSS and may generate the Zarr cache. Subsequent reads are fast because only the needed chunks are downloaded.
 
 ## Usage & Examples
 
