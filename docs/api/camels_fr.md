@@ -36,10 +36,10 @@ Timeseries variables available (varies by dataset):
 
 ```python
 from hydrodataset.camels_fr import CamelsFr
-from hydrodataset import SETTING
+from hydrodataset import resolve_data_path
 
 # Initialize dataset
-data_path = SETTING["local_data_path"]["datasets-origin"]
+data_path = resolve_data_path("camels_fr")
 ds = CamelsFr(data_path)
 
 # Get basin IDs

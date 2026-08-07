@@ -4,7 +4,7 @@
 
 ### What is hydrodataset?
 
-hydrodataset is a Python package that provides a unified API for accessing 50+ hydrological datasets. It serves as a data-adapting layer on top of AquaFetch, standardizing diverse datasets into a consistent NetCDF format optimized for deep learning workflows.
+hydrodataset is a Python package that provides a unified API for accessing 27 hydrological datasets. It serves as a data-adapting layer on top of AquaFetch, standardizing diverse datasets into a consistent NetCDF format optimized for deep learning workflows.
 
 ### How is hydrodataset different from AquaFetch?
 
@@ -28,10 +28,17 @@ The `hydro_setting.yml` file should be placed in your **home directory** (`~/hyd
 ### What should be in `hydro_setting.yml`?
 
 ```yaml
-local_data_path:
-  root: 'D:\data\waterism'                    # Your root data directory
-  datasets-origin: 'D:\data\waterism\datasets-origin'  # Raw data from AquaFetch
-  cache: 'D:\data\waterism\cache'             # NetCDF cache files
+storage:
+  default_source: local          # local | cloud — used when `source` is omitted
+  local:
+    root: D:/data/hydrodatasets  # Your root data directory (absolute path)
+  cache: data/cache              # optional; relative to local.root
+  s3:                            # optional — only needed for cloud access
+    bucket: hydrodataset
+    prefix: ""
+    endpoint_url: https://oss-cn-beijing.aliyuncs.com
+    access_key_id: <your-access-key>
+    secret_access_key: <your-secret-key>
 ```
 
 Adjust paths according to your system and preferences.
@@ -97,6 +104,39 @@ rm ~/data/cache/camels_us_attributes.nc
 
 Next access will regenerate the cache.
 
+## Cloud Access
+
+### How do I read data from the cloud (OSS/S3)?
+
+1. Add the `storage.s3` block to `~/hydro_setting.yml` (bucket, endpoint, access key).
+2. Pass `source="cloud"` to `resolve_data_path` / `open_dataset`, or use the CLI with `--source cloud`:
+
+```python
+from hydrodataset import open_dataset
+
+ds = open_dataset("camels_us", source="cloud")
+ts = ds.read_ts_xrdataset(gage_id_lst=["01013500"], var_lst=["streamflow"])
+```
+
+```bash
+hydrodataset resolve camels_us --source cloud
+```
+
+### Where are the cloud Zarr caches stored?
+
+With `source="cloud"`, analysis-ready data is cached as Zarr stores on the bucket:
+
+```
+s3://<bucket>/zarr/{dataset}_timeseries.zarr
+s3://<bucket>/zarr/{dataset}_attributes.zarr
+```
+
+They are generated automatically on first read and use consolidated metadata (`.zmetadata`).
+
+### The first cloud read is slow. Is this normal?
+
+Yes. The first read has to fetch metadata and data chunks from OSS and may generate the Zarr cache. Subsequent reads are fast because only the needed chunks are downloaded; benchmark results are available in [cloud_bench_result.md](cloud_bench_result.md).
+
 ## Usage & Examples
 
 ### How do I read data for specific basins?
@@ -152,7 +192,7 @@ For integration with deep learning workflows, check out [torchhydro](https://git
 
 ### I'm getting "FileNotFoundError" when reading data. Help!
 
-1. Ensure raw data is downloaded to the `datasets-origin` directory
+1. Ensure raw data exists under `storage.local.root` (or in the cloud bucket when using `source="cloud"`)
 2. Some datasets require manual download - check AquaFetch documentation
 3. Verify paths in `hydro_setting.yml` are correct
 

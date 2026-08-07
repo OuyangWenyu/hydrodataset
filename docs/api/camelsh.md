@@ -44,10 +44,10 @@ Hourly timeseries variables available:
 
 ```python
 from hydrodataset.camelsh import Camelsh
-from hydrodataset import SETTING
+from hydrodataset import resolve_data_path
 
 # Initialize dataset
-data_path = SETTING["local_data_path"]["datasets-origin"]
+data_path = resolve_data_path("camelsh")
 ds = Camelsh(data_path)
 
 # Get basin IDs

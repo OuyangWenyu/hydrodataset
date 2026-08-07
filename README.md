@@ -22,6 +22,7 @@
 - [Core Philosophy](#core-philosophy)
 - [Installation](#installation)
 - [Quick Start](#quick-start)
+- [Local vs Cloud Data Access](#local-vs-cloud-data-access)
 - [Supported Datasets](#supported-datasets)
 - [Key Features](#key-features)
 - [Project Status](#project-status)
@@ -163,6 +164,75 @@ aus_ds.read_ts_xrdataset(gage_id_lst=["A4260522"], var_lst=["streamflow"], t_ran
 ```
 
 Similarly, you can use `precipitation`, `temperature_max`, etc., across datasets. A comprehensive list of these standardized names and their coverage across all datasets is in progress and will be published soon.
+
+## Local vs Cloud Data Access
+
+hydrodataset can read the same datasets from either a local disk or cloud object storage (S3-compatible, e.g. Alibaba Cloud OSS). The backend is chosen per call with `source="local" | "cloud"`; when omitted, `storage.default_source` from `~/hydro_setting.yml` is used (default: `local`).
+
+Both backends share one configuration file, `~/hydro_setting.yml`:
+
+```yaml
+storage:
+  default_source: local         # local | cloud — used when `source` is omitted
+  local:
+    root: D:/data/hydrodatasets # absolute local path; must exist
+  cache: data/cache             # optional; relative paths resolve against local.root
+  s3:
+    bucket: hydrodataset        # required for cloud access
+    prefix: ""                  # optional prefix inside the bucket
+    endpoint_url: https://oss-cn-beijing.aliyuncs.com
+    access_key_id: <your-access-key>
+    secret_access_key: <your-secret-key>
+```
+
+**Local**
+
+- `resolve_data_path("camels_us", source="local")` returns an absolute local path under `storage.local.root`.
+- Readers cache analysis-ready data as NetCDF files (`{dataset}_timeseries.nc`, `{dataset}_attributes.nc`) in the cache directory (`storage.cache`, default `~/.cache/hydrodataset`). Missing caches are generated automatically on first read.
+
+**Cloud**
+
+- `resolve_data_path("camels_us", source="cloud")` returns an S3 URI such as `s3://hydrodataset/`.
+- Readers access the raw dataset directly on OSS via s3fs and cache analysis-ready data as Zarr stores at `s3://<bucket>/zarr/{dataset}_timeseries.zarr` and `..._attributes.zarr` (with consolidated metadata). Missing Zarr stores are generated automatically on first read — typically on a cloud VM (ECS) using the internal OSS endpoint for bandwidth.
+
+```python
+from hydrodataset import resolve_data_path, open_dataset
+
+# Local
+local_uri = resolve_data_path("camels_us", source="local")
+ds = open_dataset("camels_us", source="local")
+ts = ds.read_ts_xrdataset(
+    gage_id_lst=["01013500"],
+    t_range=["1990-01-01", "1995-12-31"],
+    var_lst=["streamflow", "precipitation"],
+)
+
+# Cloud
+cloud_uri = resolve_data_path("camels_us", source="cloud")
+print(cloud_uri)  # e.g. s3://hydrodataset/
+ds_cloud = open_dataset("camels_us", source="cloud")
+ts_cloud = ds_cloud.read_ts_xrdataset(
+    gage_id_lst=["01013500"],
+    t_range=["1990-01-01", "1995-12-31"],
+    var_lst=["streamflow"],
+)
+```
+
+The CLI exposes the same `--source` switch:
+
+```bash
+hydrodataset config                                    # show effective config (secrets masked)
+hydrodataset resolve camels_us --source local
+hydrodataset resolve camels_us --source cloud
+hydrodataset info camels_us --source cloud
+hydrodataset read-ts bull --source cloud --gages BULL_10004 --vars precipitation -o ts.nc
+```
+
+Notes:
+
+- The config file lives in your home directory (`~/hydro_setting.yml`). A project-level `.hydro_setting.yml` in the project root is also supported and overrides user-level settings.
+- `storage.s3.*` contains credentials — never commit it to a repository.
+- Readers constructed with an `s3://` URI skip local path validation and are treated as cloud readers (`_is_cloud()`).
 
 ## Supported Datasets
 

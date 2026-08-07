@@ -58,10 +58,10 @@ Timeseries variables available:
 
 ```python
 from hydrodataset.lamah_ice import LamahIce
-from hydrodataset import SETTING
+from hydrodataset import resolve_data_path
 
 # Initialize dataset
-data_path = SETTING["local_data_path"]["datasets-origin"]
+data_path = resolve_data_path("lamah_ice")
 ds = LamahIce(data_path)
 
 # Get basin IDs

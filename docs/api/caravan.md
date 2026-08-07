@@ -77,10 +77,10 @@ Timeseries variables standardized across all regions:
 
 ```python
 from hydrodataset.caravan import Caravan
-from hydrodataset import SETTING
+from hydrodataset import resolve_data_path
 
 # Initialize with all regions (Global mode)
-data_path = SETTING["local_data_path"]["datasets-origin"]
+data_path = resolve_data_path("caravan")
 caravan = Caravan(data_path)
 
 # Get all basin IDs

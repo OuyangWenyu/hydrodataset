@@ -58,10 +58,10 @@ Timeseries variables available:
 
 ```python
 from hydrodataset.lamah_ce import LamahCe
-from hydrodataset import SETTING
+from hydrodataset import resolve_data_path
 
 # Initialize dataset
-data_path = SETTING["local_data_path"]["datasets-origin"]
+data_path = resolve_data_path("lamah_ce")
 ds = LamahCe(data_path)
 
 # Get basin IDs
@@ -152,10 +152,10 @@ The station connectivity data includes the following variables (from `Stream_dis
 
 ```python
 from hydrodataset.lamah_ce import LamahCe
-from hydrodataset import SETTING
+from hydrodataset import resolve_data_path
 
 # Initialize dataset
-data_path = SETTING["local_data_path"]["datasets-origin"]
+data_path = resolve_data_path("lamah_ce")
 ds = LamahCe(data_path)
 
 # Cache the station connectivity data (only needed once)

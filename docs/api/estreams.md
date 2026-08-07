@@ -35,10 +35,10 @@ Timeseries variables available:
 
 ```python
 from hydrodataset.estreams import Estreams
-from hydrodataset import SETTING
+from hydrodataset import resolve_data_path
 
 # Initialize dataset
-data_path = SETTING["local_data_path"]["datasets-origin"]
+data_path = resolve_data_path("estreams")
 ds = Estreams(data_path)
 
 # Get basin IDs

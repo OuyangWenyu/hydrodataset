@@ -38,6 +38,64 @@ ds = CamelsUs(data_path)
 appends the dataset's registered sub-path automatically.  No need to construct
 paths by hand.
 
+## Local vs Cloud Data Access
+
+hydrodataset can read the same datasets from local disk or from cloud object storage (S3-compatible, e.g. Alibaba Cloud OSS). The backend is selected per call with `source="local" | "cloud"`; when omitted, `storage.default_source` in `~/hydro_setting.yml` is used (default: `local`).
+
+Both backends share one configuration file, `~/hydro_setting.yml`:
+
+```yaml
+storage:
+  default_source: local         # local | cloud — used when `source` is omitted
+  local:
+    root: D:/data/hydrodatasets # absolute local path; must exist
+  cache: data/cache             # optional; relative paths resolve against local.root
+  s3:
+    bucket: hydrodataset        # required for cloud access
+    prefix: ""                  # optional prefix inside the bucket
+    endpoint_url: https://oss-cn-beijing.aliyuncs.com
+    access_key_id: <your-access-key>
+    secret_access_key: <your-secret-key>
+```
+
+**Local**
+
+- `resolve_data_path("camels_us", source="local")` returns an absolute local path under `storage.local.root`.
+- Readers cache analysis-ready data as NetCDF files (`{dataset}_timeseries.nc`, `{dataset}_attributes.nc`) in the cache directory; missing caches are generated automatically on first read.
+
+**Cloud**
+
+- `resolve_data_path("camels_us", source="cloud")` returns an S3 URI such as `s3://hydrodataset/`.
+- Readers access raw data directly on OSS via s3fs and cache analysis-ready data as Zarr stores at `s3://<bucket>/zarr/{dataset}_timeseries.zarr` and `..._attributes.zarr` (with consolidated metadata). Missing Zarr stores are generated automatically on first read.
+
+```python
+from hydrodataset import resolve_data_path, open_dataset
+
+# Local
+local_uri = resolve_data_path("camels_us", source="local")
+ds = open_dataset("camels_us", source="local")
+
+# Cloud
+cloud_uri = resolve_data_path("camels_us", source="cloud")
+ds_cloud = open_dataset("camels_us", source="cloud")
+ts_cloud = ds_cloud.read_ts_xrdataset(
+    gage_id_lst=["01013500"],
+    t_range=["1990-01-01", "1995-12-31"],
+    var_lst=["streamflow"],
+)
+```
+
+The CLI exposes the same `--source` switch:
+
+```bash
+hydrodataset config                          # show effective config (secrets masked)
+hydrodataset resolve camels_us --source local
+hydrodataset resolve camels_us --source cloud
+hydrodataset info camels_us --source cloud
+```
+
+> **Note**: `storage.s3.*` contains credentials — never commit it to a repository.
+
 ## Exploring Available Data
 
 ### Check Available Features
@@ -116,7 +174,8 @@ ts_data_bom = ds_aus.read_ts_xrdataset(
 ts_data_gr4j = ds_aus.read_ts_xrdataset(
     gage_id_lst=["A4260522"],
     t_range=["1990-01-01", "1995-12-31"],
-    var_lst=[("streamflow", "gr4j")]  # Tuple: (variable, source)
+    var_lst=["streamflow"],
+    sources={"streamflow": "gr4j"}  # Explicit source selection
 )
 ```
 
@@ -278,6 +337,8 @@ ts_data = ds.read_ts_xrdataset(...)  # May take minutes
 # Subsequent access: fast (reads from .nc cache)
 ts_data = ds.read_ts_xrdataset(...)  # Instant!
 ```
+
+With `source="cloud"`, the same cache is stored as Zarr on OSS (`s3://<bucket>/zarr/{dataset}_timeseries.zarr` / `..._attributes.zarr`) and generated automatically on first read; delete those Zarr stores on the bucket to force regeneration.
 
 ### Regenerating Cache
 

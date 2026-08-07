@@ -9,6 +9,7 @@
 - **Unified API**: Consistent interface across all datasets
 - **Standardized Variables**: Common variable names across different datasets
 - **NetCDF Caching**: Fast data access through cached `.nc` files
+- **Local & Cloud Access**: Read from local disk or S3-compatible object storage (e.g. Alibaba Cloud OSS), with automatic Zarr caching in the cloud
 - **Multiple Data Sources**: Support for alternative data sources within datasets
 - **Unit Management**: Automatic unit handling with pint integration
 
@@ -51,12 +52,11 @@ Large-sample hydrological datasets:
 ## Quick Start
 
 ```python
-from hydrodataset.camels_us import CamelsUs
-from hydrodataset import SETTING
+from hydrodataset import open_dataset
 
-# Initialize dataset
-data_path = SETTING["local_data_path"]["datasets-origin"]
-ds = CamelsUs(data_path)
+# source="local" (default) reads from storage.local.root in ~/hydro_setting.yml;
+# source="cloud" reads from storage.s3 (S3/OSS) with Zarr caches on the bucket.
+ds = open_dataset("camels_us", source="local")
 
 # Read basin IDs
 basin_ids = ds.read_object_ids()
@@ -77,13 +77,20 @@ attr_data = ds.read_attr_xrdataset(
 
 ## Configuration
 
-Create `~/hydro_setting.yml` in your home directory:
+Create `~/hydro_setting.yml` in your home directory (the `s3` block is only needed for cloud access):
 
 ```yaml
-local_data_path:
-  root: 'D:\data\waterism'
-  datasets-origin: 'D:\data\waterism\datasets-origin'  # Raw data
-  cache: 'D:\data\waterism\cache'  # Cached NetCDF files
+storage:
+  default_source: local         # local | cloud — used when `source` is omitted
+  local:
+    root: D:/data/hydrodatasets # absolute local path; must exist
+  cache: data/cache             # optional; relative to local.root
+  s3:
+    bucket: hydrodataset        # required for cloud access
+    prefix: ""                  # optional prefix inside the bucket
+    endpoint_url: https://oss-cn-beijing.aliyuncs.com
+    access_key_id: <your-access-key>
+    secret_access_key: <your-secret-key>
 ```
 
 ## Module Reference

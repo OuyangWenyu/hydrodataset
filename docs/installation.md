@@ -125,7 +125,7 @@ After installation, create a `hydro_setting.yml` file in your **home directory**
 **Windows**: `C:\Users\YourUsername\hydro_setting.yml`
 **Linux/Mac**: `~/hydro_setting.yml`
 
-**Content:**
+**Content (local only):**
 ```yaml
 storage:
   local:
@@ -133,8 +133,21 @@ storage:
   cache: cache                    # relative to local.root, or supply an absolute path
 ```
 
+**For cloud access, add the `s3` block** (used by `source="cloud"`):
+```yaml
+storage:
+  s3:
+    bucket: hydrodataset          # required for cloud access
+    prefix: ""                    # optional prefix inside the bucket
+    endpoint_url: https://oss-cn-beijing.aliyuncs.com
+    access_key_id: <your-access-key>
+    secret_access_key: <your-secret-key>
+```
+
+`storage.s3.*` contains credentials — never commit it to a repository.
+
 **Important**: Update the paths according to your system. Ensure:
-- The `root` directory exists (or will be created when data is first downloaded)
+- The `root` directory already exists — local path resolution (`source="local"`) fails if it does not
 - You have write permissions
 - Sufficient disk space (raw data + NetCDF cache can be several GB per dataset)
 
@@ -224,7 +237,3 @@ After installation:
 4. 📚 Browse the [API Documentation](api/hydrodataset.md)
 
 If you encounter issues, check the [FAQ](faq.md) or open an issue on [GitHub](https://github.com/OuyangWenyu/hydrodataset/issues).
-
-```
-git clone git://github.com/OuyangWenyu/hydrodataset
-```

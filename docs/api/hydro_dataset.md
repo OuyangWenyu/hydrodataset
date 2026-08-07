@@ -97,11 +97,10 @@ class MyDataset(HydroDataset):
 ### Using a Dataset Instance
 
 ```python
-from hydrodataset.camels_us import CamelsUs
-from hydrodataset import SETTING
+from hydrodataset import open_dataset
 
-# Initialize
-ds = CamelsUs(SETTING["local_data_path"]["datasets-origin"])
+# Initialize via the resolver — source="local" or source="cloud"
+ds = open_dataset("camels_us", source="local")
 
 # Get available features
 print(ds.available_static_features)
