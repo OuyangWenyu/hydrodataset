@@ -441,7 +441,10 @@ class CamelsUs(HydroDataset):
                         dtype={"year": int, "month": int, "day": int, "q_obs": float},
                     )
                 df["date"] = pd.to_datetime(df[["year", "month", "day"]])
-                flow_records[station] = df.set_index("date")["q_obs"] * 0.0283168
+                # Replace -999 missing values with NaN (same as the local cache)
+                # before converting from cfs to cms.
+                flow = df.set_index("date")["q_obs"].replace(-999.0, np.nan)
+                flow_records[station] = flow * 0.0283168
 
         # Daymet forcing — raw column names from file
         _fm_raw = ["dayl", "prcp_mm", "srad_wm2", "swe_mm", "tmax_c", "tmin_c", "vp_pa"]
