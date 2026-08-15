@@ -334,19 +334,19 @@ class CamelsFr(HydroDataset):
         StandardVariable.TEMPERATURE_MEAN: {
             "default_source": "SIM2-SAFRAN",
             "sources": {
-                "SIM2-SAFRAN": {"specific_name": "airtemp_C_mean", "unit": "掳C"},
+                "SIM2-SAFRAN": {"specific_name": "airtemp_C_mean", "unit": "°C"},
             },
         },
         StandardVariable.TEMPERATURE_MIN: {
             "default_source": "SIM2-SAFRAN",
             "sources": {
-                "SIM2-SAFRAN": {"specific_name": "airtemp_C_min", "unit": "掳C"},
+                "SIM2-SAFRAN": {"specific_name": "airtemp_C_min", "unit": "°C"},
             },
         },
         StandardVariable.TEMPERATURE_MAX: {
             "default_source": "SIM2-SAFRAN",
             "sources": {
-                "SIM2-SAFRAN": {"specific_name": "airtemp_C_max", "unit": "掳C"},
+                "SIM2-SAFRAN": {"specific_name": "airtemp_C_max", "unit": "°C"},
             },
         },
         StandardVariable.POTENTIAL_EVAPOTRANSPIRATION: {

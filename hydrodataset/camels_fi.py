@@ -215,20 +215,20 @@ class CamelsFi(HydroDataset):
         StandardVariable.TEMPERATURE_MIN: {
             "default_source": "observations",
             "sources": {
-                "observations": {"specific_name": "airtemp_C_min", "unit": "掳C"},
-                "ground_min": {"specific_name": "temperature_gmin", "unit": "掳C"},
+                "observations": {"specific_name": "airtemp_C_min", "unit": "°C"},
+                "ground_min": {"specific_name": "temperature_gmin", "unit": "°C"},
             },
         },
         StandardVariable.TEMPERATURE_MEAN: {
             "default_source": "observations",
             "sources": {
-                "observations": {"specific_name": "airtemp_C_mean", "unit": "掳C"},
+                "observations": {"specific_name": "airtemp_C_mean", "unit": "°C"},
             },
         },
         StandardVariable.TEMPERATURE_MAX: {
             "default_source": "observations",
             "sources": {
-                "observations": {"specific_name": "airtemp_C_max", "unit": "掳C"},
+                "observations": {"specific_name": "airtemp_C_max", "unit": "°C"},
             },
         },
         StandardVariable.RELATIVE_HUMIDITY: {

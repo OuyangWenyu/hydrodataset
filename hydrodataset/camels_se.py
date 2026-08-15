@@ -116,7 +116,7 @@ class CamelsSe(HydroDataset):
         uri = str(self.data_source_dir).rstrip("/")
         ts_base = f"{uri}/{self._TS_REL}"
 
-        # Build a map from station ID 鈫?filename (IDs can have spaces in name part)
+        # Build a map from station ID →?filename (IDs can have spaces in name part)
         if self._is_cloud():
             fs2 = self._make_s3fs()
             all_names = [p.split("/")[-1] for p in fs2.ls(ts_base.removeprefix("s3://"))]
@@ -211,7 +211,7 @@ class CamelsSe(HydroDataset):
         StandardVariable.TEMPERATURE_MEAN: {
             "default_source": "default",
             "sources": {
-                "default": {"specific_name": "airtemp_C_mean", "unit": "掳C"},
+                "default": {"specific_name": "airtemp_C_mean", "unit": "°C"},
             },
         },
     }

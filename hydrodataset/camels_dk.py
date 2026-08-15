@@ -203,7 +203,7 @@ class CamelsDk(HydroDataset):
         StandardVariable.TEMPERATURE_MEAN: {
             "default_source": "dmi",
             "sources": {
-                "dmi": {"specific_name": "airtemp_c_mean", "unit": "掳C"},
+                "dmi": {"specific_name": "airtemp_c_mean", "unit": "°C"},
             },
         },
         StandardVariable.POTENTIAL_EVAPOTRANSPIRATION: {

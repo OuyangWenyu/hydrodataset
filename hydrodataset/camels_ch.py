@@ -19,7 +19,7 @@ class CamelsCh(HydroDataset):
     URL to the latest Zenodo record.
     """
 
-    # Raw CSV column 鈫?zarr variable name (matches NC cache)
+    # Raw CSV column →?zarr variable name (matches NC cache)
     _COL_MAP = {
         "discharge_vol(m3/s)": "q_cms_obs",
         "discharge_spec(mm/d)": "q_mm_obs",
@@ -447,18 +447,18 @@ class CamelsCh(HydroDataset):
         },
         StandardVariable.TEMPERATURE_MAX: {
             "default_source": "sfo",
-            "sources": {"sfo": {"specific_name": "airtemp_C_max", "unit": "掳C"}},
+            "sources": {"sfo": {"specific_name": "airtemp_C_max", "unit": "°C"}},
         },
         StandardVariable.TEMPERATURE_MIN: {
             "default_source": "sfo",
             "sources": {
-                "sfo": {"specific_name": "airtemp_C_min", "unit": "掳C"},
+                "sfo": {"specific_name": "airtemp_C_min", "unit": "°C"},
             },
         },
         StandardVariable.TEMPERATURE_MEAN: {
             "default_source": "sfo",
             "sources": {
-                "sfo": {"specific_name": "airtemp_C_mean", "unit": "掳C"},
+                "sfo": {"specific_name": "airtemp_C_mean", "unit": "°C"},
             },
         },
         StandardVariable.RELATIVE_DAYLIGHT_DURATION: {

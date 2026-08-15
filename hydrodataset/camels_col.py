@@ -33,7 +33,7 @@ class CamelsCol(HydroDataset):
         ds_description: Dictionary containing dataset file paths
     """
 
-    # Raw timeseries column 鈫?zarr variable name
+    # Raw timeseries column →?zarr variable name
     _COL_MAP = {
         "pr":           "pcp_mm",
         "poten_evapo":  "pet_mm",
@@ -308,19 +308,19 @@ class CamelsCol(HydroDataset):
         StandardVariable.TEMPERATURE_MAX: {
             "default_source": "observations",
             "sources": {
-                "observations": {"specific_name": "airtemp_c_max", "unit": "掳C"}
+                "observations": {"specific_name": "airtemp_c_max", "unit": "°C"}
             },
         },
         StandardVariable.TEMPERATURE_MIN: {
             "default_source": "observations",
             "sources": {
-                "observations": {"specific_name": "airtemp_c_min", "unit": "掳C"},
+                "observations": {"specific_name": "airtemp_c_min", "unit": "°C"},
             },
         },
         StandardVariable.TEMPERATURE_MEAN: {
             "default_source": "observations",
             "sources": {
-                "observations": {"specific_name": "airtemp_c_mean", "unit": "掳C"},
+                "observations": {"specific_name": "airtemp_c_mean", "unit": "°C"},
             },
         },
         StandardVariable.POTENTIAL_EVAPOTRANSPIRATION: {

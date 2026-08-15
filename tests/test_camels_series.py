@@ -177,6 +177,28 @@ def test_read_camels_aus_timeseries_xrdataset():
     ), f"Expected {result_2}, got {result_1}"
 
 
+@needs_camels_aus
+@skip_if_ci
+def test_camels_aus_streamflow_units():
+    """q_cms_obs units must be m^3/s, not mm^3/s."""
+    # Assert the mapping directly (robust to stale on-disk cache)
+    mapping = CamelsAus._dynamic_variable_mapping[StandardVariable.STREAMFLOW][
+        "sources"
+    ]
+    assert mapping["bom"]["unit"] == "m^3/s"
+    assert mapping["gr4j"]["unit"] == "ML/day"
+    assert mapping["depth_based"]["unit"] == "mm/day"
+    # Assert the cache-surfaced units (what users actually observe)
+    ds = CamelsAus(CAMELS_AUS_PATH)
+    ts = ds.read_ts_xrdataset(
+        gage_id_lst=["912105A"],
+        var_lst=["streamflow"],
+        t_range=["1981-01-04", "1981-01-04"],
+        sources={"streamflow": "bom"},
+    )
+    assert ts["streamflow"].attrs.get("units") == "m^3/s"
+
+
 
 # "Test whether read_attr_xrdataset() from camels_cl correctly reads .nc files and returns a list of watershed ID strings."
 @needs_camels_cl

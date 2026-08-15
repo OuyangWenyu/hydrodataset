@@ -201,7 +201,7 @@ class CamelsGb(HydroDataset):
         StandardVariable.TEMPERATURE_MEAN: {
             "default_source": "meteorological",
             "sources": {
-                "meteorological": {"specific_name": "airtemp_C_mean", "unit": "掳C"},
+                "meteorological": {"specific_name": "airtemp_C_mean", "unit": "°C"},
             },
         },
         StandardVariable.POTENTIAL_EVAPOTRANSPIRATION: {

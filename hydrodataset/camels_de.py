@@ -232,19 +232,19 @@ class CamelsDe(HydroDataset):
         StandardVariable.TEMPERATURE_MAX: {
             "default_source": "dwd",
             "sources": {
-                "dwd": {"specific_name": "airtemp_c_max", "unit": "掳C"},
+                "dwd": {"specific_name": "airtemp_c_max", "unit": "°C"},
             },
         },
         StandardVariable.TEMPERATURE_MIN: {
             "default_source": "dwd",
             "sources": {
-                "dwd": {"specific_name": "airtemp_c_min", "unit": "掳C"},
+                "dwd": {"specific_name": "airtemp_c_min", "unit": "°C"},
             },
         },
         StandardVariable.TEMPERATURE_MEAN: {
             "default_source": "dwd",
             "sources": {
-                "dwd": {"specific_name": "airtemp_c_mean", "unit": "掳C"},
+                "dwd": {"specific_name": "airtemp_c_mean", "unit": "°C"},
             },
         },
         StandardVariable.SOLAR_RADIATION: {

@@ -180,7 +180,7 @@ class CamelsAus(HydroDataset):
         StandardVariable.STREAMFLOW: {
             "default_source": "bom",
             "sources": {
-                "bom": {"specific_name": "q_cms_obs", "unit": "mm^3/s"},
+                "bom": {"specific_name": "q_cms_obs", "unit": "m^3/s"},
                 "gr4j": {
                     "specific_name": "streamflow_mld_inclinfilled",
                     "unit": "ML/day",
@@ -247,22 +247,22 @@ class CamelsAus(HydroDataset):
         StandardVariable.TEMPERATURE_MAX: {
             "default_source": "agcd",
             "sources": {
-                "agcd": {"specific_name": "airtemp_c_agcd_max", "unit": "掳C"},
-                "silo": {"specific_name": "airtemp_c_silo_max", "unit": "掳C"},
+                "agcd": {"specific_name": "airtemp_c_agcd_max", "unit": "°C"},
+                "silo": {"specific_name": "airtemp_c_silo_max", "unit": "°C"},
             },
         },
         StandardVariable.TEMPERATURE_MIN: {
             "default_source": "agcd",
             "sources": {
-                "agcd": {"specific_name": "airtemp_c_agcd_min", "unit": "掳C"},
-                "silo": {"specific_name": "airtemp_c_silo_min", "unit": "掳C"},
+                "agcd": {"specific_name": "airtemp_c_agcd_min", "unit": "°C"},
+                "silo": {"specific_name": "airtemp_c_silo_min", "unit": "°C"},
             },
         },
         StandardVariable.TEMPERATURE_MEAN: {
             "default_source": "silo",
             "sources": {
-                "silo": {"specific_name": "airtemp_c_mean_silo", "unit": "掳C"},
-                "agcd": {"specific_name": "airtemp_c_mean_agcd", "unit": "掳C"},
+                "silo": {"specific_name": "airtemp_c_mean_silo", "unit": "°C"},
+                "agcd": {"specific_name": "airtemp_c_mean_agcd", "unit": "°C"},
             },
         },
         StandardVariable.VAPOR_PRESSURE: {

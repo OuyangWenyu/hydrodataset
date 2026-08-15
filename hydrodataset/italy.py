@@ -103,7 +103,7 @@ class Italy(HydroDataset):
 
     def _get_timeseries_units(self):
         return [
-            "mm^3/s",  # q_cms_obs ML/day->mm^3/s,×1.1574 × 10⁻2
+            "m^3/s",  # q_cms_obs ML/day->m^3/s,×1.1574 × 10⁻2
             "ML/day",  # streamflow_MLd
             "mm/day",  # q_mm_obs
             "mm/day",  # aet_mm_silo_morton
@@ -116,7 +116,7 @@ class Italy(HydroDataset):
             "mm/day",  # evap_syn_SILO
             "mm/day",  # pcp_mm_agcd
             "mm/day",  # pcp_mm_silo
-            "mm^2/d^2 ",  # precipitation_var_AGCD
+            "mm^2/d^2",  # precipitation_var_AGCD
             "°C",  # airtemp_C_agcd_max
             "°C",  # airtemp_C_agcd_min
             "hPa",  # vp_hpa_agcd_h09

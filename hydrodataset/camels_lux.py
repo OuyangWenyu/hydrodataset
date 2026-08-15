@@ -300,7 +300,7 @@ class CamelsLux(HydroDataset):
         StandardVariable.TEMPERATURE_MEAN: {
             "default_source": " era5",
             "sources": {
-                " era5": {"specific_name": "airtemp_C_mean", "unit": "掳C"},
+                " era5": {"specific_name": "airtemp_C_mean", "unit": "°C"},
             },
         },
         StandardVariable.POTENTIAL_EVAPOTRANSPIRATION: {

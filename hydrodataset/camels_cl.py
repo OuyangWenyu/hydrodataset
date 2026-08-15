@@ -31,7 +31,7 @@ class CamelsCl(HydroDataset):
         ds_description: Dictionary containing dataset file paths
     """
 
-    # (folder/file_rel_path, zarr_var_name) 鈥?wide-format TXT per variable
+    # (folder/file_rel_path, zarr_var_name) –?wide-format TXT per variable
     _FILE_MAP = [
         ("2_CAMELScl_streamflow_m3s/2_CAMELScl_streamflow_m3s.txt",   "q_cms_obs"),
         ("3_CAMELScl_streamflow_mm/3_CAMELScl_streamflow_mm.txt",     "q_mm_obs"),
@@ -266,19 +266,19 @@ class CamelsCl(HydroDataset):
         StandardVariable.TEMPERATURE_MIN: {
             "default_source": "observations",
             "sources": {
-                "observations": {"specific_name": "airtemp_c_min", "unit": "掳C"}
+                "observations": {"specific_name": "airtemp_c_min", "unit": "°C"}
             },
         },
         StandardVariable.TEMPERATURE_MAX: {
             "default_source": "observations",
             "sources": {
-                "observations": {"specific_name": "airtemp_c_max", "unit": "掳C"}
+                "observations": {"specific_name": "airtemp_c_max", "unit": "°C"}
             },
         },
         StandardVariable.TEMPERATURE_MEAN: {
             "default_source": "observations",
             "sources": {
-                "observations": {"specific_name": "airtemp_c_mean", "unit": "掳C"}
+                "observations": {"specific_name": "airtemp_c_mean", "unit": "°C"}
             },
         },
         StandardVariable.POTENTIAL_EVAPOTRANSPIRATION: {

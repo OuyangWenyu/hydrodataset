@@ -29,7 +29,7 @@ class CamelsBr(HydroDataset):
     It overrides the download URLs and provides its own parsing and caching logic.
     """
 
-    # (folder_rel, file_suffix, var_columns) 鈥?used by cache_timeseries_to_zarr
+    # (folder_rel, file_suffix, var_columns) –?used by cache_timeseries_to_zarr
     _FOLDER_MAP = [
         (
             "03_CAMELS_BR_streamflow_selected_catchments/03_CAMELS_BR_streamflow_selected_catchments",
@@ -153,23 +153,23 @@ class CamelsBr(HydroDataset):
         StandardVariable.TEMPERATURE_MAX: {
             "default_source": "era5land",
             "sources": {
-                "era5land": {"specific_name": "tmax_era5land", "unit": "掳C"},
-                "cpc": {"specific_name": "tmax_cpc", "unit": "掳C"},
-                "brdwgd": {"specific_name": "tmax_brdwgd", "unit": "掳C"},
+                "era5land": {"specific_name": "tmax_era5land", "unit": "°C"},
+                "cpc": {"specific_name": "tmax_cpc", "unit": "°C"},
+                "brdwgd": {"specific_name": "tmax_brdwgd", "unit": "°C"},
             },
         },
         StandardVariable.TEMPERATURE_MIN: {
             "default_source": "era5land",
             "sources": {
-                "era5land": {"specific_name": "tmin_era5land", "unit": "掳C"},
-                "cpc": {"specific_name": "tmin_cpc", "unit": "掳C"},
-                "brdwgd": {"specific_name": "tmin_brdwgd", "unit": "掳C"},
+                "era5land": {"specific_name": "tmin_era5land", "unit": "°C"},
+                "cpc": {"specific_name": "tmin_cpc", "unit": "°C"},
+                "brdwgd": {"specific_name": "tmin_brdwgd", "unit": "°C"},
             },
         },
         StandardVariable.TEMPERATURE_MEAN: {
             "default_source": "era5land",
             "sources": {
-                "era5land": {"specific_name": "tmean_era5land", "unit": "掳C"},
+                "era5land": {"specific_name": "tmean_era5land", "unit": "°C"},
             },
         },
         StandardVariable.SOIL_MOISTURE: {
