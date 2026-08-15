@@ -142,6 +142,7 @@ GEMINI.md
 # AI assistant local state (never belongs in version control)
 .claude/
 .codegraph/
+.specify/
 
 # OS
 .DS_Store
