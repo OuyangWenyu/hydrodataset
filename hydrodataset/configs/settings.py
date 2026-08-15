@@ -16,8 +16,9 @@ Config format:
       s3:
         bucket: hydro-data
         prefix: hydromodel
-        region: us-east-1
-        profile: default
+        endpoint_url: https://oss-cn-beijing.aliyuncs.com
+        access_key_id: <your-access-key>
+        secret_access_key: <your-secret-key>
 """
 
 from __future__ import annotations

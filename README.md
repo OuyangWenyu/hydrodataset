@@ -8,8 +8,8 @@
 
 **A Python package for accessing hydrological datasets with a unified API, optimized for deep learning workflows.**
 
-- 🌊 **Unified Interface**: Consistent API across 20+ hydrological datasets
-- ⚡ **Fast Access**: NetCDF caching for instant data loading
+- 🌊 **Unified Interface**: Consistent API across 27 hydrological datasets
+- ⚡ **Fast Access**: NetCDF caching locally / Zarr caching on cloud for instant data loading
 - 🎯 **Standardized Variables**: Common naming across all datasets
 - 🔗 **Built on AquaFetch**: Powered by the comprehensive [AquaFetch](https://github.com/hyex-research/AquaFetch) backend
 - 📊 **ML-Ready**: Optimized for integration with [torchhydro](https://github.com/OuyangWenyu/torchhydro)
@@ -32,13 +32,21 @@
 
 This library has been redesigned to serve as a powerful data-adapting layer on top of the [AquaFetch](https://github.com/hyex-research/AquaFetch) package.
 
-While `AquaFetch` handles the complexities of downloading and reading numerous public hydrological datasets, `hydrodataset` takes the next step: it standardizes this data into a clean, consistent NetCDF (`.nc`) format. This format is specifically optimized for seamless integration with hydrological modeling libraries like [torchhydro](https://github.com/OuyangWenyu/torchhydro).
+While `AquaFetch` handles the complexities of downloading and reading numerous public hydrological datasets, `hydrodataset` takes the next step: it standardizes this data into a clean, consistent format — NetCDF (`.nc`) locally, Zarr on cloud object storage — optimized for seamless integration with hydrological modeling libraries like [torchhydro](https://github.com/OuyangWenyu/torchhydro).
+
+**One unified way to reach any dataset.** Every dataset is addressed by a logical id (`"camels_us"`, `"bull"`, …) resolved through a single chain:
+
+```
+~/hydro_setting.yml (storage config) → resolve_data_path / open_dataset → absolute path or s3:// URI
+```
+
+You never construct a data path by hand. `open_dataset(dataset_id, source="local"|"cloud")` resolves the id, picks the right reader class, and returns an instantiated dataset — `source` is chosen per call, or defaults to `storage.default_source`. When you need the raw path or a specific class directly, `resolve_data_path(dataset_id)` + the class constructor remain available (see [Quick Start](#quick-start)).
 
 The core workflow is:
-1.  **Fetch**: Use a `hydrodataset` class for a specific dataset (e.g., `CamelsAus`).
-2.  **Standardize**: It uses `AquaFetch` as the primary backend for fetching raw data, while maintaining a consistent, unified interface across all datasets.
-3.  **Cache**: On the first run, `hydrodataset` processes the data into an `xarray.Dataset` and saves it as `.nc` files for timeseries and attributes separately in a specified local directory set in `hydro_setting.yml` in the user's home directory.
-4.  **Access**: All subsequent data requests are read directly from the fast `.nc` cache, giving you analysis-ready data instantly.
+1.  **Resolve**: `resolve_data_path` / `open_dataset` turns a dataset id into an absolute local path or an `s3://` URI, using the config in `~/hydro_setting.yml`.
+2.  **Standardize**: The `hydrodataset` reader (backed by `AquaFetch`) fetches raw data and exposes it through a consistent, unified interface across all datasets.
+3.  **Cache**: On the first run, the data is processed into an `xarray.Dataset` and saved as `.nc` files (timeseries + attributes) in the local cache directory — or as Zarr stores on cloud storage for `source="cloud"`.
+4.  **Access**: All subsequent requests read from the fast cache (NetCDF locally / Zarr on cloud), giving you analysis-ready data instantly.
 
 ## Installation
 
@@ -99,25 +107,22 @@ The primary goal of `hydrodataset` is to provide a simple, unified API for acces
 >
 > ***We strongly recommend downloading datasets manually during off-peak hours if possible.***
 >
-> After the initial download, all subsequent access will be fast thanks to NetCDF caching.
+> After the initial download, all subsequent access will be fast thanks to NetCDF caching (locally) or Zarr caching (on cloud).
 
 ### Basic Example
 
 ```python
-from hydrodataset import resolve_data_path
-from hydrodataset.camels_us import CamelsUs
+from hydrodataset import open_dataset
 
-# resolve_data_path reads storage.local.root from ~/hydro_setting.yml
+# open_dataset reads storage config from ~/hydro_setting.yml.
 # Example hydro_setting.yml:
 #
 #   storage:
 #     local:
 #       root: D:/data/hydrodatasets
 #
-data_path = resolve_data_path("camels_us")
-
-# Initialize the dataset class
-ds = CamelsUs(data_path)
+# source defaults to storage.default_source ("local" unless configured otherwise).
+ds = open_dataset("camels_us")
 
 # 1. Check which features are available
 print("Available static features:")
@@ -149,6 +154,21 @@ print("Time-series data:")
 print(ts_data)
 ```
 
+### Explicit construction (advanced)
+
+`open_dataset` is the recommended entry point. If you need the resolved path
+directly (e.g. to pass it somewhere) or want to instantiate a specific reader
+class, use `resolve_data_path` + the class constructor — this is equivalent
+and still fully supported:
+
+```python
+from hydrodataset import resolve_data_path
+from hydrodataset.camels_us import CamelsUs
+
+data_path = resolve_data_path("camels_us")   # absolute local path (or s3:// URI)
+ds = CamelsUs(data_path)                     # same object as open_dataset("camels_us")
+```
+
 ### Standardized Variable Names
 
 A key feature of the new architecture is the use of standardized variable names. This allows you to use the same variable name to fetch the same type of data across different datasets, without needing to know the specific, internal naming scheme of each one.
@@ -163,7 +183,7 @@ us_ds.read_ts_xrdataset(gage_id_lst=["01013500"], var_lst=["streamflow"], t_rang
 aus_ds.read_ts_xrdataset(gage_id_lst=["A4260522"], var_lst=["streamflow"], t_range=["1990-01-01", "1995-12-31"])
 ```
 
-Similarly, you can use `precipitation`, `temperature_max`, etc., across datasets. A comprehensive list of these standardized names and their coverage across all datasets is in progress and will be published soon.
+Similarly, you can use `precipitation`, `temperature_max`, etc., across datasets. See [Standard Variables](api/standard_variables.md) for the comprehensive list of standardized names and their coverage across datasets.
 
 ## Local vs Cloud Data Access
 
@@ -194,6 +214,8 @@ storage:
 
 - `resolve_data_path("camels_us", source="cloud")` returns an S3 URI such as `s3://hydrodataset/`.
 - Readers access the raw dataset directly on OSS via s3fs and cache analysis-ready data as Zarr stores at `s3://<bucket>/zarr/{dataset}_timeseries.zarr` and `..._attributes.zarr` (with consolidated metadata). Missing Zarr stores are generated automatically on first read — typically on a cloud VM (ECS) using the internal OSS endpoint for bandwidth.
+
+**Recommended usage**: `open_dataset(dataset_id, source=...)` — one call to resolve and construct, `source` picks the backend per call. `resolve_data_path(dataset_id, source=...)` is for when you need the raw path or URI explicitly (e.g. to inspect or pass it on). Both share the same `source` semantics:
 
 ```python
 from hydrodataset import resolve_data_path, open_dataset
@@ -253,16 +275,16 @@ hydrodataset currently provides unified access to **27 hydrological datasets** a
 | CAMELS-GB | [Paper](https://essd.copernicus.org/articles/12/2459/2020/) | Daily | [Dataset](https://doi.org/10.5285/8344e4f3-d2ea-44f5-8afa-86d2987543a9) | United Kingdom | 671 | 1970-10-01 to 2015-09-30 | 2025-05 (new data link) | 244M |
 | CAMELS-IND | [Paper](https://doi.org/10.5194/essd-17-461-2025) | Daily | [Version 2.2](https://zenodo.org/records/14999580) | India | 472 (242 sufficient flow) | 1980-01-01 to 2020-12-31 | 2025-03-13 | 529.4M |
 | CAMELS-LUX | [Paper](https://essd.copernicus.org/preprints/essd-2024-482/) | Hourly/Daily | [Version 1.1](https://zenodo.org/records/14910359) | Luxembourg | 56 | 2004-11-01 to 2021-10-31 | 2024-09-27 | 1.4G |
+| CAMELS-PE | [Paper](https://essd.copernicus.org/preprints/essd-2026-386/) | Daily | [Version 1.0.1](https://zenodo.org/records/21195425) | Peru | 136 | 1981-01-01 to 2025-12-31 | 2026-07-04 | 121.4M |
 | CAMELS-NZ | [Paper](https://essd.copernicus.org/preprints/essd-2025-244/) | Hourly/Daily | [Version 2](https://figshare.canterbury.ac.nz/articles/dataset/CAMELS-NZ_Hydrometeorological_time_series_and_landscape_attributes_for_Aotearoa_New_Zealand/28827644) / [Version 1](https://figshare.canterbury.ac.nz/articles/dataset/CAMELS-NZ_Hydrometeorological_time_series_and_landscape_attributes_for_Aotearoa_New_Zealand/28827644/1) | New Zealand | 369 | 1972-01-01 to 2024-08-02 | 2025-08-05 | 4.81G |
 | CAMELS-SE | [Paper](https://rmets.onlinelibrary.wiley.com/doi/full/10.1002/gdj3.239) | Daily | [Version 1](https://snd.se/sv/catalogue/dataset/2023-173/1) | Sweden | 50 | 1961-2020 | 2024-02 | 16.19M |
 | CAMELS-US | [Paper](https://hess.copernicus.org/articles/21/5293/2017/) | Daily | [Version 1.2](https://zenodo.org/records/15529996) | United States | 671 | 1980-2014 | 2022-06-24 | 14.6G |
 | CAMELSH-KR | - | Hourly | [Version 1](https://zenodo.org/records/15073264) | South Korea | 178 | 2000-2019 | 2025-03-23 | 3.1G |
 | CAMELSH | [Paper](https://www.nature.com/articles/s41597-025-05612-6) | Hourly | [Version 6](https://zenodo.org/records/16729675) + [3](https://zenodo.org/records/15070091) + [2](https://zenodo.org/records/15066778) | United States | 9008 | 1980-2024 | 2025-08-14 | 4.2G+3.57G+2.18G |
 | Caravan-DK | [Paper](https://essd.copernicus.org/articles/17/1551/2025/essd-17-1551-2025-discussion.html) | Daily | [Version 7](https://zenodo.org/records/15200118) / [Version 5](https://zenodo.org/records/7962379) | Denmark | 308 | 1981-01-02 to 2020-12-31 | 2025-04-11 | 521.6M |
-| Caravan | [Paper](https://www.nature.com/articles/s41597-023-01975-w) / [Code](https://github.com/kratzert/Caravan/) | Daily | [Version 1.6](https://zenodo.org/records/15529786) | Global | 16299 | 1950-2023 | 2025-05 | 24.8G |
+| Caravan | [Paper](https://www.nature.com/articles/s41597-023-01975-w) / [Code](https://github.com/kratzert/Caravan/) | Daily | [Version 0.3](https://zenodo.org/record/7944025) | Global | 16299 | 1950-2023 | 2023-05 | 24.8G |
 | EStream | [Paper](https://www.nature.com/articles/s41597-024-03706-1) / [Code](https://github.com/thiagovmdon/EStreams) | Daily (weekly, monthly, yearly available) | [Version 1.3](https://zenodo.org/records/15756335) / [Version 1.1](https://zenodo.org/records/13961394) | Europe | 17130 | 1950-01-01 to 2023-06-30 | 2025-06-30 | 12.3G |
 | GRDC-Caravan | [Paper](https://essd.copernicus.org/preprints/essd-2024-427/) | Daily | [Version 0.6](https://zenodo.org/records/15349031) / [Version 0.2](https://zenodo.org/records/10074416) | Global | 5357 | 1950-2023 | 2025-05-06 | 16.4G |
-| HYPE | [Paper](https://hess.copernicus.org/articles/26/975/2022/) (draft) | Daily/Monthly/Yearly | [Version 1.1](https://zenodo.org/records/7373234) | Costa Rica | 605 | 1985-01-01 to 2019-12-31 | 2020-09-14 | 616.5M |
 | HYSETS | [Paper](https://www.nature.com/articles/s41597-020-00583-2) / [Code](https://github.com/dankovacek/hysets_validation) | Daily | [Dataset](https://osf.io/rpc3w/files) (dynamic attributes) | North America | 14425 | 1950-01-01 to 2023-12-31 | 2024-09 | 41.9G |
 | LamaH-CE | [Paper](https://doi.org/10.5194/essd-13-4529-2021) | Daily/Hourly | [Version 1.0](https://zenodo.org/records/5153305) | Central Europe | 859 | 1981-01-01 to 2019-12-31 | 2021-08-02 | 16.3G |
 | LamaH-Ice | [Paper](https://essd.copernicus.org/articles/16/2741/2024/) | Daily/Hourly | [Version 1.5](https://www.hydroshare.org/resource/705d69c0f77c48538d83cf383f8c63d6/) / [old version](https://www.hydroshare.org/resource/86117a5f36cc4b7c90a5d54e18161c91/) | Iceland | 111 | 1950-01-01 to 2021-12-31 | 2025-08-12 | 9.6G |
@@ -281,12 +303,12 @@ ds.read_attr_xrdataset(...)                   # Read attributes
 ds.read_ts_xrdataset(...)                     # Read timeseries
 ```
 
-### ⚡ Fast NetCDF Caching
+### ⚡ Fast Caching (NetCDF locally, Zarr on cloud)
 
-First access processes and caches data as NetCDF files. All subsequent reads are instant:
-- Timeseries data: `{dataset}_timeseries.nc`
-- Attribute data: `{dataset}_attributes.nc`
-- Configured via `~/hydro_setting.yml`
+First access processes and caches data; all subsequent reads are instant:
+- **Local**: NetCDF files `{dataset}_timeseries.nc` / `{dataset}_attributes.nc`
+- **Cloud**: Zarr stores `{dataset}_timeseries.zarr` / `{dataset}_attributes.zarr` (with consolidated metadata)
+- Configured via `~/hydro_setting.yml` (`storage.cache` locally, `storage.s3` for cloud)
 
 ### 🔄 Standardized Variable Names
 
@@ -321,16 +343,14 @@ print(stations)
 # Returns: NEXTDOWNID, dist_hdn, elev_diff, strm_slope
 ```
 
-See [LamaH-CE API documentation](docs/api/lamah_ce.md#station-connectivity-data) for detailed variable descriptions and usage examples.
+See [LamaH-CE API documentation](api/lamah_ce.md#station-connectivity-data) for detailed variable descriptions and usage examples.
 
 
-## Project Status & Future Work
+## Project Status
 
-The new, unified API architecture is currently in active development.
+hydrodataset provides unified access to **27 hydrological datasets**, all implemented on the `HydroDataset` base class with the ADR 0001 path-resolution architecture (`resolve_data_path` → absolute URI → reader). CAMELS-US and CAMELS-AUS serve as the reference implementations; every other supported dataset follows the same pattern.
 
-*   **Current Implementation**: hydrodataset provides access to **27 hydrological datasets** (see the [Supported Datasets](#supported-datasets) table above). The new unified architecture based on the `HydroDataset` base class has been fully implemented and tested for **`camels_us`** and **`camels_aus`** datasets, which serve as reference implementations.
-*   **In Progress**: We are in the process of migrating all other datasets supported by the library to this new architecture.
-*   **Release Schedule**: We plan to release new versions frequently in the short term as more datasets are integrated. Please check back for updates.
+New datasets and features are added continuously. Please check the [Changelog](changelog.md) for the latest updates.
 
 ## Credits
 

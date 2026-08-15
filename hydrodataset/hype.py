@@ -22,7 +22,6 @@ class Hype(HydroDataset):
             region: Geographic region identifier (optional)
             download: Whether to download data automatically (default: False)
             time_step: Time step for the data ('daily', 'month', or 'year', default: 'daily')
-            cache_path: Path to the cache directory
         """
         super().__init__(uri)
         self.region = region

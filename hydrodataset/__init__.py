@@ -34,7 +34,9 @@ from hydrodataset.configs.data_resolver import (
     open_dataset,
 )
 
-# set some constants for datasets
+# Legacy constants consumed by the older camels.py / multi_datasets.py modules.
+# They are NOT the authoritative dataset list — use READER_ALIASES /
+# _DEFAULT_REGISTRY (via resolve_data_path / open_dataset) instead.
 DATASETS = ["CAMELS", "Caravan", "GRDC", "HYSETS", "LamaH", "MOPEX"]
 CAMELS_REGIONS = ["AUS", "BR", "CL", "GB", "US"]
 LAMAH_REGIONS = ["CE"]

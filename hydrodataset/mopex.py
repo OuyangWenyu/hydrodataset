@@ -27,8 +27,8 @@ class Mopex(HydroDataset):
 
         Parameters
         ----------
-        data_path
-            where we put the dataset
+        uri
+            absolute path where we put the dataset (from resolve_data_path)
         download
             if true, download
         cache_path

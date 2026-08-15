@@ -7,7 +7,7 @@ repositories produce the same resolved URIs for the same inputs.
 Usage:
     from hydrodataset.configs.data_resolver import resolve_data_path
 
-    uri = resolve_data_path("camels_us", project_root=".")
+    uri = resolve_data_path("camels_us")
     dataset = CamelsUs(uri)
 """
 
@@ -234,14 +234,13 @@ def _effective_aliases(
     return aliases
 
 
-# Default dataset registry (33 entries).
+# Default dataset registry (27 active entries; several are commented out).
 # Maps dataset_id -> {"reader": <reader_alias>, "path": <relative_path>}.
 # This is the authoritative registry for hydrodataset-served datasets.
 # Other packages (e.g. hydrodatasource) inject additional entries via
 # resolve_data_path(extra_registry_dicts=...).
-# Users can override entries by placing a configs/datasets.yml in their project.
 _DEFAULT_REGISTRY: Dict[str, Dict[str, str]] = {
-    # CAMELS Series (18)
+    # CAMELS Series (16 active; camels_deby, camels_es commented out)
     "camels_us": {"reader": "camels_us", "path": "."},
     "camels_aus": {"reader": "camels_aus", "path": "."},
     "camels_br": {"reader": "camels_br", "path": "."},
@@ -301,9 +300,11 @@ def _load_registry(
     """Build and validate the dataset registry with three-layer override.
 
     Cascade order (higher overrides lower):
-    1. _DEFAULT_REGISTRY (built-in Python dict, 33 entries)
+    1. _DEFAULT_REGISTRY (built-in Python dict, 27 active entries)
     2. extra_dicts (injected by callers, e.g. hydrodatasource)
-    3. {project_root}/configs/datasets.yml (user project override, YAML)
+    3. {project_root}/configs/datasets.yml (optional user project YAML
+       override; not shipped, but the code path is retained for projects that
+       provide one)
 
     Every entry is validated for required fields, a known reader alias, and a
     safe relative path immediately after the merge so that per-dataset lookup is
@@ -346,7 +347,8 @@ def _load_registry(
 
     if not registry:
         raise DatasetResolutionError(
-            "No datasets registered. Create configs/datasets.yml in your project."
+            "No datasets registered. Supply a registry via extra_registry_dicts "
+            "or a project-level configs/datasets.yml."
         )
 
     effective_aliases = _effective_aliases(extra_reader_aliases)
@@ -680,8 +682,13 @@ def open_dataset(
     Examples
     --------
     >>> ds = open_dataset("camels_us")
-    >>> ds = open_dataset("songliao_event", source="cloud")
-    >>> ds = open_dataset("selfmade_basin", time_unit=["1D"])
+    >>> ds = open_dataset("camels_us", source="cloud")
+    # Datasets injected by other packages (e.g. hydrodatasource via
+    # extra_registry_dicts) are resolved the same way:
+    >>> ds = open_dataset("songliao_event", source="cloud", ctx=ResolverContext(
+    ...     extra_registry_dicts=[_HDS_REGISTRY],
+    ...     extra_reader_aliases=_HDS_READER_ALIASES,
+    ... ))
     """
     ctx = ctx or ResolverContext()
     reg = ctx.registry or _load_registry(

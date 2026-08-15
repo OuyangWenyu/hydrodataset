@@ -108,14 +108,22 @@ class StandardVariable:
 
 
 class HydroDataset(ABC):
-    """An interface for Hydrological Dataset
+    """An interface for Hydrological Dataset.
 
-    For unit, we use Pint package's unit system -- unit registry
+    Subclasses wrap an aqua_fetch reader (``self.aqua_fetch``) and standardize
+    its data through the ADR 0001 resolver: ``resolve_data_path`` returns an
+    absolute URI (local path or ``s3://``) which is passed as ``uri``. Data is
+    cached locally as NetCDF (or as Zarr on cloud storage) and exposed through
+    the standard ``read_attr_xrdataset`` / ``read_ts_xrdataset`` APIs using
+    standardized variable names.
 
     Parameters
     ----------
-    ABC : _type_
-        _description_
+    uri : str
+        Absolute path (local) or ``s3://`` URI (cloud) of the dataset root.
+    cache_path : str or Path, optional
+        Cache directory for the NetCDF/Zarr caches. When omitted the default
+        cache directory from ``~/hydro_setting.yml`` is used.
     """
 
     # A unified definition for static variables, including name mapping and units

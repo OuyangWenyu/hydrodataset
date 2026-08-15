@@ -515,8 +515,8 @@ class Camels(HydroDataset):
         t_range
             the time range, for example, ["1990-01-01", "2000-01-01"]
         target_cols
-            the default is None, but we neea at least one default target.
-            For CAMELS-US, it is ["usgsFlow"];
+            the default is None, but we need at least one default target.
+            For CAMELS-US, it is ["streamflow"];
         kwargs
             some other params if needed
 
@@ -877,12 +877,10 @@ class Camels(HydroDataset):
         Returns
         -------
         xr.Dataset
-            TODO: now only support CAMELS-US
+            mean daily precipitation in the requested unit
 
         Raises
         ------
-        NotImplementedError
-            some regions are not supported
         ValueError
             unit must be one of ['mm/d', 'mm/day', 'mm/h', 'mm/hour', 'mm/3h', 'mm/3hour', 'mm/8d', 'mm/8day']
         """

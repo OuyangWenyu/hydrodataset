@@ -182,27 +182,34 @@ pip install hydrodataset
 
 ### AquaFetch dependency issues
 
-hydrodataset depends on the development version of AquaFetch. If you encounter issues:
+hydrodataset depends on the published `aqua-fetch` release (pinned as `aqua-fetch[all]>=1.1.0`). If you encounter issues, reinstall with:
 
 ```bash
-# Install AquaFetch directly from GitHub
-pip install git+https://github.com/hyex-research/AquaFetch.git@dev
+# Ensure the pinned aqua-fetch release is installed
+pip install "aqua-fetch[all]>=1.1.0"
 ```
 
-### Configuration file not found
+### Storage root not configured
 
-Error: `FileNotFoundError: hydro_setting.yml not found`
+Error: `DatasetResolutionError: storage.local.root is not configured. Set it in ~/hydro_setting.yml`
 
-**Solution**: Ensure `hydro_setting.yml` is in your home directory:
+**Solution**: Ensure `hydro_setting.yml` exists in your home directory **and** contains a `storage.local.root` entry:
+
 ```bash
 # Check home directory
 echo $HOME  # Linux/Mac
 echo %USERPROFILE%  # Windows
 
-# Create file
-touch ~/hydro_setting.yml  # Linux/Mac
-type nul > %USERPROFILE%\hydro_setting.yml  # Windows
+# Create the file with the storage config
+cat > ~/hydro_setting.yml <<'EOF'
+storage:
+  local:
+    root: /absolute/path/to/your/data
+  cache: cache
+EOF
 ```
+
+A missing or empty file yields an empty config; path resolution then fails with the `storage.local.root is not configured` error above.
 
 ## Upgrading
 
@@ -211,6 +218,50 @@ type nul > %USERPROFILE%\hydro_setting.yml  # Windows
 ```bash
 pip install --upgrade hydrodataset
 ```
+
+### Upgrade from an old hydro_setting.yml format
+
+Older hydrodataset versions used a `local_data_path` block (and sometimes
+`datasets-origin` / `datasets-interim`) in `~/hydro_setting.yml`. Since the
+ADR 0001 migration, the config uses a unified `storage` block, and the legacy
+`local_data_path` keys are **no longer read** by the code.
+
+**Old format** (no longer supported):
+
+```yaml
+local_data_path:
+  root: D:/data/hydrodatasets
+  datasets-origin: D:/data/hydrodatasets
+  datasets-interim: D:/data/hydrodatasets
+```
+
+**New format**:
+
+```yaml
+storage:
+  default_source: local
+  local:
+    root: D:/data/hydrodatasets
+  cache: data/cache
+```
+
+To migrate:
+
+1. Replace the `local_data_path` block with the `storage` block above.
+2. `local_data_path.root` maps to `storage.local.root`.
+3. The `datasets-origin` / `datasets-interim` keys are not used any more and
+   can be removed (both are covered by `storage.local.root`).
+4. Verify the migration:
+
+```python
+from hydrodataset import resolve_data_path, get_local_root
+
+print(get_local_root())            # should print your absolute data root
+print(resolve_data_path("camels_us"))  # should resolve to an existing path
+```
+
+A `storage.local.root is not configured` error after upgrading means the old
+`local_data_path` keys are still the only config present — convert them as above.
 
 ### Upgrade from conda
 

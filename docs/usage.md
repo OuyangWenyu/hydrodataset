@@ -340,6 +340,69 @@ ts_data = ds.read_ts_xrdataset(...)  # Instant!
 
 With `source="cloud"`, the same cache is stored as Zarr on OSS (`s3://<bucket>/zarr/{dataset}_timeseries.zarr` / `..._attributes.zarr`) and generated automatically on first read; delete those Zarr stores on the bucket to force regeneration.
 
+### Cloud Zarr Caches
+
+When `source="cloud"`, analysis-ready data is cached as Zarr stores on the bucket:
+
+```
+s3://<bucket>/zarr/{dataset}_timeseries.zarr
+s3://<bucket>/zarr/{dataset}_attributes.zarr
+```
+
+They are generated automatically on first read and stored with consolidated
+metadata (`.zmetadata`), so subsequent reads only fetch the chunks they need.
+To force regeneration, delete the corresponding `.zarr` store on the bucket.
+
+#### The `cache_*_to_zarr` methods
+
+Every dataset reader implements two methods that build these caches from the
+raw data:
+
+- `cache_attributes_to_zarr()` — builds the static-attribute Zarr store
+- `cache_timeseries_to_zarr()` — builds the timeseries Zarr store
+
+You normally do not call them yourself: the first cloud read generates the
+cache automatically. Manually calling them is useful for **pre-generating** a
+cache ahead of time (e.g. on a cloud VM) so that later reads never hit the
+one-off build cost:
+
+```python
+from hydrodataset import open_dataset
+
+ds = open_dataset("bull", source="cloud")
+
+# Pre-generate the Zarr caches before the first read
+ds.cache_attributes_to_zarr()
+ds.cache_timeseries_to_zarr(batch_size=50)   # batch to bound memory
+```
+
+For large datasets, `cache_timeseries_to_zarr` on several readers accepts a
+`batch_size` argument that processes stations in batches to bound memory usage:
+
+| Dataset | `batch_size` default |
+|---------|----------------------|
+| `bull` | 50 |
+| `caravan_dk` | 60 |
+| `grdc_caravan` | 200 |
+| `hysets` | 200 |
+| `caravan` | 300 |
+| `estreams` | 500 |
+| `camelsh` | 1200 |
+
+All other datasets (the CAMELS series, LamaH, Simbi, …) write the full
+timeseries cache in one pass and take no `batch_size` argument.
+
+Once a Zarr cache exists, `read_ts_xrdataset` / `read_attr_xrdataset` read
+directly from it — the manual `cache_*_to_zarr` call only pre-builds what the
+first read would have generated anyway.
+
+#### Cloud configuration
+
+Cloud access requires a `storage.s3` block in `~/hydro_setting.yml`
+(`bucket`, `endpoint_url`, `access_key_id`, `secret_access_key`); see the
+[Local vs Cloud Data Access](index.md#local-vs-cloud-data-access) section of
+the README for the full configuration format.
+
 ### Regenerating Cache
 
 If you need to regenerate the cache (e.g., after data updates):

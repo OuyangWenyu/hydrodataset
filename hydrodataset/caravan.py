@@ -22,12 +22,13 @@ class Caravan(HydroDataset):
         """
         Initialization for Caravan dataset
 
-        TODO: The newest version is Version 1.6, but now we only support Version 0.3
+        Note: the newest Caravan release is Version 1.6, but this reader still
+        downloads Version 0.3 (Zenodo record 7944025).
 
         Parameters
         ----------
-        data_path
-            where we put the dataset
+        uri
+            absolute path where we put the dataset (from resolve_data_path)
         region
             the region can be US, AUS, BR, CL, GB, CE, NA (North America, meaning HYSETS)
         """
@@ -190,7 +191,8 @@ class Caravan(HydroDataset):
         forcing_dir = flow_dir
         attr_dir = os.path.join(dataset_dir, "attributes")
         ts_csv_dir = os.path.join(dataset_dir, "timeseries", "csv")
-        # TODO: The newest version is Version 1.6, but the url is not updated yet. it's still Version 0.3
+        # Caravan is downloaded as Version 0.3 (Zenodo record 7944025); the
+        # newer Version 1.6 release is not integrated yet.
         download_url = "https://zenodo.org/record/7944025/files/Caravan.zip"
         return collections.OrderedDict(
             DATASET_DIR=dataset_dir,
@@ -204,7 +206,7 @@ class Caravan(HydroDataset):
 
     def _base_dir(self):
         # data_source_dir is the resolved absolute path from the resolver.
-        # datasets.yml must point directly to where the data lives
+        # The registry path must point directly to where the data lives
         # (e.g. CARAVAN/Caravan/Caravan after Zenodo zip extraction).
         return str(self.data_source_dir)
 
