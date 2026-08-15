@@ -1,12 +1,10 @@
 import os
-import xarray as xr
 from typing import Union, List, Optional
 
 from hydrodataset import HydroDataset, StandardVariable
 from tqdm import tqdm
 import numpy as np
 import pandas as pd
-from datetime import datetime
 from aqua_fetch import LamaHIce as _AquaFetchLamaHIce
 from aqua_fetch.utils import validate_attributes
 
@@ -20,7 +18,7 @@ class LamaHIce(_AquaFetchLamaHIce):
 
     # Override URL at class level
     url = {
-        "LamaH-Ice_Caravan_Extension_v15.zip": "https://www.hydroshare.org/resource/705d69c0f77c48538d83cf383f8c63d6/data/contents/LamaH-Ice_Caravan_Extension_v15.zip",
+        "Caravan_extension_lamahice.zip": "https://www.hydroshare.org/resource/705d69c0f77c48538d83cf383f8c63d6/data/contents/LamaH-Ice_Caravan_Extension_v15.zip",
         "lamah_ice.zip": "https://www.hydroshare.org/resource/705d69c0f77c48538d83cf383f8c63d6/data/contents/lamah_ice.zip",
         "lamah_ice_hourly.zip": "https://www.hydroshare.org/resource/705d69c0f77c48538d83cf383f8c63d6/data/contents/lamah_ice_hourly.zip",
     }
@@ -39,9 +37,9 @@ class LamaHIce(_AquaFetchLamaHIce):
         # don't download hourly data if timestep is daily
         if timestep == "D" and "lamah_ice_hourly.zip" in self.url:
             self.url.pop("lamah_ice_hourly.zip")
-        # Updated: changed key from 'Caravan_extension_lamahice.zip' to 'LamaH-Ice_Caravan_Extension_v15.zip'
-        if timestep == "H" and "LamaH-Ice_Caravan_Extension_v15.zip" in self.url:
-            self.url.pop("LamaH-Ice_Caravan_Extension_v15.zip")
+        # hourly timestep doesn't need the daily Caravan extension
+        if timestep == "H" and "Caravan_extension_lamahice.zip" in self.url:
+            self.url.pop("Caravan_extension_lamahice.zip")
 
         # Call parent class __init__
         super().__init__(
@@ -52,74 +50,6 @@ class LamaHIce(_AquaFetchLamaHIce):
             to_netcdf=to_netcdf,
             **kwargs,
         )
-
-    def fetch_stn_meteo(self, stn: str, nrows: int = None) -> pd.DataFrame:
-        """
-        Returns climate/meteorological time series data for one station
-        Fixed dtype issues for new dataset version
-        """
-        fpath = os.path.join(self._clim_ts_path(), f"ID_{stn}.csv")
-
-        # Fixed dtypes: changed solar and thermal radiation columns to float32
-        dtypes = {
-            "YYYY": np.int32,
-            "DD": np.int32,
-            "MM": np.int32,
-            "2m_temp_max": np.float32,
-            "2m_temp_mean": np.float32,
-            "2m_temp_min": np.float32,
-            "2m_dp_temp_max": np.float32,
-            "2m_dp_temp_mean": np.float32,
-            "2m_dp_temp_min": np.float32,
-            "10m_wind_u": np.float32,
-            "10m_wind_v": np.float32,
-            "fcst_alb": np.float32,
-            "lai_high_veg": np.float32,
-            "lai_low_veg": np.float32,
-            "swe": np.float32,
-            "surf_net_solar_rad_max": np.float32,  # Changed from int32 to float32
-            "surf_net_solar_rad_mean": np.float32,  # Changed from int32 to float32
-            "surf_net_therm_rad_max": np.float32,  # Changed from int32 to float32
-            "surf_net_therm_rad_mean": np.float32,  # Changed from int32 to float32
-            "surf_press": np.float32,
-            "total_et": np.float32,
-            "prec": np.float32,
-            "volsw_123": np.float32,
-            "volsw_4": np.float32,
-            "prec_rav": np.float32,
-            "prec_carra": np.float32,
-        }
-
-        if not os.path.exists(fpath):
-            raise FileNotFoundError(f"File not found: {fpath}")
-
-        df = pd.read_csv(fpath, sep=";", dtype=dtypes, nrows=nrows)
-
-        index = df.apply(
-            lambda x: datetime.strptime(
-                "{0} {1} {2}".format(
-                    x["YYYY"].astype(int), x["MM"].astype(int), x["DD"].astype(int)
-                ),
-                "%Y %m %d",
-            ),
-            axis=1,
-        )
-
-        if self.timestep == "H":
-            df.index = index + pd.to_timedelta(df["HOD"], unit="h")
-            for col in ["YYYY", "MM", "DD", "DOY", "hh", "mm", "HOD"]:
-                df.pop(col)
-        else:
-            df.index = pd.to_datetime(index)
-            for col in [
-                "YYYY",
-                "MM",
-                "DD",
-                "DOY",
-            ]:
-                df.pop(col)
-
-        return df
 
     def fetch_static_features(
         self,

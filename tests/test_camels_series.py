@@ -547,6 +547,7 @@ def test_read_camels_pe_attr_xrdataset():
     csv_path = os.path.join(
         data_path,
         "CAMELS_PE",
+        "CAMELS-PE_v1.0.1",
         "CAMELS-PE",
         "02_attributes",
         "climatic_indices.csv",
@@ -571,6 +572,7 @@ def test_read_camels_pe_timeseries_xrdataset():
     file_path = os.path.join(
         data_path,
         "CAMELS_PE",
+        "CAMELS-PE_v1.0.1",
         "CAMELS-PE",
         "03_timeseries",
         "by_catchment",
@@ -610,13 +612,18 @@ def test_read_camels_pe_cloud_object_ids(monkeypatch):
     class FakeFs:
         def open(self, path):
             opened.append(path)
-            assert path == "bucket/prefix/CAMELS_PE/CAMELS-PE/01_metadata/stations.csv"
+            assert (
+                path
+                == "bucket/prefix/CAMELS_PE/CAMELS-PE_v1.0.1/CAMELS-PE/01_metadata/stations.csv"
+            )
             return StringIO("gauge_id\nPE_2\nPE_1\n")
 
     monkeypatch.setattr(CamelsPe, "_make_s3fs", lambda self: FakeFs())
     ds = CamelsPe("s3://bucket/prefix")
     assert ds.read_object_ids().tolist() == ["PE_1", "PE_2"]
-    assert opened == ["bucket/prefix/CAMELS_PE/CAMELS-PE/01_metadata/stations.csv"]
+    assert opened == [
+        "bucket/prefix/CAMELS_PE/CAMELS-PE_v1.0.1/CAMELS-PE/01_metadata/stations.csv"
+    ]
 
 
 # "Test whether read_attr_xrdataset() from camels_lux correctly reads .nc files and returns a list of watershed ID strings."
@@ -707,7 +714,7 @@ def test_read_camels_nz_timeseries_xrdataset():
         data_path,
         "CAMELS_NZ",
         "camels_nz",
-        "CAMELS_NZ_Streamflow",
+        "CAMELS_NZ_hourly_Streamflow",
         "flow_station_id_3819.csv",
     )
     ds = pd.read_csv(file_path)

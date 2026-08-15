@@ -40,19 +40,19 @@ class Estreams(HydroDataset):
         self.aqua_fetch = EStreams(uri)
 
     # OSS relative paths (folder EStreams; aqua path2 = path/EStreams/EStreams)
-    _P2 = "EStreams/EStreams/EStreams"
     _STATIC_REL = "EStreams/EStreams/EStreams/attributes/static_attributes"
     _SIG_REL = "EStreams/EStreams/EStreams/hydroclimatic_signatures"
     _GAUGE_REL = "EStreams/EStreams/EStreams/streamflow_gauges"
     _METEO_REL = "EStreams/EStreams/EStreams/meteorology"
-    # AquaFetch EStreams.static_map
+    # AquaFetch EStreams.static_map (source column is ``area`` in the
+    # gauging_stations csv; ``area_estreams`` no longer exists in v1.1.0)
     _STATIC_RENAME = {
-        "area_estreams": "area_km2",
+        "area": "area_km2",
         "slope_sawicz": "slope_no_unit",
         "lon": "long",
     }
-    # AquaFetch EStreams.dyn_map resolved to cleaned names (others pass through,
-    # e.g. sp_mean stays sp_mean)
+    # AquaFetch EStreams.dyn_map resolved to cleaned names (raw csv column ->
+    # standardised cleaned name; matches _dynamic_variable_mapping specific_names)
     _DYN_RENAME = {
         "t_min": "airtemp_c_min",
         "t_max": "airtemp_c_max",
@@ -60,6 +60,7 @@ class Estreams(HydroDataset):
         "p_mean": "pcp_mm",
         "pet_mean": "pet_mm",
         "rh_mean": "rh_",
+        "sp_min": "airpres_hpamin_",
         "swr_mean": "solrad_wm2",
         "ws_mean": "windspeed_mps",
     }
@@ -75,6 +76,49 @@ class Estreams(HydroDataset):
             )
             return np.array(ids)
         return super().read_object_ids()
+
+    def cache_attributes_xrdataset(self):
+        """Build the local attribute cache, applying the same ``_STATIC_RENAME``
+        and name cleaning as the cloud zarr path so local and cloud caches expose
+        identical (standardised) column names."""
+        if self._is_cloud():
+            return super().cache_attributes_xrdataset()
+        uri = str(self.data_source_dir).rstrip("/")
+
+        def _read(rel, fname):
+            path = os.path.join(uri, *rel.split("/"), fname)
+            df = pd.read_csv(path, index_col="basin_id", dtype={"basin_id": str})
+            df.index = df.index.astype(str)
+            return df
+
+        dfs = [
+            _read(self._SIG_REL, "estreams_hydrometeo_signatures.csv"),
+            _read(self._GAUGE_REL, "estreams_gauging_stations.csv"),
+        ]
+        sdir = os.path.join(uri, *self._STATIC_REL.split("/"))
+        for p in sorted(os.listdir(sdir)):
+            if p.endswith(".csv"):
+                df = pd.read_csv(
+                    os.path.join(sdir, p), index_col="basin_id", dtype={"basin_id": str}
+                )
+                df.index = df.index.astype(str)
+                dfs.append(df)
+        static = pd.concat(dfs, axis=1)
+        static = static.loc[~static.index.duplicated(keep="first")]
+        static = static.rename(columns=self._STATIC_RENAME)
+        static.columns = self._clean_feature_names(list(static.columns))
+        static = static.loc[:, ~static.columns.duplicated(keep="first")]
+
+        ds_attr = static.to_xarray()
+        coord_names = list(ds_attr.dims.keys())
+        if len(coord_names) > 0 and coord_names[0] != "basin":
+            ds_attr = ds_attr.rename({coord_names[0]: "basin"})
+        units_map = self._get_attribute_units()
+        ds_attr = self._assign_units_to_dataset(ds_attr, units_map)
+        cache_file = self.cache_dir.joinpath(self._attributes_cache_filename)
+        cache_file.parent.mkdir(parents=True, exist_ok=True)
+        ds_attr.to_netcdf(cache_file)
+        print(f"Attributes cache written to: {cache_file}")
 
     def cache_attributes_to_zarr(self) -> None:
         import zarr
@@ -234,7 +278,7 @@ class Estreams(HydroDataset):
         },
         StandardVariable.SURFACE_PRESSURE: {
             "default_source": "estreams",
-            "sources": {"estreams": {"specific_name": "sp_mean", "unit": "hPa"}},
+            "sources": {"estreams": {"specific_name": "airpres_hpamin_", "unit": "hPa"}},
         },
         StandardVariable.RELATIVE_HUMIDITY: {
             "default_source": "estreams",

@@ -278,15 +278,15 @@ wheels = [
 
 [[package]]
 name = "aqua-fetch"
-version = "1.0.1"
+version = "1.1.0"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "pandas" },
     { name = "requests" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/a9/7e/b4343a680a1f0b2356f6cf9371dded8141c0d8ea61ec7b41c6cdbedab3fe/aqua_fetch-1.0.1.tar.gz", hash = "sha256:7991a7fa2ab6592ff23dd0f8b9c2e2280b7aca20b01e4731bc3b6f974ded9578", size = 274826, upload-time = "2026-02-11T08:02:55.734Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/a6/17/9f5669133e37314f8f6613f39bc02d03729f1faeb02c116f59e2aec893d1/aqua_fetch-1.1.0.tar.gz", hash = "sha256:bf4eb8dfeaba8b520640bb316a55877a5caf53dc887f01fd7a97704c551e1ceb", size = 352261, upload-time = "2026-07-29T14:53:04.314Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/79/1d/f3803f12c8827cc1846eb79a2e2ddccf164d90833b9d56c829dc14b9f3e8/aqua_fetch-1.0.1-py3-none-any.whl", hash = "sha256:053ce30fcf9c76564a83dba1ded39e254f629a2d1cc08b3989093b7612a5a6aa", size = 289114, upload-time = "2026-02-11T08:02:54.233Z" },
+    { url = "https://files.pythonhosted.org/packages/7c/1a/e8efe904da305ff7ca403c100a6fcaee9a417084b9f3c9e11d67ab27a4d4/aqua_fetch-1.1.0-py3-none-any.whl", hash = "sha256:e1f81b80db541591fdbcd0608cc48da9957053a9d4f07116662edb0decdbaf1d", size = 365775, upload-time = "2026-07-29T14:53:02.538Z" },
 ]
 
 [package.optional-dependencies]
@@ -1945,7 +1945,7 @@ release = [
 
 [package.metadata]
 requires-dist = [
-    { name = "aqua-fetch", extras = ["all"], specifier = ">=1.0.1" },
+    { name = "aqua-fetch", extras = ["all"], specifier = ">=1.1.0" },
     { name = "black", marker = "extra == 'dev'" },
     { name = "black", marker = "extra == 'lint'" },
     { name = "bokeh", specifier = ">=2.4.2" },

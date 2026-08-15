@@ -190,7 +190,7 @@ def test_read_estreams_attr_xrdataset():
         dtype={"basin_id": str},
     )
     expected_p = sig_df[sig_df["basin_id"] == _ESTREAMS_GAUGE]["p_mean"].values[0]
-    expected_a = gauge_df[gauge_df["basin_id"] == _ESTREAMS_GAUGE]["area_estreams"].values[0]
+    expected_a = gauge_df[gauge_df["basin_id"] == _ESTREAMS_GAUGE]["area"].values[0]
     assert np.isclose(p_mean_1, expected_p, rtol=1e-6), (
         f"p_mean mismatch: {p_mean_1} vs {expected_p}"
     )

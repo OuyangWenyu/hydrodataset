@@ -45,7 +45,7 @@ dependencies = [
     "xlrd>=2.0.2",
     "requests>=2.32.4",
     "py7zr>=1.0.0",
-    "aqua-fetch[all]>=1.0.1",
+    "aqua-fetch[all]>=1.1.0",
     "typer>=0.26.8",
 ]
 

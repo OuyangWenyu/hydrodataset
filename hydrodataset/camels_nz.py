@@ -1,3 +1,4 @@
+import io
 import os
 from typing import Optional
 
@@ -149,9 +150,25 @@ class CAMELS_NZ(_AquaFetchCAMELS_NZ):
 
 
 class CamelsNz(HydroDataset):
+    """CAMELS_NZ dataset class.
 
-    # (subfolder, filename_prefix, data_column, zarr_var_name)
-    _VAR_MAP = [
+    This class uses a custom data reading implementation to support a newer
+    dataset version than the one supported by the underlying aquafetch library.
+    It overrides the download URLs and provides its own parsing and caching logic.
+
+    The dataset supports both hourly ('H') and daily ('D') timesteps.
+
+    Attributes:
+        region: Geographic region identifier
+        download: Whether to download data automatically
+        timestep: Time step for the data ('H' for hourly, 'D' for daily)
+    """
+
+    # (subfolder_stem, filename_prefix, data_column, zarr_var_name)
+    # subfolder_stem is joined with the timestep to form e.g.
+    # "CAMELS_NZ_hourly_Streamflow" / "CAMELS_NZ_daily_Streamflow";
+    # daily files are additionally prefixed with "daily_" on disk.
+    _VAR_MAP_STEMS = [
         ("CAMELS_NZ_Streamflow",       "flow_station_id_",          "flow",              "q_cms_obs"),
         ("CAMELS_NZ_Precipitation",    "precipitation_station_id_", "precipitation",     "pcp_mm"),
         ("CAMELS_NZ_Temperature",      "temperature_station_id_",   "temperature",       "airtemp_c_mean"),
@@ -166,19 +183,6 @@ class CamelsNz(HydroDataset):
         "5.CAMELS_NZ_Anthropogenic_attribute.csv",
     ]
     _DATA_REL = "CAMELS_NZ/camels_nz"
-    """CAMELS_NZ dataset class.
-
-    This class uses a custom data reading implementation to support a newer
-    dataset version than the one supported by the underlying aquafetch library.
-    It overrides the download URLs and provides its own parsing and caching logic.
-
-    The dataset supports both hourly ('H') and daily ('D') timesteps.
-
-    Attributes:
-        region: Geographic region identifier
-        download: Whether to download data automatically
-        timestep: Time step for the data ('H' for hourly, 'D' for daily)
-    """
 
     def __init__(
         self,
@@ -199,22 +203,94 @@ class CamelsNz(HydroDataset):
         self.region = "NZ" if region is None else region
         self.download = download
         self.timestep = timestep
+        # Resolve timestep-aware variable map: hourly files live under
+        # "CAMELS_NZ_hourly_<Var>" with unprefixed names; daily under
+        # "CAMELS_NZ_daily_<Var>" with a "daily_" filename prefix.
+        freq = "hourly" if timestep == "H" else "daily"
+        file_prefix = "daily_" if timestep == "D" else ""
+        # Map each stream/timeseries family to its on-disk folder name
+        # (Relative_Humidity must keep its full name, not "Humidity").
+        folder_suffix = {
+            "CAMELS_NZ_Streamflow": "Streamflow",
+            "CAMELS_NZ_Precipitation": "Precipitation",
+            "CAMELS_NZ_Temperature": "Temperature",
+            "CAMELS_NZ_PET": "PET",
+            "CAMELS_NZ_Relative_Humidity": "Relative_Humidity",
+        }
+        self._VAR_MAP = [
+            (
+                f"CAMELS_NZ_{freq}_{folder_suffix[stem]}",
+                f"{file_prefix}{prefix}",
+                col,
+                zarr_vn,
+            )
+            for stem, prefix, col, zarr_vn in self._VAR_MAP_STEMS
+        ]
         if not str(uri).startswith("s3://"):
             self.aqua_fetch = CAMELS_NZ(uri, timestep=timestep)
 
     def read_object_ids(self) -> np.ndarray:
         uri = str(self.data_source_dir).rstrip("/")
-        flow_rel = f"{self._DATA_REL}/CAMELS_NZ_Streamflow"
+        # Streamflow entry of the timestep-aware _VAR_MAP (set in __init__)
+        flow_subfolder, flow_prefix, _, _ = self._VAR_MAP[0]
+        flow_rel = f"{self._DATA_REL}/{flow_subfolder}"
         if self._is_cloud():
             fs = self._make_s3fs()
             names = [p.split("/")[-1] for p in fs.ls(f"{uri}/{flow_rel}".removeprefix("s3://"))]
         else:
             names = os.listdir(os.path.join(uri, *flow_rel.split("/")))
         ids = sorted(
-            n.replace("flow_station_id_", "").replace(".csv", "")
-            for n in names if n.startswith("flow_station_id_")
+            n.replace(flow_prefix, "").replace(".csv", "")
+            for n in names if n.startswith(flow_prefix)
         )
         return np.array(ids)
+
+    def cache_attributes_xrdataset(self):
+        """Build the local attribute cache.
+
+        Mirrors the cloud ``cache_attributes_to_zarr`` path: read the five
+        attribute CSVs, clean/rename columns, and derive ``p_mean`` from the
+        precipitation timeseries (NZ has no mean-precip attribute).
+        """
+        if self._is_cloud():
+            return super().cache_attributes_xrdataset()
+        uri = str(self.data_source_dir).rstrip("/")
+        attr_base = os.path.join(uri, *self._DATA_REL.split("/"), "CAMELS_NZ_Catchment_Atrributes")
+        dfs = []
+        for i, fname in enumerate(self._ATTR_FILES):
+            path = os.path.join(attr_base, fname)
+            try:
+                df = pd.read_csv(path, index_col=0, dtype={0: str}, encoding="utf-8-sig")
+                df.index = df.index.astype(str)
+                # Every file repeats RID/StationName/latitude/longitude; keep
+                # them only from the first file and drop them elsewhere.
+                if i > 0:
+                    df = df.drop(
+                        columns=["RID", "StationName", "latitude", "longitude"],
+                        errors="ignore",
+                    )
+                dfs.append(df)
+            except Exception as e:
+                print(f"  WARN {fname}: {e}")
+        static = pd.concat(dfs, axis=1)
+        static = static.loc[~static.index.duplicated(keep="first")]
+        stations = self.read_object_ids().tolist()
+        static = static.reindex(stations)
+        static.columns = self._clean_feature_names(list(static.columns))
+        static = static.rename(columns={"uparea": "area_km2"})
+        # NZ has no mean-precip attribute; derive p_mean from the timeseries
+        static["p_mean"] = self._p_mean_from_precip(static.index)
+
+        ds_attr = static.to_xarray()
+        coord_names = list(ds_attr.dims.keys())
+        if len(coord_names) > 0 and coord_names[0] != "basin":
+            ds_attr = ds_attr.rename({coord_names[0]: "basin"})
+        units_map = self._get_attribute_units()
+        ds_attr = self._assign_units_to_dataset(ds_attr, units_map)
+        cache_file = self.cache_dir.joinpath(self._attributes_cache_filename)
+        cache_file.parent.mkdir(parents=True, exist_ok=True)
+        ds_attr.to_netcdf(cache_file)
+        print(f"Attributes cache written to: {cache_file}")
 
     def cache_attributes_to_zarr(self) -> None:
         import zarr
@@ -228,7 +304,7 @@ class CamelsNz(HydroDataset):
                 with fs.open(path) as fh:
                     raw = fh.read()
                 df = pd.read_csv(
-                    __import__("io").BytesIO(raw),
+                    io.BytesIO(raw),
                     index_col=0, dtype={0: str}, encoding="utf-8-sig",
                 )
                 df.index = df.index.astype(str)
