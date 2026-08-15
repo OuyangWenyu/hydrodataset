@@ -493,7 +493,18 @@ class HydroDataset(ABC):
         ds_subset = attr_ds[target_vars_to_fetch]
         if gage_id_lst is not None:
             gage_id_lst = [str(gid) for gid in gage_id_lst]
-            ds_selected = ds_subset.sel(basin=gage_id_lst)
+
+            # Intersect with available basins
+            available_basins = set(ds_subset["basin"].values.astype(str))
+            valid_gages = [g for g in gage_id_lst if str(g) in available_basins]
+            missing_gages = set(gage_id_lst) - set(valid_gages)
+
+            if missing_gages:
+                print(
+                    f"Warning: {len(missing_gages)} requested basins are missing from the attribute cache and will be skipped."
+                )
+
+            ds_selected = ds_subset.sel(basin=valid_gages)
         else:
             ds_selected = ds_subset
 
@@ -692,8 +703,21 @@ class HydroDataset(ABC):
             )
 
         ds_subset = ts[target_vars_to_fetch]
+
+        # Intersect requested gage_id_lst with available basins in the netcdf
+        available_basins = set(ds_subset["basin"].values.astype(str))
+        valid_gages = [g for g in gage_id_lst if str(g) in available_basins]
+        missing_gages = set(gage_id_lst) - set(valid_gages)
+
+        if missing_gages:
+            print(
+                f"Warning: {len(missing_gages)} requested basins are missing from the dataset cache and will be skipped."
+            )
+            # Optional: print first few missing IDs
+            # print(f"Missing IDs: {list(missing_gages)[:10]}...")
+
         ds_selected = ds_subset.sel(
-            basin=gage_id_lst, time=slice(t_range[0], t_range[1])
+            basin=valid_gages, time=slice(t_range[0], t_range[1])
         )
         final_ds = ds_selected.rename(rename_map)
         return final_ds

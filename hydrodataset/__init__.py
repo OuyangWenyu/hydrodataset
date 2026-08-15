@@ -47,3 +47,5 @@ from .hydro_dataset import *
 # from .lamah_ce import *
 # from .camels_us import *
 # from .camels import *
+
+from .multi_dataset_reader import MultiDatasetReader
