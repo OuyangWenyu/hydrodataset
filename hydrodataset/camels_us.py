@@ -428,7 +428,7 @@ class CamelsUs(HydroDataset):
         # Streamflow: usgs_streamflow/{HUC}/{station}_streamflow_qc.txt
         flow_records: dict = {}
         flow_dir = _join(ts_base, "usgs_streamflow")
-        for huc in sorted(_ls(flow_dir)):
+        for huc in tqdm(sorted(_ls(flow_dir)), desc="CAMELS_US streamflow"):
             huc_dir = _join(flow_dir, huc)
             for fname in _ls(huc_dir):
                 if not fname.endswith(".txt"):
@@ -458,7 +458,7 @@ class CamelsUs(HydroDataset):
         }
         fm_cols: dict = {v: {} for v in _fm_raw}
         fm_dir = _join(ts_base, "basin_mean_forcing", "daymet")
-        for huc in sorted(_ls(fm_dir)):
+        for huc in tqdm(sorted(_ls(fm_dir)), desc="CAMELS_US forcing"):
             huc_dir = _join(fm_dir, huc)
             for fname in _ls(huc_dir):
                 if not fname.endswith(".txt"):
@@ -490,7 +490,7 @@ class CamelsUs(HydroDataset):
             "model_output_daymet", "model_output",
             "flow_timeseries", "daymet",
         )
-        for huc in sorted(_ls(mo_dir)):
+        for huc in tqdm(sorted(_ls(mo_dir)), desc="CAMELS_US model_output"):
             huc_dir = _join(mo_dir, huc)
             fnames = [f for f in _ls(huc_dir) if f.endswith("_model_output.txt")]
             if not fnames:
