@@ -555,13 +555,7 @@ class HydroDataset(ABC):
             key=cfg.get("access_key_id"),
             secret=cfg.get("secret_access_key"),
             endpoint_url=cfg.get("endpoint_url"),
-            config_kwargs={
-                "s3": {"addressing_style": "virtual"},
-                # Alibaba OSS rejects botocore's CRC32 STREAMING-UNSIGNED-PAYLOAD-
-                # TRAILER signature; only compute/require checksums when asked.
-                "request_checksum_calculation": "when_required",
-                "response_checksum_validation": "when_required",
-            },
+            config_kwargs={"s3": {"addressing_style": "virtual"}},
         )
 
     def _zarr_path_and_opts(self, zarr_name: str):
@@ -579,13 +573,7 @@ class HydroDataset(ABC):
             "key": cfg.get("access_key_id"),
             "secret": cfg.get("secret_access_key"),
             "endpoint_url": cfg.get("endpoint_url"),
-            "config_kwargs": {
-                "s3": {"addressing_style": "virtual"},
-                # Alibaba OSS rejects botocore's CRC32 STREAMING-UNSIGNED-PAYLOAD-
-                # TRAILER signature; only compute/require checksums when asked.
-                "request_checksum_calculation": "when_required",
-                "response_checksum_validation": "when_required",
-            },
+            "config_kwargs": {"s3": {"addressing_style": "virtual"}},
         }
         return out, opts
 
