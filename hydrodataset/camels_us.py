@@ -525,6 +525,17 @@ class CamelsUs(HydroDataset):
             for station, series in station_et.items():
                 et_records[station] = pd.concat(series, axis=1).mean(axis=1)
 
+        # Restrict to the station list read_object_ids() returns. It drops the
+        # three non-CAMELS gauges, but the raw usgs_streamflow listing still has
+        # their files, so without this the zarr basin axis gains 3 extra basins
+        # and stops matching the local NC cache and the attributes zarr.
+        allowed = set(self.read_object_ids().tolist())
+        flow_records = {s: v for s, v in flow_records.items() if s in allowed}
+        for raw_vn in _fm_raw:
+            fm_cols[raw_vn] = {s: v for s, v in fm_cols[raw_vn].items() if s in allowed}
+        pet_records = {s: v for s, v in pet_records.items() if s in allowed}
+        et_records = {s: v for s, v in et_records.items() if s in allowed}
+
         # Build xr.Dataset with correct variable names
         stations = sorted(flow_records.keys())
         all_times = sorted(set().union(*(s.index for s in flow_records.values())))
