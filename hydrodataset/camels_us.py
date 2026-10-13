@@ -428,7 +428,7 @@ class CamelsUs(HydroDataset):
         # Streamflow: usgs_streamflow/{HUC}/{station}_streamflow_qc.txt
         flow_records: dict = {}
         flow_dir = _join(ts_base, "usgs_streamflow")
-        for huc in sorted(_ls(flow_dir)):
+        for huc in tqdm(sorted(_ls(flow_dir)), desc="CAMELS_US streamflow"):
             huc_dir = _join(flow_dir, huc)
             for fname in _ls(huc_dir):
                 if not fname.endswith(".txt"):
@@ -458,7 +458,7 @@ class CamelsUs(HydroDataset):
         }
         fm_cols: dict = {v: {} for v in _fm_raw}
         fm_dir = _join(ts_base, "basin_mean_forcing", "daymet")
-        for huc in sorted(_ls(fm_dir)):
+        for huc in tqdm(sorted(_ls(fm_dir)), desc="CAMELS_US forcing"):
             huc_dir = _join(fm_dir, huc)
             for fname in _ls(huc_dir):
                 if not fname.endswith(".txt"):
@@ -490,7 +490,7 @@ class CamelsUs(HydroDataset):
             "model_output_daymet", "model_output",
             "flow_timeseries", "daymet",
         )
-        for huc in sorted(_ls(mo_dir)):
+        for huc in tqdm(sorted(_ls(mo_dir)), desc="CAMELS_US model_output"):
             huc_dir = _join(mo_dir, huc)
             fnames = [f for f in _ls(huc_dir) if f.endswith("_model_output.txt")]
             if not fnames:
@@ -524,6 +524,17 @@ class CamelsUs(HydroDataset):
                 pet_records[station] = pd.concat(series, axis=1).mean(axis=1)
             for station, series in station_et.items():
                 et_records[station] = pd.concat(series, axis=1).mean(axis=1)
+
+        # Restrict to the station list read_object_ids() returns. It drops the
+        # three non-CAMELS gauges, but the raw usgs_streamflow listing still has
+        # their files, so without this the zarr basin axis gains 3 extra basins
+        # and stops matching the local NC cache and the attributes zarr.
+        allowed = set(self.read_object_ids().tolist())
+        flow_records = {s: v for s, v in flow_records.items() if s in allowed}
+        for raw_vn in _fm_raw:
+            fm_cols[raw_vn] = {s: v for s, v in fm_cols[raw_vn].items() if s in allowed}
+        pet_records = {s: v for s, v in pet_records.items() if s in allowed}
+        et_records = {s: v for s, v in et_records.items() if s in allowed}
 
         # Build xr.Dataset with correct variable names
         stations = sorted(flow_records.keys())
