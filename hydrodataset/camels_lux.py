@@ -292,9 +292,9 @@ class CamelsLux(HydroDataset):
         StandardVariable.PRECIPITATION: {
             "default_source": "radar",
             "sources": {
-                "radar": {"specific_name": "pcp_mm_radar", "unit": "mm"},
-                "station": {"specific_name": "pcp_mm_station", "unit": "mm"},
-                "era5": {"specific_name": "pcp_mm_era5", "unit": "mm"},
+                "radar": {"specific_name": "pcp_mm_radar", "unit": "mm/day"},
+                "station": {"specific_name": "pcp_mm_station", "unit": "mm/day"},
+                "era5": {"specific_name": "pcp_mm_era5", "unit": "mm/day"},
             },
         },
         StandardVariable.TEMPERATURE_MEAN: {

@@ -384,7 +384,7 @@ class LamahCe(HydroDataset):
         StandardVariable.PRECIPITATION: {
             "default_source": "era5",
             "sources": {
-                "era5": {"specific_name": "pcp_mm", "unit": "mm"},
+                "era5": {"specific_name": "pcp_mm", "unit": "mm/day"},
             },
         },
         StandardVariable.TEMPERATURE_MAX: {
