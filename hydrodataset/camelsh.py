@@ -157,7 +157,7 @@ class Camelsh(HydroDataset):
         StandardVariable.PRECIPITATION: {
             "default_source": "nldas",
             "sources": {
-                "nldas": {"specific_name": "pcp_mm", "unit": "mm"},
+                "nldas": {"specific_name": "pcp_mm", "unit": "mm/h"},
             },
         },
         StandardVariable.TEMPERATURE_MEAN: {

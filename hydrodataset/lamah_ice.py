@@ -294,9 +294,9 @@ class LamahIce(HydroDataset):
         StandardVariable.PRECIPITATION: {
             "default_source": "lamah_ice",
             "sources": {
-                "lamah_ice": {"specific_name": "pcp_mm", "unit": "mm"},
-                "carra": {"specific_name": "prec_carra", "unit": "mm"},
-                "rav": {"specific_name": "prec_rav", "unit": "mm"},
+                "lamah_ice": {"specific_name": "pcp_mm", "unit": "mm/day"},
+                "carra": {"specific_name": "prec_carra", "unit": "mm/day"},
+                "rav": {"specific_name": "prec_rav", "unit": "mm/day"},
             },
         },
         StandardVariable.TEMPERATURE_MIN: {
