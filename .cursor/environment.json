@@ -1,0 +1,4 @@
+{
+  "name": "hydrodataset",
+  "install": "bash .cursor/install.sh"
+}
