@@ -15,6 +15,8 @@ Usage::
         csv_path = os.path.join(str(DATA_ROOT), "CAMELSH", ...)
 """
 
+import pytest
+
 from hydrodataset import resolve_data_path, DatasetResolutionError, get_local_root
 
 # Root data directory from user settings (absolute path)
@@ -33,8 +35,6 @@ def _try_resolve(dataset_id: str):
 
 def _needs(dataset_id: str, resolved_path):
     """Build a ``pytest.mark.skipif`` for *dataset_id*."""
-    import pytest
-
     return pytest.mark.skipif(
         resolved_path is None,
         reason=(
@@ -112,6 +112,37 @@ ESTREAMS_PATH = _try_resolve("estreams")
 SIMBI_PATH = _try_resolve("simbi")
 
 needs_bull = _needs("bull", BULL_PATH)
-needs_hysets = _needs("hysets", HYSETS_PATH)
 needs_estreams = _needs("estreams", ESTREAMS_PATH)
 needs_simbi = _needs("simbi", SIMBI_PATH)
+
+
+def _hysets_integration_ready() -> bool:
+    """Return True when HYSETS integration tests can run without OSF downloads.
+
+    The tests need ``HYSETS_2023_update_QC_stations.nc``. Constructing
+    ``Hysets`` also instantiates aqua_fetch, which downloads every missing
+    catalog file (several GB) unless they are already on disk. Allow an
+    explicit opt-in via ``HYDRODATASET_HYSETS_DOWNLOAD``.
+    """
+    from hydrodataset.hysets import (
+        hysets_download_enabled,
+        hysets_local_files_ready,
+        hysets_qc_stations_path,
+    )
+
+    if hysets_download_enabled():
+        return HYSETS_PATH is not None
+    if HYSETS_PATH is None:
+        return False
+    return hysets_qc_stations_path(
+        HYSETS_PATH
+    ) is not None and hysets_local_files_ready(HYSETS_PATH)
+
+
+needs_hysets = pytest.mark.skipif(
+    not _hysets_integration_ready(),
+    reason=(
+        "HYSETS integration tests need QC_stations.nc plus the aqua_fetch "
+        "archives already on disk, or set HYDRODATASET_HYSETS_DOWNLOAD=1"
+    ),
+)
