@@ -17,7 +17,7 @@ import xarray as xr
 from hydrodataset.bull import BULL
 from hydrodataset.simbi import simbi
 from hydrodataset.estreams import Estreams
-from hydrodataset.hysets import Hysets
+from hydrodataset.hysets import Hysets, hysets_download_enabled
 
 from tests._paths import (
     DATA_ROOT as data_path,
@@ -236,9 +236,10 @@ _HYSETS_RAW_WS = 0
 
 @needs_hysets
 @skip_if_ci
+@pytest.mark.download
 def test_read_hysets_attr_xrdataset():
     """read_attr_xrdataset area matches the raw HYSETS NetCDF drainage_area."""
-    ds = Hysets(HYSETS_PATH)
+    ds = Hysets(HYSETS_PATH, download=hysets_download_enabled())
     area_1 = ds.read_attr_xrdataset(
         gage_id_lst=[_HYSETS_GAUGE], var_lst=["area"]
     )["area"].values
@@ -256,9 +257,10 @@ def test_read_hysets_attr_xrdataset():
 
 @needs_hysets
 @skip_if_ci
+@pytest.mark.download
 def test_read_hysets_timeseries_xrdataset():
     """read_ts_xrdataset streamflow matches the raw HYSETS NetCDF discharge."""
-    ds = Hysets(HYSETS_PATH)
+    ds = Hysets(HYSETS_PATH, download=hysets_download_enabled())
     ts_data = ds.read_ts_xrdataset(
         gage_id_lst=[_HYSETS_GAUGE],
         var_lst=["streamflow"],

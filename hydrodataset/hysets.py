@@ -9,6 +9,62 @@ from tqdm import tqdm
 from aqua_fetch import HYSETS
 from hydrodataset import HydroDataset, StandardVariable
 
+# Environment variable that opts into aqua_fetch's multi-GB OSF downloads.
+HYSETS_DOWNLOAD_ENV = "HYDRODATASET_HYSETS_DOWNLOAD"
+
+
+def hysets_download_enabled() -> bool:
+    """Return True when the caller explicitly allows HYSETS OSF downloads."""
+    return os.getenv(HYSETS_DOWNLOAD_ENV, "").strip().lower() in {
+        "1",
+        "true",
+        "yes",
+    }
+
+
+def hysets_data_dir(uri: str) -> str:
+    """Return the directory aqua_fetch HYSETS uses for catalog files.
+
+    AquaFetch appends the class name to a provided path, so files live under
+    ``{uri}/HYSETS``.
+
+    Args:
+        uri: Dataset root passed to :class:`Hysets`.
+
+    Returns:
+        Absolute (or as-given) HYSETS data directory.
+    """
+    return os.path.join(str(uri), "HYSETS")
+
+
+def hysets_local_files_ready(uri: str) -> bool:
+    """Return True if aqua_fetch HYSETS would not need to download files.
+
+    Args:
+        uri: Dataset root passed to :class:`Hysets`.
+
+    Returns:
+        True when every file in the aqua_fetch HYSETS catalog already exists
+        under ``{uri}/HYSETS``.
+    """
+    catalog = getattr(HYSETS, "url", None) or {}
+    if not catalog:
+        return False
+    data_dir = hysets_data_dir(uri)
+    return all(os.path.isfile(os.path.join(data_dir, fname)) for fname in catalog)
+
+
+def hysets_qc_stations_path(uri: Optional[str]):
+    """Return the QC stations NetCDF path if it exists, else ``None``.
+
+    Args:
+        uri: Dataset root passed to :class:`Hysets`.
+    """
+    if uri is None:
+        return None
+    candidate = os.path.join(hysets_data_dir(uri), "HYSETS_2023_update_QC_stations.nc")
+    return candidate if os.path.isfile(candidate) else None
+
 
 class Hysets(HydroDataset):
     """HYsets dataset class extending RainfallRunoff.
@@ -37,6 +93,24 @@ class Hysets(HydroDataset):
         self.download = download
         # cloud path: aqua_fetch cannot read S3, use cache_*_to_zarr instead
         if str(uri).startswith("s3://"):
+            return
+        self._attach_aqua_fetch(str(uri))
+
+    def _attach_aqua_fetch(self, uri: str) -> None:
+        """Construct aqua_fetch HYSETS, honoring ``download=False``.
+
+        AquaFetch 1.1.x always downloads every missing file in ``HYSETS.url``,
+        including ~8–11 GB ERA5 / ERA5Land NetCDFs, into ``tmp*.tmp`` in the
+        current working directory. When ``download=False``, skip constructing
+        aqua_fetch unless those archives are already on disk.
+
+        Args:
+            uri: Local dataset root.
+        """
+        if self.download:
+            self.aqua_fetch = HYSETS(uri)
+            return
+        if not hysets_local_files_ready(uri):
             return
         self.aqua_fetch = HYSETS(uri)
 
@@ -81,8 +155,9 @@ class Hysets(HydroDataset):
             fs = self._make_s3fs()
             uri = str(self.data_source_dir).rstrip("/")
             with fs.open(f"{uri}/{self._STATIC_REL}".removeprefix("s3://")) as fh:
-                idx = pd.read_csv(fh, index_col="Watershed_ID", sep=",",
-                                  usecols=["Watershed_ID"]).index
+                idx = pd.read_csv(
+                    fh, index_col="Watershed_ID", sep=",", usecols=["Watershed_ID"]
+                ).index
             return np.array(sorted((str(i) for i in idx), key=lambda x: int(x)))
         return super().read_object_ids()
 
@@ -106,7 +181,11 @@ class Hysets(HydroDataset):
         n = len(ids)
         root = zarr.open_group(out, mode="w", storage_options=opts, zarr_format=2)
         for col in static.columns:
-            vals = static[col].values.astype(str) if static[col].dtype == object else static[col].values
+            vals = (
+                static[col].values.astype(str)
+                if static[col].dtype == object
+                else static[col].values
+            )
             arr = root.create_array(col, shape=(n,), chunks=(n,), dtype=vals.dtype)
             arr[:] = vals
             arr.attrs["_ARRAY_DIMENSIONS"] = ["basin"]
@@ -126,7 +205,9 @@ class Hysets(HydroDataset):
 
         stations = self.read_object_ids().tolist()  # Watershed_IDs as strings
         n = len(stations)
-        all_times = pd.date_range(self.default_t_range[0], self.default_t_range[1], freq="D")
+        all_times = pd.date_range(
+            self.default_t_range[0], self.default_t_range[1], freq="D"
+        )
         nt = len(all_times)
         times_ns = all_times.asi8
 
@@ -143,10 +224,17 @@ class Hysets(HydroDataset):
         root = zarr.open_group(out, mode="a", storage_options=opts, zarr_format=2)
         if "basin" not in root:
             for vn in cleaned_var_lst:
-                arr = root.create_array(vn, shape=(n, nt), chunks=(chunk_b, chunk_t),
-                                        dtype="float64", fill_value=np.nan)
+                arr = root.create_array(
+                    vn,
+                    shape=(n, nt),
+                    chunks=(chunk_b, chunk_t),
+                    dtype="float64",
+                    fill_value=np.nan,
+                )
                 arr.attrs["_ARRAY_DIMENSIONS"] = ["basin", "time"]
-            time_arr = root.create_array("time", shape=(nt,), chunks=(chunk_t,), dtype="int64")
+            time_arr = root.create_array(
+                "time", shape=(nt,), chunks=(chunk_t,), dtype="int64"
+            )
             time_arr[:] = times_ns
             time_arr.attrs["_ARRAY_DIMENSIONS"] = ["time"]
             time_arr.attrs["units"] = "nanoseconds since 1970-01-01"
@@ -154,7 +242,9 @@ class Hysets(HydroDataset):
             basin_arr = root.create_array("basin", shape=(n,), chunks=(n,), dtype=str)
             basin_arr[:] = stations
             basin_arr.attrs["_ARRAY_DIMENSIONS"] = ["basin"]
-            prog = root.create_array("_progress", shape=(n,), chunks=(n,), dtype="int8", fill_value=0)
+            prog = root.create_array(
+                "_progress", shape=(n,), chunks=(n,), dtype="int8", fill_value=0
+            )
             prog[:] = 0
             prog.attrs["_ARRAY_DIMENSIONS"] = ["basin"]
             root.attrs["coordinates"] = "basin time"
@@ -169,7 +259,9 @@ class Hysets(HydroDataset):
         import h5py
 
         print(f"Opening ERA5 NetCDF over S3 (lazy, h5py): {nc_path}", flush=True)
-        raw_file = fs.open(nc_path, "rb", block_size=8 * 1024 * 1024, cache_type="readahead")
+        raw_file = fs.open(
+            nc_path, "rb", block_size=8 * 1024 * 1024, cache_type="readahead"
+        )
         h5 = h5py.File(raw_file, "r")
         raw_feats = [
             v.decode() if isinstance(v, bytes) else str(v)
@@ -188,7 +280,10 @@ class Hysets(HydroDataset):
             cleaned = self._clean_feature_names([self._DYN_RENAME.get(feat, feat)])[0]
             if cleaned in cleaned_var_lst:
                 feat_targets[idx] = cleaned
-        print(f"  opened. {n} stations x {nt} timesteps x {len(feat_targets)} vars", flush=True)
+        print(
+            f"  opened. {n} stations x {nt} timesteps x {len(feat_targets)} vars",
+            flush=True,
+        )
 
         n_batches = (n + batch_size - 1) // batch_size
         for start in range(0, n, batch_size):
@@ -464,6 +559,7 @@ class Hysets(HydroDataset):
             except Exception as e:
                 print(f"Batch {batch_num} processing failed: {e}")
                 import traceback
+
                 traceback.print_exc()
                 continue
 
@@ -483,8 +579,11 @@ class Hysets(HydroDataset):
         if self._is_cloud():
             # cloud: base class opens the zarr and handles selection/renaming
             return super().read_ts_xrdataset(
-                gage_id_lst=gage_id_lst, t_range=t_range,
-                var_lst=var_lst, sources=sources, **kwargs,
+                gage_id_lst=gage_id_lst,
+                t_range=t_range,
+                var_lst=var_lst,
+                sources=sources,
+                **kwargs,
             )
         if (
             not hasattr(self, "_dynamic_variable_mapping")

@@ -10,31 +10,66 @@ from hydrodataset import HydroDataset, StandardVariable
 from aqua_fetch import CAMELS_FR
 
 
+def join_site_attributes(
+    station_attrs: pd.DataFrame, site_attrs: pd.DataFrame
+) -> pd.DataFrame:
+    """Join 8-character site attributes onto 10-character station rows.
+
+    CAMELS-FR site files are indexed by ``sit_code_h3`` (8 characters) while
+    per-station files use ``sta_code_h3`` (10 characters). The site id is the
+    station id with the last two characters removed. Several stations can
+    share one site, so this is a one-to-many join.
+
+    A dict of the form ``{stn[:-2]: stn for stn in stations}`` cannot express
+    that relationship: duplicate prefixes overwrite earlier stations and leave
+    their site-level values (including ``sit_area_topo``) as NaN.
+
+    Args:
+        station_attrs: Station-level attribute table indexed by station id.
+        site_attrs: Site-level attribute table indexed by site id.
+
+    Returns:
+        Concatenation of site attributes (aligned to every matching station)
+        and ``station_attrs``. Site columns come first so later duplicate
+        column drops keep the site values.
+    """
+    station_attrs = station_attrs.copy()
+    site_attrs = site_attrs.copy()
+    station_attrs.index = station_attrs.index.astype(str)
+    site_attrs.index = site_attrs.index.astype(str)
+    site_attrs.index.name = "_site_id"
+    site_ids = pd.DataFrame(
+        {"_site_id": station_attrs.index.str[:-2]}, index=station_attrs.index
+    )
+    site_aligned = site_ids.join(site_attrs, on="_site_id").drop(columns=["_site_id"])
+    return pd.concat([site_aligned, station_attrs], axis=1)
+
+
 class CamelsFr(HydroDataset):
 
     _COL_MAP = {
-        "tsd_q_l":           "q_cms_obs",
-        "tsd_q_mm":          "q_mm_obs",
-        "tsd_val_s":         "tsd_val_s",
-        "tsd_val_q":         "tsd_val_q",
-        "tsd_val_m":         "tsd_val_m",
-        "tsd_val_c":         "tsd_val_c",
-        "tsd_val_i":         "tsd_val_i",
-        "tsd_prec":          "pcp_mm",
+        "tsd_q_l": "q_cms_obs",
+        "tsd_q_mm": "q_mm_obs",
+        "tsd_val_s": "tsd_val_s",
+        "tsd_val_q": "tsd_val_q",
+        "tsd_val_m": "tsd_val_m",
+        "tsd_val_c": "tsd_val_c",
+        "tsd_val_i": "tsd_val_i",
+        "tsd_prec": "pcp_mm",
         "tsd_prec_solid_frac": "pcp_mm_solfrac",
-        "tsd_temp":          "airtemp_c_mean",
-        "tsd_pet_ou":        "pet_mm_ou",
-        "tsd_pet_pe":        "pet_mm_pe",
-        "tsd_pet_pm":        "pet_mm_pm",
-        "tsd_wind":          "windspeed_mps",
-        "tsd_humid":         "spechum_gkg",
-        "tsd_rad_dli":       "lwdownrad_wm2",
-        "tsd_rad_ssi":       "solrad_wm2",
-        "tsd_swi_gr":        "tsd_swi_gr",
-        "tsd_swi_isba":      "tsd_swi_isba",
-        "tsd_swe_isba":      "tsd_swe_isba",
-        "tsd_temp_min":      "airtemp_c_min",
-        "tsd_temp_max":      "airtemp_c_max",
+        "tsd_temp": "airtemp_c_mean",
+        "tsd_pet_ou": "pet_mm_ou",
+        "tsd_pet_pe": "pet_mm_pe",
+        "tsd_pet_pm": "pet_mm_pm",
+        "tsd_wind": "windspeed_mps",
+        "tsd_humid": "spechum_gkg",
+        "tsd_rad_dli": "lwdownrad_wm2",
+        "tsd_rad_ssi": "solrad_wm2",
+        "tsd_swi_gr": "tsd_swi_gr",
+        "tsd_swi_isba": "tsd_swi_isba",
+        "tsd_swe_isba": "tsd_swe_isba",
+        "tsd_temp_min": "airtemp_c_min",
+        "tsd_temp_max": "airtemp_c_max",
     }
     # Only one-row-per-station files (654 rows, sta_code_h3 index). AquaFetch
     # skips the long-format soil/topography quantile files (thousands of rows).
@@ -113,17 +148,22 @@ class CamelsFr(HydroDataset):
         uri = str(self.data_source_dir).rstrip("/")
         if self._is_cloud():
             fs = self._make_s3fs()
-            names = [p.split("/")[-1] for p in fs.ls(f"{uri}/{self._TS_REL}".removeprefix("s3://"))]
+            names = [
+                p.split("/")[-1]
+                for p in fs.ls(f"{uri}/{self._TS_REL}".removeprefix("s3://"))
+            ]
         else:
             names = os.listdir(os.path.join(uri, *self._TS_REL.split("/")))
         ids = sorted(
             n.replace("CAMELS_FR_tsd_", "").replace(".csv", "")
-            for n in names if n.startswith("CAMELS_FR_tsd_")
+            for n in names
+            if n.startswith("CAMELS_FR_tsd_")
         )
         return np.array(ids)
 
     def cache_attributes_to_zarr(self) -> None:
         import zarr
+
         fs = self._make_s3fs()
         uri = str(self.data_source_dir).rstrip("/")
         base = f"{uri}/{self._ATTR_REL}"
@@ -132,25 +172,28 @@ class CamelsFr(HydroDataset):
             path = f"{base}/{fname}".removeprefix("s3://")
             try:
                 with fs.open(path) as fh:
-                    df = pd.read_csv(fh, sep=";", index_col="sta_code_h3",
-                                     dtype={"sta_code_h3": str})
+                    df = pd.read_csv(
+                        fh, sep=";", index_col="sta_code_h3", dtype={"sta_code_h3": str}
+                    )
                 df.index = df.index.astype(str)
                 dfs.append(df)
             except Exception as e:
                 print(f"  WARN {fname}: {e}")
         static = pd.concat(dfs, axis=1)
 
-        # site_general is indexed by sit_code_h3 (8 digits) while the per-station
-        # files use sta_code_h3 (10 digits); map by trimming the last 2 digits
-        # so sit_area_topo (catchment area) can be joined.
+        # site_general is indexed by sit_code_h3 (8 chars) while the per-station
+        # files use sta_code_h3 (10 chars). Join on site_id = station_id[:-2]
+        # so every station of a shared site receives sit_area_topo.
         try:
-            site_path = f"{base}/CAMELS_FR_site_general_attributes.csv".removeprefix("s3://")
+            site_path = f"{base}/CAMELS_FR_site_general_attributes.csv".removeprefix(
+                "s3://"
+            )
             with fs.open(site_path) as fh:
-                site = pd.read_csv(fh, sep=";", index_col="sit_code_h3",
-                                   dtype={"sit_code_h3": str})
+                site = pd.read_csv(
+                    fh, sep=";", index_col="sit_code_h3", dtype={"sit_code_h3": str}
+                )
             site.index = site.index.astype(str)
-            site = site.rename(index={stn[:-2]: stn for stn in static.index})
-            static = pd.concat([site, static], axis=1)
+            static = join_site_attributes(static, site)
         except Exception as e:
             print(f"  WARN site_general join failed: {e}")
 
@@ -168,7 +211,11 @@ class CamelsFr(HydroDataset):
         n = len(stations)
         root = zarr.open_group(out, mode="w", storage_options=opts, zarr_format=2)
         for col in static.columns:
-            vals = static[col].values.astype(str) if static[col].dtype == object else static[col].values
+            vals = (
+                static[col].values.astype(str)
+                if static[col].dtype == object
+                else static[col].values
+            )
             arr = root.create_array(col, shape=(n,), chunks=(n,), dtype=vals.dtype)
             arr[:] = vals
             arr.attrs["_ARRAY_DIMENSIONS"] = ["basin"]
@@ -181,12 +228,15 @@ class CamelsFr(HydroDataset):
 
     def cache_timeseries_to_zarr(self) -> None:
         import zarr
+
         fs = self._make_s3fs()
         uri = str(self.data_source_dir).rstrip("/")
         ts_base = f"{uri}/{self._TS_REL}"
 
         stations = self.read_object_ids().tolist()
-        all_times = pd.date_range(self.default_t_range[0], self.default_t_range[1], freq="D")
+        all_times = pd.date_range(
+            self.default_t_range[0], self.default_t_range[1], freq="D"
+        )
         n, nt = len(stations), len(all_times)
         times_ns = all_times.asi8
         all_vars = list(self._COL_MAP.values())
@@ -202,7 +252,9 @@ class CamelsFr(HydroDataset):
                 df = df.reindex(all_times)
                 for raw_col, zarr_vn in self._COL_MAP.items():
                     if raw_col in df.columns:
-                        data[zarr_vn][i] = pd.to_numeric(df[raw_col], errors="coerce").values
+                        data[zarr_vn][i] = pd.to_numeric(
+                            df[raw_col], errors="coerce"
+                        ).values
             except Exception as e:
                 print(f"  WARN {stn}: {e}")
 
@@ -210,11 +262,15 @@ class CamelsFr(HydroDataset):
         out, opts = self._zarr_path_and_opts(zarr_name)
         root = zarr.open_group(out, mode="w", storage_options=opts, zarr_format=2)
         for vn in all_vars:
-            arr = root.create_array(vn, shape=(n, nt), chunks=(min(n, 100), min(nt, 365)), dtype="float64")
+            arr = root.create_array(
+                vn, shape=(n, nt), chunks=(min(n, 100), min(nt, 365)), dtype="float64"
+            )
             arr[:] = data[vn]
             arr.attrs["_ARRAY_DIMENSIONS"] = ["basin", "time"]
 
-        time_arr = root.create_array("time", shape=(nt,), chunks=(min(nt, 365),), dtype="int64")
+        time_arr = root.create_array(
+            "time", shape=(nt,), chunks=(min(nt, 365),), dtype="int64"
+        )
         time_arr[:] = times_ns
         time_arr.attrs["_ARRAY_DIMENSIONS"] = ["time"]
         time_arr.attrs["units"] = "nanoseconds since 1970-01-01"
@@ -258,6 +314,10 @@ class CamelsFr(HydroDataset):
         cache_file = self.cache_dir.joinpath(self._attributes_cache_filename)
         with xr.open_dataset(cache_file) as ds_attr:
             ds_attr = ds_attr.load()  # Load into memory
+
+        # AquaFetch 1.1.x joins site->station with a dict comprehension that
+        # drops sibling stations; rebuild area_km2 from the raw site CSV.
+        ds_attr = self._overlay_joined_site_areas(ds_attr)
 
         print("Calculating p_mean from precipitation timeseries...")
 
@@ -305,6 +365,57 @@ class CamelsFr(HydroDataset):
         print(f"Saving updated attribute cache with p_mean to: {cache_file}")
         ds_attr.to_netcdf(cache_file, mode="w")
         print("Successfully saved attribute cache with p_mean")
+
+    def _overlay_joined_site_areas(self, ds_attr: xr.Dataset) -> xr.Dataset:
+        """Replace cached ``area_km2`` with a one-to-many site join.
+
+        AquaFetch maps sites to stations with ``{stn[:-2]: stn}``, which
+        overwrites duplicate 8-character prefixes and leaves sibling
+        stations as NaN. Rebuild the area column from the raw site_general
+        CSV so local NetCDF caches match the cloud Zarr join.
+
+        Args:
+            ds_attr: Attribute dataset produced by aqua_fetch.
+
+        Returns:
+            The same dataset with ``area_km2`` overwritten from ``sit_area_topo``.
+        """
+        uri = str(self.data_source_dir).rstrip("/")
+        site_path = os.path.join(
+            uri,
+            *self._ATTR_REL.split("/"),
+            "CAMELS_FR_site_general_attributes.csv",
+        )
+        if not os.path.isfile(site_path):
+            return ds_attr
+        site = pd.read_csv(
+            site_path,
+            sep=";",
+            index_col="sit_code_h3",
+            dtype={"sit_code_h3": str},
+        )
+        site.index = site.index.astype(str)
+        if "sit_area_topo" not in site.columns:
+            return ds_attr
+        basins = np.asarray(ds_attr["basin"].values, dtype=str)
+        joined = join_site_attributes(
+            pd.DataFrame(index=basins), site[["sit_area_topo"]]
+        )
+        areas = pd.to_numeric(joined["sit_area_topo"], errors="coerce").to_numpy(
+            dtype=float
+        )
+        area_attrs = (
+            dict(ds_attr["area_km2"].attrs)
+            if "area_km2" in ds_attr
+            else {"units": "km^2"}
+        )
+        ds_attr["area_km2"] = xr.DataArray(
+            areas,
+            coords={"basin": basins},
+            dims=["basin"],
+            attrs=area_attrs,
+        )
+        return ds_attr
 
     # get the information of features from dataset file"CAMELS-FR_description"
     _subclass_static_definitions = {
@@ -387,7 +498,7 @@ class CamelsFr(HydroDataset):
                 "gr": {"specific_name": "tsd_swi_gr", "unit": "mm/day"},
                 "isba": {"specific_name": "tsd_swi_isba", "unit": "mm/day"},
             },
-        },      
+        },
         StandardVariable.SPECIFIC_HUMIDITY: {
             "default_source": "isba_model",
             "sources": {
@@ -395,4 +506,3 @@ class CamelsFr(HydroDataset):
             },
         },
     }
-

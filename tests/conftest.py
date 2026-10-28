@@ -14,6 +14,10 @@ def pytest_configure(config):
         "markers",
         "integration: test that requires real dataset data on disk",
     )
+    config.addinivalue_line(
+        "markers",
+        "download: test that may download large remote datasets",
+    )
 
 
 # ── Shared marker ──────────────────────────────────────────────────────
